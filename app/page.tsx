@@ -119,12 +119,12 @@ export default function HomePage() {
             animate={{ opacity: 1, x: 0 }}
             className="flex items-center gap-4"
           >
-            <Link href="/dashboard">
+            <Link href="/login">
               <BrutalButton variant="ghost" size="sm">
-                Dashboard
+                Sign In
               </BrutalButton>
             </Link>
-            <Link href="/onboarding">
+            <Link href="/register">
               <BrutalButton color="yellow" size="sm">
                 Start Free
               </BrutalButton>
@@ -155,7 +155,7 @@ export default function HomePage() {
                 and tracks your progress every week.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
-                <Link href="/onboarding">
+                <Link href="/register">
                   <BrutalButton color="yellow" size="lg" className="w-full sm:w-auto">
                     Start Skill Check
                     <ArrowRight className="w-5 h-5" />
@@ -424,7 +424,7 @@ export default function HomePage() {
               Join thousands of developers who have used SkillPath to launch their careers.
               It takes just 5 minutes to get started.
             </p>
-            <Link href="/onboarding">
+            <Link href="/register">
               <BrutalButton color="black" size="lg">
                 Start Your Journey
                 <ArrowRight className="w-5 h-5" />

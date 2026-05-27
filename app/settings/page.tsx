@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import { AppShell, Container, GradientBackground } from '@/components/layout'
 import { DashboardHeader } from '@/components/layout/dashboard-header'
 import { BrutalCard, BrutalButton } from '@/components/brutal'
+import { LogoutButton } from '@/components/auth/logout-button'
 import { cn } from '@/lib/utils'
 import { resetOnboarding } from '@/lib/user/profile'
 import { User, Bell, Shield, Palette, Save, Github, ExternalLink, RefreshCw } from 'lucide-react'
@@ -364,6 +365,17 @@ export default function SettingsPage() {
                           <BrutalButton variant="outline" color="black" size="sm">
                             Disconnect
                           </BrutalButton>
+                        </div>
+                      </div>
+
+                      <div className="pt-6 border-t-2 border-gray-200">
+                        <h3 className="font-medium mb-2">Session</h3>
+                        <div className="flex items-center justify-between p-4 bg-gray-50 brutal-border brutal-radius">
+                          <div>
+                            <p className="font-medium">Sign out of your account</p>
+                            <p className="text-sm text-gray-500">You will be redirected to the login page</p>
+                          </div>
+                          <LogoutButton color="red" size="sm" />
                         </div>
                       </div>
 

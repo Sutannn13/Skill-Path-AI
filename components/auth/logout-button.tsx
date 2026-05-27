@@ -2,9 +2,10 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { LogOut, Loader2 } from 'lucide-react'
+import { LogOut } from 'lucide-react'
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser'
 import { BrutalButton } from '@/components/brutal'
+import { cn } from '@/lib/utils'
 
 interface LogoutButtonProps {
   variant?: 'button' | 'link'
@@ -23,40 +24,56 @@ export function LogoutButton({
 }: LogoutButtonProps) {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   const supabase = createSupabaseBrowserClient()
 
   const handleLogout = async () => {
     setIsLoading(true)
+    setErrorMessage(null)
 
-    if (supabase) {
-      await supabase.auth.signOut()
+    try {
+      if (supabase) {
+        const { error } = await supabase.auth.signOut()
+
+        if (error) {
+          throw error
+        }
+      }
+
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('skillpath_profile')
+        localStorage.removeItem('skillpath_user_skills')
+        localStorage.removeItem('skillpath_onboarding_completed')
+        localStorage.removeItem('skillpath_user_profile')
+      }
+
+      router.push(redirectTo)
+      router.refresh()
+    } catch (error) {
+      console.error('[Auth] Failed to sign out:', error)
+      setErrorMessage('Failed to sign out. Please try again.')
+      setIsLoading(false)
     }
-
-    // Clear local storage profile data
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('skillpath_profile')
-      localStorage.removeItem('skillpath_user_skills')
-      localStorage.removeItem('skillpath_onboarding_completed')
-      localStorage.removeItem('skillpath_user_profile')
-    }
-
-    router.push(redirectTo)
-    router.refresh()
   }
 
   return (
-    <BrutalButton
-      onClick={handleLogout}
-      variant={variant === 'link' ? 'ghost' : 'outline'}
-      color={color}
-      size={size}
-      loading={isLoading}
-      className={className}
-      disabled={isLoading}
-    >
-      <LogOut className="w-4 h-4" />
-      {isLoading ? 'Signing out...' : 'Logout'}
-    </BrutalButton>
+    <div className={cn('flex flex-col items-start gap-1', className)}>
+      <BrutalButton
+        onClick={handleLogout}
+        variant={variant === 'link' ? 'ghost' : 'outline'}
+        color={color}
+        size={size}
+        loading={isLoading}
+        disabled={isLoading}
+      >
+        <LogOut className="w-4 h-4" />
+        {isLoading ? 'Signing out...' : 'Logout'}
+      </BrutalButton>
+
+      {errorMessage && (
+        <p className="text-xs font-medium text-red">{errorMessage}</p>
+      )}
+    </div>
   )
 }

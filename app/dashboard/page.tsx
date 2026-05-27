@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { AppShell, Container, Section, Grid, GradientBackground } from '@/components/layout'
@@ -13,17 +14,65 @@ import {
   Flame,
   ArrowRight,
   CheckCircle2,
+  AlertCircle,
 } from 'lucide-react'
+import { createSupabaseBrowserClient } from '@/lib/supabase/browser'
+import { initializeUserProfile } from '@/lib/user/profile'
+import { calculateSkillGap } from '@/lib/scoring/skill-gap'
+import { getRequiredSkillIds, getNiceToHaveSkillIds, getRoleById, getSkillById } from '@/lib/constants'
+import type { SkillLevel, TargetRole, UserSkill } from '@/types'
 
-// Mock data for demonstration
-const mockStats = {
+interface ProfileRow {
+  full_name: string | null
+  target_role: TargetRole | null
+  onboarding_completed: boolean | null
+}
+
+interface UserSkillRow {
+  skill_slug: string
+  level: number
+}
+
+interface DashboardState {
+  isDemoMode: boolean
+  isLoading: boolean
+  hasSupabaseSession: boolean
+  needsOnboarding: boolean
+  fullName: string | null
+  targetRole: TargetRole | null
+  targetRoleLabel: string
+  onboardingCompleted: boolean
+  careerReadiness: number
+  jobMatchScore: number | null
+  weeklyProgress: number
+  streak: number
+  githubScore: number | null
+  nextRecommendedSkill: string | null
+  recommendedSkills: string[]
+  skillsCount: number
+  scoreNotice: string | null
+  error: string | null
+}
+
+const initialDashboardState: DashboardState = {
+  isDemoMode: true,
+  isLoading: true,
+  hasSupabaseSession: false,
+  needsOnboarding: false,
+  fullName: null,
+  targetRole: null,
+  targetRoleLabel: 'Developer',
+  onboardingCompleted: false,
   careerReadiness: 72,
   jobMatchScore: 85,
-  currentRole: 'Frontend Developer',
   weeklyProgress: 60,
   streak: 5,
   githubScore: 68,
-  roadmapProgress: 40,
+  nextRecommendedSkill: 'TypeScript',
+  recommendedSkills: ['TypeScript', 'Testing', 'API Integration'],
+  skillsCount: 0,
+  scoreNotice: null,
+  error: null,
 }
 
 const mockActivities = [
@@ -32,12 +81,204 @@ const mockActivities = [
   { id: 3, text: 'Saved Frontend Developer Intern job', time: 'Yesterday', icon: Briefcase },
 ]
 
+function clampSkillLevel(value: number): SkillLevel {
+  return Math.max(0, Math.min(4, Number(value))) as SkillLevel
+}
+
 export default function DashboardPage() {
+  const supabase = useMemo(() => createSupabaseBrowserClient(), [])
+  const [state, setState] = useState<DashboardState>(initialDashboardState)
+
+  useEffect(() => {
+    let isActive = true
+
+    const loadDashboard = async () => {
+      if (supabase) {
+        const {
+          data: { user },
+          error: userError,
+        } = await supabase.auth.getUser()
+
+        if (userError) {
+          if (isActive) {
+            setState((prev) => ({
+              ...prev,
+              isLoading: false,
+              error: `Failed to validate session: ${userError.message}`,
+            }))
+          }
+          return
+        }
+
+        if (user) {
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('full_name, target_role, onboarding_completed')
+            .eq('id', user.id)
+            .maybeSingle()
+
+          if (profileError) {
+            if (isActive) {
+              setState((prev) => ({
+                ...prev,
+                isLoading: false,
+                hasSupabaseSession: true,
+                isDemoMode: false,
+                error: `Failed to load profile: ${profileError.message}`,
+              }))
+            }
+            return
+          }
+
+          const typedProfile = profile as ProfileRow | null
+          const onboardingCompleted = typedProfile?.onboarding_completed === true
+          const targetRole = typedProfile?.target_role ?? null
+          const targetRoleLabel = targetRole ? (getRoleById(targetRole)?.label ?? 'Developer') : 'Developer'
+
+          const { data: userSkills, error: skillsError } = await supabase
+            .from('user_skills')
+            .select('skill_slug, level')
+            .eq('user_id', user.id)
+
+          if (skillsError) {
+            if (isActive) {
+              setState((prev) => ({
+                ...prev,
+                isLoading: false,
+                hasSupabaseSession: true,
+                isDemoMode: false,
+                fullName: typedProfile?.full_name ?? null,
+                targetRole,
+                targetRoleLabel,
+                onboardingCompleted,
+                needsOnboarding: !onboardingCompleted,
+                error: `Failed to load skills: ${skillsError.message}`,
+              }))
+            }
+            return
+          }
+
+          const typedSkills = (userSkills ?? []) as UserSkillRow[]
+          const mappedUserSkills: UserSkill[] = typedSkills.map((item) => {
+            const mappedSkill = getSkillById(item.skill_slug)
+
+            return {
+              skillId: mappedSkill?.id ?? item.skill_slug,
+              level: clampSkillLevel(item.level),
+            }
+          })
+
+          if (!targetRole || mappedUserSkills.length === 0) {
+            if (isActive) {
+              setState({
+                ...initialDashboardState,
+                isDemoMode: false,
+                isLoading: false,
+                hasSupabaseSession: true,
+                needsOnboarding: !onboardingCompleted,
+                fullName: typedProfile?.full_name ?? null,
+                targetRole,
+                targetRoleLabel,
+                onboardingCompleted,
+                careerReadiness: 0,
+                jobMatchScore: null,
+                weeklyProgress: 0,
+                nextRecommendedSkill: null,
+                recommendedSkills: [],
+                skillsCount: mappedUserSkills.length,
+                scoreNotice: 'Complete onboarding to calculate your score',
+              })
+            }
+            return
+          }
+
+          const skillGap = calculateSkillGap({
+            userSkills: mappedUserSkills,
+            targetRole,
+            requiredSkillIds: getRequiredSkillIds(targetRole),
+            niceToHaveSkillIds: getNiceToHaveSkillIds(targetRole),
+          })
+
+          if (isActive) {
+            setState({
+              ...initialDashboardState,
+              isDemoMode: false,
+              isLoading: false,
+              hasSupabaseSession: true,
+              needsOnboarding: !onboardingCompleted,
+              fullName: typedProfile?.full_name ?? null,
+              targetRole,
+              targetRoleLabel,
+              onboardingCompleted,
+              careerReadiness: Math.round(skillGap.weightedMatchScore),
+              jobMatchScore: Math.round(skillGap.matchScore),
+              weeklyProgress: Math.min(100, Math.round(skillGap.weightedMatchScore * 0.7)),
+              streak: onboardingCompleted ? 3 : 0,
+              nextRecommendedSkill: skillGap.recommendedNextSkills[0] ?? null,
+              recommendedSkills:
+                skillGap.recommendedNextSkills.length > 0
+                  ? skillGap.recommendedNextSkills.slice(0, 3)
+                  : ['TypeScript', 'Testing', 'API Integration'],
+              skillsCount: mappedUserSkills.length,
+              scoreNotice: null,
+            })
+          }
+          return
+        }
+      }
+
+      const localProfile = initializeUserProfile()
+      const fallbackRole = localProfile.targetRole
+      const fallbackRoleLabel = fallbackRole ? (getRoleById(fallbackRole)?.label ?? 'Developer') : 'Developer'
+
+      if (isActive) {
+        setState({
+          ...initialDashboardState,
+          isLoading: false,
+          isDemoMode: true,
+          fullName: null,
+          targetRole: fallbackRole,
+          targetRoleLabel: fallbackRoleLabel,
+          onboardingCompleted: localProfile.onboardingCompleted,
+          needsOnboarding: !localProfile.onboardingCompleted,
+          scoreNotice: localProfile.skills.length === 0 ? 'Complete onboarding to calculate your score' : null,
+          skillsCount: localProfile.skills.length,
+        })
+      }
+    }
+
+    loadDashboard()
+
+    return () => {
+      isActive = false
+    }
+  }, [supabase])
+
+  const welcomeName = state.fullName || state.targetRoleLabel || 'Developer'
+
+  if (state.isLoading) {
+    return (
+      <AppShell showBottomNav={true}>
+        <GradientBackground />
+        <div className="flex-1">
+          <DashboardHeader
+            title="Dashboard"
+            subtitle="Your career progress at a glance"
+          />
+          <Container className="py-6">
+            <BrutalCard color="white" shadow="sm">
+              <p className="font-medium">Loading your dashboard data...</p>
+            </BrutalCard>
+          </Container>
+        </div>
+      </AppShell>
+    )
+  }
+
   return (
     <AppShell showBottomNav={true}>
       <GradientBackground />
 
-      {/* Main Content */}
       <div className="flex-1">
         <DashboardHeader
           title="Dashboard"
@@ -46,7 +287,35 @@ export default function DashboardPage() {
 
         <Container className="py-6">
           <div className="space-y-8">
-            {/* Welcome Section */}
+            {state.error && (
+              <BrutalCard color="red" className="flex items-start gap-3">
+                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
+                <div>
+                  <p className="font-bold">Failed to load dashboard data</p>
+                  <p className="text-sm text-black/70">{state.error}</p>
+                </div>
+              </BrutalCard>
+            )}
+
+            {state.needsOnboarding && (
+              <BrutalCard color="yellow" shadow="sm">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h2 className="font-display text-xl font-bold">Complete your onboarding first</h2>
+                    <p className="text-sm text-black/70">
+                      Your profile is not complete yet. Finish onboarding to unlock real score calculation and personalized recommendations.
+                    </p>
+                  </div>
+                  <Link href="/onboarding">
+                    <BrutalButton color="black" size="sm">
+                      Go to Onboarding
+                      <ArrowRight className="h-4 w-4" />
+                    </BrutalButton>
+                  </Link>
+                </div>
+              </BrutalCard>
+            )}
+
             <motion.div
               initial={false}
               animate={{ opacity: 1, y: 0 }}
@@ -54,15 +323,27 @@ export default function DashboardPage() {
               <BrutalCard color="yellow" shadow="lg" className="relative overflow-hidden">
                 <div className="relative z-10">
                   <h2 className="font-display font-bold text-2xl mb-2">
-                    Welcome back, Developer!
+                    Welcome back, {welcomeName}!
                   </h2>
                   <p className="text-black/70 mb-4">
-                    You are making great progress. Keep up the momentum!
+                    {state.isDemoMode
+                      ? 'You are in demo mode. Connect Supabase to load your real progress.'
+                      : state.onboardingCompleted
+                        ? 'Your progress cards are using your real Supabase profile data.'
+                        : 'Finish onboarding so we can generate your personalized roadmap and scores.'}
                   </p>
-                  <div className="flex items-center gap-4">
+                  <div className="flex flex-wrap items-center gap-3">
                     <div className="flex items-center gap-2 bg-black/10 px-3 py-1 brutal-radius">
                       <Flame className="w-5 h-5" />
-                      <span className="font-bold">{mockStats.streak} day streak</span>
+                      <span className="font-bold">{state.streak} day streak</span>
+                    </div>
+                    <div className="flex items-center gap-2 bg-black/10 px-3 py-1 brutal-radius">
+                      <span className="font-bold">
+                        {state.onboardingCompleted ? 'Onboarding Complete' : 'Onboarding Pending'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 bg-black/10 px-3 py-1 brutal-radius">
+                      <span className="font-bold">{state.targetRoleLabel}</span>
                     </div>
                     <Link href="/sprint">
                       <BrutalButton variant="outline" color="black" size="sm">
@@ -72,7 +353,6 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                {/* Decorative elements */}
                 <FloatingSticker
                   icon="rocket"
                   color="orange"
@@ -83,7 +363,6 @@ export default function DashboardPage() {
               </BrutalCard>
             </motion.div>
 
-            {/* Stats Cards */}
             <Section title="Your Progress">
               <Grid cols={2}>
                 <motion.div
@@ -92,9 +371,9 @@ export default function DashboardPage() {
                   transition={{ delay: 0.1 }}
                 >
                   <BrutalCard color="blue" className="text-center h-full">
-                    <ScoreMeter score={mockStats.careerReadiness} label="Career Readiness" size="lg" />
+                    <ScoreMeter score={state.careerReadiness} label="Career Readiness" size="lg" />
                     <p className="text-sm text-black/70 mt-4">
-                      You are getting close to your goal!
+                      {state.scoreNotice ?? 'Calculated from your saved profile and skill levels.'}
                     </p>
                   </BrutalCard>
                 </motion.div>
@@ -105,9 +384,11 @@ export default function DashboardPage() {
                   transition={{ delay: 0.2 }}
                 >
                   <BrutalCard color="pink" className="text-center h-full">
-                    <ScoreMeter score={mockStats.jobMatchScore} label="Job Match Score" size="lg" />
+                    <ScoreMeter score={state.jobMatchScore ?? 0} label="Job Match Score" size="lg" />
                     <p className="text-sm text-black/70 mt-4">
-                      Best current fit for {mockStats.currentRole}
+                      {state.jobMatchScore === null
+                        ? 'Complete onboarding to calculate your score'
+                        : `Best current fit for ${state.targetRoleLabel}`}
                     </p>
                   </BrutalCard>
                 </motion.div>
@@ -123,12 +404,14 @@ export default function DashboardPage() {
                       <Calendar className="w-6 h-6" />
                     </div>
                     <ScoreBar
-                      score={mockStats.weeklyProgress}
+                      score={state.weeklyProgress}
                       label="Week Progress"
                       color="black"
                     />
                     <div className="mt-4 flex items-center justify-between">
-                      <span className="text-sm text-black/70">3 of 5 tasks done</span>
+                      <span className="text-sm text-black/70">
+                        {state.skillsCount > 0 ? `${state.skillsCount} skills tracked` : 'No skill data yet'}
+                      </span>
                       <Link href="/sprint">
                         <span className="text-sm font-bold underline">Continue</span>
                       </Link>
@@ -146,14 +429,16 @@ export default function DashboardPage() {
                       <h3 className="font-display font-bold text-lg">Next Recommended Skill</h3>
                       <Zap className="w-6 h-6" />
                     </div>
-                    <p className="text-2xl font-bold mb-2">TypeScript</p>
+                    <p className="text-2xl font-bold mb-2">{state.nextRecommendedSkill ?? 'Complete onboarding first'}</p>
                     <p className="text-sm text-black/70 mb-4">
-                      Highest leverage skill for stronger frontend job matches.
+                      {state.nextRecommendedSkill
+                        ? 'Highest leverage skill based on your current profile.'
+                        : 'Skill recommendations appear after your onboarding and skill assessment are saved.'}
                     </p>
                     <div className="mt-4">
-                      <Link href="/skills?focus=typescript">
+                      <Link href={state.nextRecommendedSkill ? `/skills?focus=${state.nextRecommendedSkill.toLowerCase().replace(/\s+/g, '-')}` : '/onboarding'}>
                         <BrutalButton variant="outline" color="black" size="sm" className="w-full">
-                          Update Skill Level
+                          {state.nextRecommendedSkill ? 'Update Skill Level' : 'Go to Onboarding'}
                         </BrutalButton>
                       </Link>
                     </div>
@@ -162,17 +447,16 @@ export default function DashboardPage() {
               </Grid>
             </Section>
 
-            {/* Skills Section */}
             <Section title="Recommended Skills to Learn">
               <div className="flex flex-wrap gap-3">
-                {['TypeScript', 'Testing', 'API Integration'].map((skill, i) => (
+                {(state.recommendedSkills.length > 0 ? state.recommendedSkills : ['TypeScript', 'Testing', 'API Integration']).map((skill, i) => (
                   <motion.div
                     key={skill}
                     initial={false}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: 0.5 + i * 0.1 }}
                   >
-                    <Link href={`/skills?focus=${skill.toLowerCase().replace(' ', '-')}`}>
+                    <Link href={`/skills?focus=${skill.toLowerCase().replace(/\s+/g, '-')}`}>
                       <BrutalCardHover color={['yellow', 'blue', 'pink'][i % 3] as 'yellow' | 'blue' | 'pink'}>
                         <div className="flex items-center gap-3">
                           <span className="font-bold">{skill}</span>
@@ -185,7 +469,6 @@ export default function DashboardPage() {
               </div>
             </Section>
 
-            {/* Job Match Section */}
             <Section title="Best Match Jobs">
               <BrutalCard color="white" shadow="sm">
                 <div className="flex items-center justify-between mb-4">
@@ -199,7 +482,7 @@ export default function DashboardPage() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <span className="text-2xl font-bold text-green">{mockStats.jobMatchScore}%</span>
+                    <span className="text-2xl font-bold text-green">{state.jobMatchScore ?? 0}%</span>
                     <p className="text-xs text-gray-500">match</p>
                   </div>
                 </div>
@@ -223,7 +506,6 @@ export default function DashboardPage() {
               </BrutalCard>
             </Section>
 
-            {/* GitHub Score */}
             <Section title="GitHub Portfolio">
               <BrutalCard color="purple" className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
@@ -234,7 +516,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
                 <div className="text-center">
-                  <span className="text-4xl font-bold">{mockStats.githubScore}</span>
+                  <span className="text-4xl font-bold">{state.githubScore ?? 0}</span>
                   <span className="text-lg">/100</span>
                 </div>
                 <Link href="/github">
@@ -245,7 +527,6 @@ export default function DashboardPage() {
               </BrutalCard>
             </Section>
 
-            {/* Recent Activity */}
             <Section title="Recent Activity">
               <div className="space-y-3">
                 {mockActivities.map((activity, i) => (

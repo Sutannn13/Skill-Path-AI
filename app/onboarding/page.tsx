@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { AppShell, Container, GradientBackground } from '@/components/layout'
@@ -19,15 +19,11 @@ import {
   Edit3,
   User,
 } from 'lucide-react'
-import { TARGET_ROLES, CURRENT_LEVELS, GOALS, STUDY_TIMES } from '@/lib/constants'
-import { SKILLS, SKILL_LEVEL_LABELS } from '@/lib/constants'
+import { TARGET_ROLES, CURRENT_LEVELS, GOALS, STUDY_TIMES, SKILLS, getSkillById } from '@/lib/constants'
 import { SkillLevel, TargetRole, CurrentLevel, GoalType, StudyTime } from '@/types'
 import { cn } from '@/lib/utils'
-import {
-  initializeUserProfile,
-  completeOnboarding,
-  resetOnboarding,
-} from '@/lib/user/profile'
+import { initializeUserProfile, completeOnboarding as completeLocalOnboarding, resetOnboarding as resetLocalOnboarding } from '@/lib/user/profile'
+import { createSupabaseBrowserClient } from '@/lib/supabase/browser'
 
 const TOTAL_STEPS = 6
 
@@ -40,12 +36,37 @@ interface FormData {
   githubUsername: string
 }
 
+interface ProfileRow {
+  id: string
+  full_name: string | null
+  target_role: TargetRole | null
+  current_level: CurrentLevel | null
+  goal: GoalType | null
+  study_time: StudyTime | null
+  github_username: string | null
+  onboarding_completed: boolean | null
+}
+
+interface UserSkillRow {
+  user_id: string
+  skill_slug: string
+  level: SkillLevel
+}
+
+interface StatusMessage {
+  type: 'success' | 'error'
+  text: string
+}
+
 export default function OnboardingPage() {
   const router = useRouter()
+  const supabase = useMemo(() => createSupabaseBrowserClient(), [])
   const [currentStep, setCurrentStep] = useState(0)
   const [isEditMode, setIsEditMode] = useState(false)
   const [isCompleted, setIsCompleted] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [statusMessage, setStatusMessage] = useState<StatusMessage | null>(null)
   const [formData, setFormData] = useState<FormData>({
     targetRole: '',
     currentLevel: '',
@@ -55,46 +76,214 @@ export default function OnboardingPage() {
     githubUsername: '',
   })
 
+  const mapSkillsToFormData = (skills: { skill_slug: string; level: number }[]) => {
+    return skills.reduce<Record<string, SkillLevel>>((acc, skill) => {
+      const mapped = getSkillById(skill.skill_slug)
+      const level = Math.max(0, Math.min(4, Number(skill.level))) as SkillLevel
+      const key = mapped?.id ?? skill.skill_slug
+      acc[key] = level
+      return acc
+    }, {})
+  }
+
+  const syncLocalProfile = (values: FormData) => {
+    completeLocalOnboarding({
+      targetRole: values.targetRole as TargetRole,
+      currentLevel: values.currentLevel as CurrentLevel,
+      goal: values.goal as GoalType,
+      studyTime: values.studyTime as StudyTime,
+      githubUsername: values.githubUsername,
+      skills: Object.entries(values.skills).map(([skillId, level]) => ({
+        skillId,
+        level,
+      })),
+    })
+  }
+
   // Load saved profile on mount
   useEffect(() => {
-    const profile = initializeUserProfile()
+    let isActive = true
 
-    if (profile.onboardingCompleted && profile.targetRole) {
-      setIsCompleted(true)
-      setFormData({
-        targetRole: profile.targetRole || '',
-        currentLevel: profile.currentLevel || '',
-        goal: profile.goal || '',
-        studyTime: profile.studyTime || '',
-        skills: profile.skills.reduce((acc, s) => ({ ...acc, [s.skillId]: s.level }), {}),
-        githubUsername: profile.githubUsername || '',
-      })
+    const loadProfile = async () => {
+      setIsLoading(true)
+      setStatusMessage(null)
+
+      if (supabase) {
+        const {
+          data: { user },
+          error: userError,
+        } = await supabase.auth.getUser()
+
+        if (userError) {
+          if (isActive) {
+            setStatusMessage({ type: 'error', text: 'Failed to validate your session. Using demo mode.' })
+          }
+        } else if (user) {
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('id, full_name, target_role, current_level, goal, study_time, github_username, onboarding_completed')
+            .eq('id', user.id)
+            .maybeSingle<ProfileRow>()
+
+          if (profileError) {
+            if (isActive) {
+              setStatusMessage({ type: 'error', text: `Failed to load profile: ${profileError.message}` })
+              setIsLoading(false)
+            }
+            return
+          }
+
+          const { data: skills, error: skillsError } = await supabase
+            .from('user_skills')
+            .select('skill_slug, level')
+            .eq('user_id', user.id)
+            .returns<{ skill_slug: string; level: number }[]>()
+
+          if (skillsError) {
+            if (isActive) {
+              setStatusMessage({ type: 'error', text: `Failed to load skills: ${skillsError.message}` })
+              setIsLoading(false)
+            }
+            return
+          }
+
+          const nextFormData: FormData = {
+            targetRole: profile?.target_role ?? '',
+            currentLevel: profile?.current_level ?? '',
+            goal: profile?.goal ?? '',
+            studyTime: profile?.study_time ?? '',
+            skills: mapSkillsToFormData(skills ?? []),
+            githubUsername: profile?.github_username ?? '',
+          }
+
+          if (isActive) {
+            setFormData(nextFormData)
+            setIsCompleted(profile?.onboarding_completed === true)
+            setIsLoading(false)
+          }
+          return
+        }
+      }
+
+      const profile = initializeUserProfile()
+
+      if (!isActive) {
+        return
+      }
+
+      if (profile.onboardingCompleted && profile.targetRole) {
+        setIsCompleted(true)
+        setFormData({
+          targetRole: profile.targetRole || '',
+          currentLevel: profile.currentLevel || '',
+          goal: profile.goal || '',
+          studyTime: profile.studyTime || '',
+          skills: profile.skills.reduce((acc, s) => ({ ...acc, [s.skillId]: s.level }), {}),
+          githubUsername: profile.githubUsername || '',
+        })
+      }
+
+      setIsLoading(false)
     }
 
-    setIsLoading(false)
-  }, [])
+    loadProfile()
+
+    return () => {
+      isActive = false
+    }
+  }, [supabase])
 
   const updateFormData = (field: string, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
-  const nextStep = () => {
+  const completeOnboardingFlow = async () => {
+    setStatusMessage(null)
+
+    if (!formData.targetRole || !formData.currentLevel || !formData.goal || !formData.studyTime) {
+      setStatusMessage({ type: 'error', text: 'Please complete all required fields before continuing.' })
+      return
+    }
+
+    setIsSubmitting(true)
+
+    if (supabase) {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser()
+
+      if (userError) {
+        setStatusMessage({ type: 'error', text: `Failed to validate session: ${userError.message}` })
+        setIsSubmitting(false)
+        return
+      }
+
+      if (user) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({
+            target_role: formData.targetRole,
+            current_level: formData.currentLevel,
+            goal: formData.goal,
+            study_time: formData.studyTime,
+            github_username: formData.githubUsername.trim() || null,
+            onboarding_completed: true,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', user.id)
+
+        if (profileError) {
+          setStatusMessage({ type: 'error', text: `Failed to save profile: ${profileError.message}` })
+          setIsSubmitting(false)
+          return
+        }
+
+        const skillRows: UserSkillRow[] = Object.entries(formData.skills).map(([skillId, level]) => {
+          const mappedSkill = getSkillById(skillId)
+
+          return {
+            user_id: user.id,
+            skill_slug: mappedSkill?.slug ?? skillId,
+            level,
+          }
+        })
+
+        if (skillRows.length > 0) {
+          const { error: skillsError } = await supabase
+            .from('user_skills')
+            .upsert(skillRows, { onConflict: 'user_id,skill_slug' })
+
+          if (skillsError) {
+            setStatusMessage({ type: 'error', text: `Failed to save skills: ${skillsError.message}` })
+            setIsSubmitting(false)
+            return
+          }
+        }
+
+        syncLocalProfile(formData)
+        setStatusMessage({ type: 'success', text: 'Career profile saved successfully. Redirecting to dashboard...' })
+        setTimeout(() => {
+          router.push('/dashboard')
+          router.refresh()
+        }, 600)
+        return
+      }
+    }
+
+    syncLocalProfile(formData)
+    setStatusMessage({ type: 'success', text: 'Demo profile saved. Redirecting to dashboard...' })
+    setTimeout(() => {
+      router.push('/dashboard')
+      router.refresh()
+    }, 600)
+  }
+
+  const nextStep = async () => {
     if (currentStep < TOTAL_STEPS - 1) {
       setCurrentStep((prev) => prev + 1)
     } else {
-      // Complete onboarding
-      completeOnboarding({
-        targetRole: formData.targetRole as TargetRole,
-        currentLevel: formData.currentLevel as CurrentLevel,
-        goal: formData.goal as GoalType,
-        studyTime: formData.studyTime as StudyTime,
-        githubUsername: formData.githubUsername,
-        skills: Object.entries(formData.skills).map(([skillId, level]) => ({
-          skillId,
-          level,
-        })),
-      })
-      router.push('/dashboard')
+      await completeOnboardingFlow()
     }
   }
 
@@ -129,8 +318,56 @@ export default function OnboardingPage() {
     setCurrentStep(0)
   }
 
-  const handleResetOnboarding = () => {
-    resetOnboarding()
+  const handleResetOnboarding = async () => {
+    setStatusMessage(null)
+    setIsSubmitting(true)
+
+    if (supabase) {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser()
+
+      if (userError) {
+        setStatusMessage({ type: 'error', text: `Failed to validate session: ${userError.message}` })
+        setIsSubmitting(false)
+        return
+      }
+
+      if (user) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({
+            target_role: null,
+            current_level: null,
+            goal: null,
+            study_time: null,
+            github_username: null,
+            onboarding_completed: false,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', user.id)
+
+        if (profileError) {
+          setStatusMessage({ type: 'error', text: `Failed to reset profile: ${profileError.message}` })
+          setIsSubmitting(false)
+          return
+        }
+
+        const { error: deleteSkillsError } = await supabase
+          .from('user_skills')
+          .delete()
+          .eq('user_id', user.id)
+
+        if (deleteSkillsError) {
+          setStatusMessage({ type: 'error', text: `Failed to reset skills: ${deleteSkillsError.message}` })
+          setIsSubmitting(false)
+          return
+        }
+      }
+    }
+
+    resetLocalOnboarding()
     setFormData({
       targetRole: '',
       currentLevel: '',
@@ -142,6 +379,8 @@ export default function OnboardingPage() {
     setIsEditMode(false)
     setIsCompleted(false)
     setCurrentStep(0)
+    setStatusMessage({ type: 'success', text: 'Onboarding was reset. You can set your career profile again.' })
+    setIsSubmitting(false)
   }
 
   const handleBackToDashboard = () => {
@@ -207,6 +446,15 @@ export default function OnboardingPage() {
             animate={{ opacity: 1, y: 0 }}
             className="max-w-2xl mx-auto"
           >
+            {statusMessage && (
+              <BrutalCard
+                color={statusMessage.type === 'success' ? 'green' : 'red'}
+                className="mb-6"
+              >
+                <p className="font-medium">{statusMessage.text}</p>
+              </BrutalCard>
+            )}
+
             {/* Success Message */}
             <BrutalCard color="green" className="text-center mb-8">
               <div className="w-16 h-16 bg-green/20 brutal-border brutal-radius flex items-center justify-center mx-auto mb-4">
@@ -287,14 +535,20 @@ export default function OnboardingPage() {
 
             {/* Actions */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <BrutalButton color="yellow" onClick={handleBackToDashboard}>
+              <BrutalButton color="yellow" onClick={handleBackToDashboard} disabled={isSubmitting}>
                 Go to Dashboard
               </BrutalButton>
-              <BrutalButton variant="outline" color="black" onClick={handleEditProfile}>
+              <BrutalButton variant="outline" color="black" onClick={handleEditProfile} disabled={isSubmitting}>
                 <Edit3 className="w-4 h-4 mr-2" />
                 Edit Career Profile
               </BrutalButton>
-              <BrutalButton variant="ghost" color="red" onClick={handleResetOnboarding}>
+              <BrutalButton
+                variant="ghost"
+                color="red"
+                onClick={handleResetOnboarding}
+                loading={isSubmitting}
+                disabled={isSubmitting}
+              >
                 <RefreshCw className="w-4 h-4 mr-2" />
                 Reset Onboarding
               </BrutalButton>
@@ -346,6 +600,14 @@ export default function OnboardingPage() {
       </header>
 
       <Container className="py-8">
+        {statusMessage && (
+          <div className="mx-auto mb-6 max-w-2xl">
+            <BrutalCard color={statusMessage.type === 'success' ? 'green' : 'red'}>
+              <p className="font-medium">{statusMessage.text}</p>
+            </BrutalCard>
+          </div>
+        )}
+
         <AnimatePresence mode="wait">
           <motion.div
             key={currentStep}
@@ -604,7 +866,7 @@ export default function OnboardingPage() {
             variant="ghost"
             color="black"
             onClick={prevStep}
-            disabled={currentStep === 0}
+            disabled={currentStep === 0 || isSubmitting}
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back
@@ -612,10 +874,11 @@ export default function OnboardingPage() {
 
           <BrutalButton
             color="yellow"
-            onClick={nextStep}
-            disabled={!canProceed()}
+            onClick={() => void nextStep()}
+            disabled={!canProceed() || isSubmitting}
+            loading={isSubmitting}
           >
-            {currentStep === TOTAL_STEPS - 1 ? 'Complete Setup' : 'Continue'}
+            {currentStep === TOTAL_STEPS - 1 ? (isSubmitting ? 'Saving...' : 'Complete Setup') : 'Continue'}
             <ArrowRight className="w-4 h-4 ml-2" />
           </BrutalButton>
         </div>

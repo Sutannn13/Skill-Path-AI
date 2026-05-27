@@ -4,12 +4,14 @@ import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { GraduationCap, Bell, Settings } from 'lucide-react'
 import { BrutalIconButton } from '@/components/brutal/brutal-button'
+import { LogoutButton } from '@/components/auth/logout-button'
 
 interface DashboardHeaderProps {
   title?: string
   subtitle?: string
   showLogo?: boolean
   showActions?: boolean
+  showLogout?: boolean
 }
 
 export function DashboardHeader({
@@ -17,6 +19,7 @@ export function DashboardHeader({
   subtitle,
   showLogo = true,
   showActions = true,
+  showLogout = true,
 }: DashboardHeaderProps) {
   return (
     <header className="bg-white border-b border-gray-200 px-4 py-3 sticky top-0 z-30">
@@ -46,9 +49,18 @@ export function DashboardHeader({
             <BrutalIconButton aria-label="Notifications" color="white">
               <Bell className="w-5 h-5" />
             </BrutalIconButton>
-            <BrutalIconButton aria-label="Settings" color="white" className="hidden sm:flex">
-              <Settings className="w-5 h-5" />
-            </BrutalIconButton>
+            <Link href="/settings" className="hidden sm:block">
+              <BrutalIconButton aria-label="Settings" color="white">
+                <Settings className="w-5 h-5" />
+              </BrutalIconButton>
+            </Link>
+            {showLogout && (
+              <LogoutButton
+                color="red"
+                size="sm"
+                className="hidden md:flex"
+              />
+            )}
           </div>
         )}
       </div>

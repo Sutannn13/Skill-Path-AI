@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { timingSafeEqual } from 'crypto'
 import { fetchJobsFromAllSources, deduplicateJobs } from '@/lib/jobs/sources'
 import { assessJobValidity } from '@/lib/jobs/validity'
 import { JobPost, JobIngestionResult } from '@/lib/jobs/types'
@@ -14,24 +15,54 @@ export const dynamic = 'force-dynamic'
 const CRON_SECRET = process.env.CRON_SECRET
 const IS_DEVELOPMENT = process.env.NODE_ENV === 'development'
 
+function getProvidedCronSecret(request: NextRequest) {
+  const authHeader = request.headers.get('authorization')
+  const bearerMatch = authHeader?.match(/^Bearer\s+(.+)$/i)
+
+  return bearerMatch?.[1] ?? request.headers.get('x-cron-secret')
+}
+
+function secretsMatch(providedSecret: string, expectedSecret: string) {
+  const providedBuffer = Buffer.from(providedSecret)
+  const expectedBuffer = Buffer.from(expectedSecret)
+
+  return (
+    providedBuffer.length === expectedBuffer.length &&
+    timingSafeEqual(providedBuffer, expectedBuffer)
+  )
+}
+
+function authorizeCronRequest(request: NextRequest) {
+  if (IS_DEVELOPMENT) {
+    return null
+  }
+
+  if (!CRON_SECRET) {
+    console.error('[Cron] CRON_SECRET is required outside development')
+
+    return NextResponse.json(
+      { error: 'Cron secret is not configured' },
+      { status: 500 }
+    )
+  }
+
+  const providedSecret = getProvidedCronSecret(request)
+
+  if (!providedSecret || !secretsMatch(providedSecret, CRON_SECRET)) {
+    return NextResponse.json(
+      { error: 'Unauthorized - Invalid cron secret' },
+      { status: 401 }
+    )
+  }
+
+  return null
+}
+
 export async function GET(request: NextRequest) {
-  // Verify cron secret for production
-  if (!IS_DEVELOPMENT) {
-    const authHeader = request.headers.get('authorization')
-    const cronSecret = request.headers.get('x-cron-secret') || CRON_SECRET
+  const authorizationError = authorizeCronRequest(request)
 
-    // Check for Bearer token or x-cron-secret header
-    const bearerMatch = authHeader?.match(/Bearer\s+(.+)/)
-    const providedSecret = bearerMatch?.[1] || cronSecret
-
-    if (!CRON_SECRET) {
-      console.warn('[Cron] CRON_SECRET not configured - allowing in development only')
-    } else if (providedSecret !== CRON_SECRET) {
-      return NextResponse.json(
-        { error: 'Unauthorized - Invalid cron secret' },
-        { status: 401 }
-      )
-    }
+  if (authorizationError) {
+    return authorizationError
   }
 
   const startTime = new Date().toISOString()

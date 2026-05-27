@@ -1,1 +1,2 @@
-export { ThreeFloatingScene, CSSAnimatedScene, use3DSupport } from './floating-scene'
+export { ThreeFloatingScene } from './floating-scene'
+export { CSSAnimatedScene, use3DSupport } from './css-animated-scene'

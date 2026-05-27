@@ -37,9 +37,24 @@ export interface TargetRoleInfo {
 }
 
 // User Profile Types
+export type UserRole = 'admin' | 'user'
 export type CurrentLevel = 'beginner' | 'basic' | 'intermediate' | 'internship-ready'
 export type GoalType = 'internship' | 'freelance' | 'portfolio' | 'remote-job' | 'career-switch'
 export type StudyTime = '30min' | '1hour' | '2hours' | '4hours'
+
+export interface AuthProfile {
+  id: string
+  fullName: string | null
+  role: UserRole
+  targetRole: TargetRole | null
+  currentLevel: CurrentLevel | null
+  goal: GoalType | null
+  studyTime: StudyTime | null
+  githubUsername: string | null
+  onboardingCompleted: boolean
+  createdAt: string | null
+  updatedAt: string | null
+}
 
 export interface UserProfile {
   id?: string

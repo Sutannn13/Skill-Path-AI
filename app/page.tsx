@@ -1,11 +1,12 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { Container, GradientBackground } from '@/components/layout'
 import { BrutalCard, BrutalCardHover, BrutalButton, FloatingSticker } from '@/components/brutal'
 import type { CardColor } from '@/components/brutal/brutal-card'
-import { ThreeFloatingScene, CSSAnimatedScene, use3DSupport } from '@/components/three'
+import { CSSAnimatedScene, use3DSupport } from '@/components/three/css-animated-scene'
 import {
   ArrowRight,
   Target,
@@ -16,6 +17,14 @@ import {
   Zap,
   Users,
 } from 'lucide-react'
+
+const ThreeFloatingScene = dynamic(
+  () => import('@/components/three/floating-scene').then((mod) => mod.ThreeFloatingScene),
+  {
+    ssr: false,
+    loading: () => <CSSAnimatedScene className="h-80 lg:h-96" />,
+  }
+)
 
 const features = [
   {

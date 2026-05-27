@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useMemo, Suspense, useState } from 'react'
+import { useRef, useMemo, Suspense } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { Float, MeshDistortMaterial, Environment } from '@react-three/drei'
 import * as THREE from 'three'
@@ -159,47 +159,4 @@ function FloatingBook() {
       </group>
     </Float>
   )
-}
-
-// Mobile fallback with CSS animations
-export function CSSAnimatedScene({ className = 'h-64' }: { className?: string }) {
-  return (
-    <div className={className}>
-      {/* CSS-only animated shapes as fallback for mobile */}
-      <div className="relative w-full h-full overflow-hidden">
-        {/* Background blobs */}
-        <div className="absolute top-10 left-10 w-32 h-32 bg-yellow rounded-full animate-float opacity-40" />
-        <div className="absolute top-20 right-10 w-40 h-40 bg-blue rounded-full animate-float opacity-30" style={{ animationDelay: '1s' }} />
-        <div className="absolute bottom-20 left-1/4 w-24 h-24 bg-pink rounded-full animate-float opacity-40" style={{ animationDelay: '2s' }} />
-
-        {/* CSS shapes */}
-        <div className="absolute top-1/3 left-1/4 w-16 h-16 bg-yellow brutal-border brutal-radius animate-wiggle" />
-        <div className="absolute top-1/4 right-1/3 w-12 h-12 bg-blue brutal-border brutal-radius animate-float" style={{ animationDelay: '0.5s' }} />
-        <div className="absolute bottom-1/3 right-1/4 w-20 h-20 bg-green brutal-border brutal-radius animate-wiggle" style={{ animationDelay: '1.5s' }} />
-
-        {/* Code brackets decoration */}
-        <div className="absolute top-1/2 left-8 text-4xl font-mono font-bold text-black/10 animate-pulse">
-          {'{ }'}
-        </div>
-        <div className="absolute bottom-1/4 right-8 text-4xl font-mono font-bold text-black/10 animate-pulse" style={{ animationDelay: '0.5s' }}>
-          {'< >'}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// Hook to detect if 3D should be rendered
-export function use3DSupport(): boolean {
-  const [supports3D, setSupports3D] = useState(false)
-
-  useEffect(() => {
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0
-    const isSmallScreen = window.innerWidth < 768
-
-    setSupports3D(!reducedMotion && !isTouchDevice && !isSmallScreen)
-  }, [])
-
-  return supports3D
 }

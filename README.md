@@ -1,238 +1,104 @@
-# SkillPath - Career Operating System for Developers
+# SkillPath
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Next.js-14.0-black?style=flat-square&logo=next.js" alt="Next.js" />
-  <img src="https://img.shields.io/badge/TypeScript-5.3-blue?style=flat-square&logo=typescript" alt="TypeScript" />
-  <img src="https://img.shields.io/badge/Tailwind-3.4-38B2AC?style=flat-square&logo=tailwind-css" alt="Tailwind" />
-  <img src="https://img.shields.io/badge/Framer%20Motion-10.18-FF6B6B?style=flat-square" alt="Framer Motion" />
-  <img src="https://img.shields.io/badge/Supabase-Ready-3ECF8E?style=flat-square&logo=supabase" alt="Supabase" />
-</p>
+SkillPath is a career operating system for students and beginner developers. It helps users check their skill readiness, compare skills against real jobs, generate learning roadmaps, audit GitHub portfolios, and track weekly progress.
 
-## What is SkillPath?
+## Stack
 
-SkillPath is a modern web application that helps students and beginner developers understand:
+| Area | Technology |
+| --- | --- |
+| App | Next.js 15 App Router, React 18, TypeScript |
+| UI | Tailwind CSS, custom neobrutalism components, Framer Motion |
+| Data and Auth | Supabase Auth, Postgres, Row Level Security |
+| Jobs | Remotive, Arbeitnow, Jobicy, Indonesia sample source, optional Adzuna |
+| AI | Gemini API with deterministic fallbacks |
+| Charts and 3D | Recharts, React Three Fiber, Drei |
 
-- Their current skill level
-- Their target role readiness
-- Which skills they are missing
-- Which internship/remote jobs match them
-- What learning roadmap they should follow
-- What portfolio projects they should build next
-- How their weekly learning progress improves over time
+## Current Phase
 
-**Analogy**: SkillPath is like Google Maps for a developer career journey. The user knows where they are, where they want to go, what route to take, what gaps exist, and what progress they have made.
+Phase 0 and Phase 1 establish the security and auth foundation:
 
-## Features
+- Production cron sync fails closed when `CRON_SECRET` is missing or invalid.
+- Next.js is upgraded to the patched 14.2 line.
+- Supabase SSR clients are available for server, browser, and middleware session refresh.
+- `profiles.role` supports `admin` and `user`.
+- `/dashboard` is the user dashboard surface.
+- `/admin` is a separate admin dashboard surface with server-side role checks.
 
-### Core Features
-
-- **Skill Gap Analyzer**: Compare your skills with real job requirements and see exactly what you're missing
-- **Job Match Score**: Find remote jobs that match your skill level
-- **AI Roadmap Generator**: Get a personalized learning roadmap based on your goals
-- **GitHub Portfolio Audit**: Analyze your GitHub profile and get suggestions
-- **Weekly Sprint Tracker**: Set goals, track progress, maintain streaks
-- **Project Recommendations**: Get project ideas that fill skill gaps
-
-### Design
-
-- **Neobrutalism UI**: Modern, playful, cartoon-like design
-- **Mobile-first**: Optimized for Android and iPhone
-- **3D Animated Background**: Floating objects powered by React Three Fiber
-- **Framer Motion Animations**: Smooth transitions and interactions
-
-## Tech Stack
-
-| Category | Technology |
-|----------|------------|
-| Frontend | Next.js 14 (App Router), React 18, TypeScript |
-| Styling | Tailwind CSS, Custom Neobrutalism Design System |
-| Animation | Framer Motion, React Three Fiber, Drei |
-| Charts | Recharts |
-| State | Zustand, TanStack Query |
-| Validation | Zod |
-| Backend | Next.js Route Handlers, Supabase Ready |
-| APIs | Remotive (Jobs), GitHub REST, Gemini AI |
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js 18.17 or later
-- npm or pnpm
-
-### Installation
-
-1. Clone the repository
-2. Install dependencies:
+## Setup
 
 ```bash
 npm install
-```
-
-3. Copy the environment file:
-
-```bash
 cp .env.example .env.local
-```
-
-4. Fill in your API keys in `.env.local` (optional for demo mode):
-
-```
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-GEMINI_API_KEY=your_gemini_api_key
-GITHUB_TOKEN=your_github_token
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-```
-
-5. Start the development server:
-
-```bash
 npm run dev
 ```
 
-6. Open [http://localhost:3000](http://localhost:3000) in your browser
+Open `http://localhost:3000`.
 
-### Available Scripts
+## Environment
 
-```bash
-npm run dev      # Start development server
-npm run build    # Build for production
-npm run start    # Start production server
-npm run lint     # Run ESLint
-npm run typecheck # Run TypeScript type checking
-```
+| Variable | Required | Purpose |
+| --- | --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL` | Auth and persistence | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Auth and persistence | Supabase anonymous key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server admin work | Trusted server-side admin operations only |
+| `GEMINI_API_KEY` | Optional | AI roadmap and job analysis |
+| `GITHUB_TOKEN` | Optional | Higher GitHub REST API rate limits |
+| `ADZUNA_APP_ID` | Optional | Adzuna job source |
+| `ADZUNA_APP_KEY` | Optional | Adzuna job source |
+| `CRON_SECRET` | Production cron | Protects `GET/POST /api/cron/sync-jobs` |
+| `NEXT_PUBLIC_APP_URL` | Recommended | Metadata, redirects, and callbacks |
 
-## Project Structure
+## Database
 
-```
-skillpath/
-├── app/                    # Next.js App Router
-│   ├── api/               # API routes
-│   │   ├── jobs/          # Jobs API (Remotive)
-│   │   ├── ai/            # AI roadmap generation (Gemini)
-│   │   └── github/         # GitHub analysis
-│   ├── dashboard/          # Main dashboard
-│   ├── onboarding/         # Career onboarding flow
-│   ├── skills/             # Skill inventory
-│   ├── jobs/               # Job radar
-│   ├── roadmap/            # Learning roadmap
-│   ├── sprint/             # Weekly sprint tracker
-│   ├── github/             # GitHub portfolio analyzer
-│   ├── projects/           # Project recommendations
-│   └── settings/           # User settings
-├── components/
-│   ├── brutal/             # Neobrutalism design system
-│   ├── layout/             # Layout components
-│   └── three/              # 3D animated elements
-├── lib/
-│   ├── constants/          # Skills, roles, data
-│   ├── scoring/            # Skill gap algorithm
-│   ├── ai/                 # AI helpers and fallbacks
-│   └── jobs/               # Job API helpers
-├── types/                  # TypeScript types
-└── docs/                   # Documentation
-```
-
-## Scoring Method
-
-SkillPath uses a deterministic scoring algorithm:
-
-### Skill Level Normalization
-
-| Level | Value |
-|-------|-------|
-| 0 | 0.00 |
-| 1 | 0.25 |
-| 2 | 0.50 |
-| 3 | 0.75 |
-| 4 | 1.00 |
-
-### Weighted Score Calculation
-
-```
-weightedScore = sum(userSkillLevelNormalized * priorityWeight) / sum(priorityWeight) * 100
-```
-
-### Readiness Labels
-
-| Score | Label |
-|-------|-------|
-| 0-24 | Not ready yet |
-| 25-49 | Foundation stage |
-| 50-69 | Getting close |
-| 70-84 | Internship-ready soon |
-| 85-100 | Strong candidate |
-
-## API Integrations
-
-### Remotive (Jobs)
-
-- Endpoint: `GET /api/jobs`
-- Fallback: Mock jobs if API fails
-- Data: Real remote job listings from Remotive API
-
-### Gemini AI (Roadmap)
-
-- Endpoint: `POST /api/ai/roadmap`
-- Fallback: Template-based roadmap if API fails
-- Output: Structured JSON roadmap
-
-### GitHub REST API
-
-- Endpoint: `POST /api/github/analyze`
-- Features: Repository analysis, README detection, portfolio scoring
-- Fallback: Mock data if API fails
-
-## Environment Variables
-
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL | For database |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anonymous key | For database |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key | For admin operations |
-| `GEMINI_API_KEY` | Google Gemini API key | For AI features |
-| `GITHUB_TOKEN` | GitHub personal access token | For GitHub analysis |
-| `NEXT_PUBLIC_APP_URL` | Application URL | For OAuth callbacks |
-
-## Deployment
-
-### Vercel (Recommended)
-
-1. Push to GitHub
-2. Connect to Vercel
-3. Add environment variables
-4. Deploy
-
-### Docker
+Apply migrations in order:
 
 ```bash
-docker build -t skillpath .
-docker run -p 3000:3000 skillpath
+supabase db push
+```
+
+To promote an admin, run a trusted SQL update after the user's profile exists:
+
+```sql
+update public.profiles
+set role = 'admin'
+where id = '<auth-user-uuid>';
+```
+
+Do not allow users to update `profiles.role` from client code.
+
+## Scripts
+
+```bash
+npm run dev
+npm run lint
+npm run typecheck
+npm run build
 ```
 
 ## Documentation
 
-- [Project Brief](docs/PROJECT_BRIEF.md)
-- [Features Overview](docs/FEATURES.md)
-- [Architecture](docs/ARCHITECTURE.md)
-- [Database Schema](docs/DATABASE.md)
-- [API Contract](docs/API_CONTRACT.md)
-- [Design System](docs/DESIGN_SYSTEM.md)
+- [Project Brief](docs/project-brief.md)
+- [Architecture Decisions](docs/architecture-decision-record.md)
+- [Flow Overview](docs/flow-overview.md)
+- [Database Schema](docs/database-schema.md)
+- [API Contract](docs/api-contract.md)
+- [Design Contract](docs/DESIGN.md)
+- [Documentation Index](docs/doc-index.md)
+
+Legacy docs remain available while the project documentation is consolidated:
+
+- [Features](docs/FEATURES.md)
 - [Scoring Method](docs/SCORING_METHOD.md)
-- [Setup Guide](docs/SETUP.md)
+- [Setup Notes](docs/SETUP.md)
 
-## Credits
+## Security Notes
 
-- Job data powered by [Remotive](https://remotive.com)
-- Icons from [Lucide](https://lucide.dev)
-- Animations powered by [Framer Motion](https://framer.com/motion)
+- Never commit `.env` or `.env.local`.
+- Only `NEXT_PUBLIC_*` variables can be used in browser code.
+- `SUPABASE_SERVICE_ROLE_KEY` must stay server-only.
+- Middleware refreshes Supabase sessions, but route/page authorization still happens server-side.
+- Cron sync accepts `Authorization: Bearer <CRON_SECRET>` or `x-cron-secret: <CRON_SECRET>` outside development.
 
 ## License
 
-This project is for educational and portfolio purposes.
-
----
-
-Built with care for aspiring developers.
+Educational and portfolio project.

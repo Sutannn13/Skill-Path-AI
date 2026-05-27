@@ -29,7 +29,7 @@ type RegionFilter = 'all' | 'indonesia' | 'international' | 'remote'
 type JobTypeFilter = 'all' | 'internship' | 'full-time' | 'part-time' | 'contract' | 'freelance'
 type ExperienceFilter = 'all' | 'beginner' | 'internship' | 'junior' | 'mid' | 'senior'
 type TechStackFilter = 'all' | 'frontend' | 'backend' | 'fullstack' | 'mobile' | 'ui-ux' | 'data'
-type FreshnessFilter = '7' | '30' | '90'
+type FreshnessFilter = '7' | '30' | '90' | 'all'
 
 interface Filters {
   region: RegionFilter
@@ -83,6 +83,7 @@ const freshnessOptions: { value: FreshnessFilter; label: string }[] = [
   { value: '7', label: 'Last 7 days' },
   { value: '30', label: 'Last 30 days' },
   { value: '90', label: 'Last 90 days' },
+  { value: 'all', label: 'All active jobs' },
 ]
 
 const techStackKeywords: Record<TechStackFilter, string[]> = {

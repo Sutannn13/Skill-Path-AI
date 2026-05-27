@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 
 export const dynamic = 'force-dynamic'
+const IS_DEVELOPMENT = process.env.NODE_ENV === 'development'
 
 const analyzeRequestSchema = z.object({
   username: z
@@ -235,6 +236,10 @@ function analyzeGitHubData(
 
 export async function POST(request: NextRequest) {
   try {
+    if (IS_DEVELOPMENT) {
+      console.log('[GitHub API] request received')
+    }
+
     const body = await request.json()
 
     // Validate request
@@ -319,4 +324,14 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
+}
+
+export async function GET() {
+  return NextResponse.json(
+    {
+      error: 'Method not allowed',
+      message: 'Use POST /api/github/analyze with a JSON body: { "username": "octocat" }',
+    },
+    { status: 405 }
+  )
 }

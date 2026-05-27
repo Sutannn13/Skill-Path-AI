@@ -1,0 +1,728 @@
+export const QUIZ_PASSING_SCORE = 80
+export const QUIZ_QUESTION_COUNT = 10
+
+export interface QuizQuestionSeed {
+  questionText: string
+  options: string[]
+  correctAnswer: string
+  explanation: string
+  relatedSkill: string
+  difficulty: 'easy' | 'medium' | 'hard'
+}
+
+const QUIZ_BANK: Record<string, QuizQuestionSeed[]> = {
+  html: [
+    {
+      questionText: 'Which HTML element is best for the main content area of a page?',
+      options: ['<div>', '<main>', '<section>', '<content>'],
+      correctAnswer: '<main>',
+      explanation: '<main> is semantic and represents the dominant content of the page.',
+      relatedSkill: 'HTML',
+      difficulty: 'easy',
+    },
+    {
+      questionText: 'What is the purpose of the alt attribute on an <img> element?',
+      options: ['Set image size', 'Provide fallback text', 'Enable lazy loading', 'Add a caption'],
+      correctAnswer: 'Provide fallback text',
+      explanation: 'alt text improves accessibility and is shown when an image cannot be loaded.',
+      relatedSkill: 'HTML',
+      difficulty: 'easy',
+    },
+    {
+      questionText: 'Which tag correctly associates text with a form input for accessibility?',
+      options: ['<span>', '<label>', '<caption>', '<legend>'],
+      correctAnswer: '<label>',
+      explanation: '<label> links readable text to an input using for/id or nesting.',
+      relatedSkill: 'HTML',
+      difficulty: 'easy',
+    },
+    {
+      questionText: 'Which declaration is required at the top of modern HTML documents?',
+      options: ['<!HTML5>', '<!DOCTYPE html>', '<!DOCTYPE html5>', '<meta charset="utf-8">'],
+      correctAnswer: '<!DOCTYPE html>',
+      explanation: 'The doctype declaration triggers standards mode in browsers.',
+      relatedSkill: 'HTML',
+      difficulty: 'easy',
+    },
+    {
+      questionText: 'Which element should be used for table header cells?',
+      options: ['<td>', '<thead>', '<th>', '<tr>'],
+      correctAnswer: '<th>',
+      explanation: '<th> defines a header cell and improves table semantics for assistive tools.',
+      relatedSkill: 'HTML',
+      difficulty: 'easy',
+    },
+    {
+      questionText: 'What does the required attribute do on a form input?',
+      options: ['Autofills the field', 'Makes the field mandatory before submit', 'Encrypts field value', 'Adds placeholder text'],
+      correctAnswer: 'Makes the field mandatory before submit',
+      explanation: 'required enables browser-level form validation before submission.',
+      relatedSkill: 'HTML',
+      difficulty: 'easy',
+    },
+    {
+      questionText: 'Which element is semantic for site-level navigation links?',
+      options: ['<menu>', '<nav>', '<aside>', '<footer>'],
+      correctAnswer: '<nav>',
+      explanation: '<nav> represents a section of navigation links.',
+      relatedSkill: 'HTML',
+      difficulty: 'easy',
+    },
+    {
+      questionText: 'Which meta tag is important for responsive layout on mobile?',
+      options: ['description', 'author', 'viewport', 'keywords'],
+      correctAnswer: 'viewport',
+      explanation: 'The viewport meta controls page scaling and width behavior on mobile devices.',
+      relatedSkill: 'HTML',
+      difficulty: 'medium',
+    },
+    {
+      questionText: 'What is the best element for the most important heading on a page?',
+      options: ['<h6>', '<title>', '<h1>', '<strong>'],
+      correctAnswer: '<h1>',
+      explanation: '<h1> should represent the primary heading in the page content hierarchy.',
+      relatedSkill: 'HTML',
+      difficulty: 'easy',
+    },
+    {
+      questionText: 'Which element is used to group related form controls with a caption?',
+      options: ['<fieldset> and <legend>', '<group> and <title>', '<section> and <header>', '<div> and <label>'],
+      correctAnswer: '<fieldset> and <legend>',
+      explanation: '<fieldset> groups controls, and <legend> provides its label.',
+      relatedSkill: 'HTML',
+      difficulty: 'medium',
+    },
+  ],
+  css: [
+    {
+      questionText: 'Which CSS property controls the space outside an element border?',
+      options: ['padding', 'margin', 'gap', 'border-spacing'],
+      correctAnswer: 'margin',
+      explanation: 'margin defines outer spacing, while padding defines inner spacing.',
+      relatedSkill: 'CSS',
+      difficulty: 'easy',
+    },
+    {
+      questionText: 'What display value creates a flex formatting context?',
+      options: ['display: block', 'display: grid', 'display: flex', 'display: inline'],
+      correctAnswer: 'display: flex',
+      explanation: 'display: flex enables flexbox layout behavior.',
+      relatedSkill: 'CSS',
+      difficulty: 'easy',
+    },
+    {
+      questionText: 'Which selector has higher specificity?',
+      options: ['.card', 'div.card', '#card', '*'],
+      correctAnswer: '#card',
+      explanation: 'ID selectors have higher specificity than class and element selectors.',
+      relatedSkill: 'CSS',
+      difficulty: 'medium',
+    },
+    {
+      questionText: 'How can you center a block element horizontally when it has a set width?',
+      options: ['text-align: center', 'margin: 0 auto', 'position: center', 'display: inline-block'],
+      correctAnswer: 'margin: 0 auto',
+      explanation: 'Auto left/right margin centers a block element with explicit width.',
+      relatedSkill: 'CSS',
+      difficulty: 'easy',
+    },
+    {
+      questionText: 'An absolutely positioned element is positioned relative to:',
+      options: ['The viewport always', 'Its nearest positioned ancestor', 'Its next sibling', 'The body tag only'],
+      correctAnswer: 'Its nearest positioned ancestor',
+      explanation: 'Absolute positioning uses the nearest ancestor with position not static.',
+      relatedSkill: 'CSS',
+      difficulty: 'medium',
+    },
+    {
+      questionText: 'Which unit is relative to the root font size?',
+      options: ['em', 'px', 'rem', '%'],
+      correctAnswer: 'rem',
+      explanation: 'rem scales from the root element font-size.',
+      relatedSkill: 'CSS',
+      difficulty: 'easy',
+    },
+    {
+      questionText: 'Which pseudo-class targets an element when the pointer hovers it?',
+      options: [':active', ':focus', ':hover', ':visited'],
+      correctAnswer: ':hover',
+      explanation: ':hover applies styles when the mouse pointer is over an element.',
+      relatedSkill: 'CSS',
+      difficulty: 'easy',
+    },
+    {
+      questionText: 'Which declaration prevents content from overflowing visibly?',
+      options: ['overflow: hidden', 'visibility: hidden', 'display: none', 'clip: auto'],
+      correctAnswer: 'overflow: hidden',
+      explanation: 'overflow: hidden clips overflowing content within the box.',
+      relatedSkill: 'CSS',
+      difficulty: 'medium',
+    },
+    {
+      questionText: 'Which feature is used for responsive breakpoints in CSS?',
+      options: ['@keyframes', '@supports', '@media', '@font-face'],
+      correctAnswer: '@media',
+      explanation: '@media queries apply styles based on viewport/device conditions.',
+      relatedSkill: 'CSS',
+      difficulty: 'easy',
+    },
+    {
+      questionText: 'What does gap do in flex and grid layouts?',
+      options: ['Sets border size', 'Adds spacing between tracks/items', 'Controls z-index order', 'Creates equal widths'],
+      correctAnswer: 'Adds spacing between tracks/items',
+      explanation: 'gap controls spacing between child items in grid/flex containers.',
+      relatedSkill: 'CSS',
+      difficulty: 'easy',
+    },
+  ],
+  javascript: [
+    {
+      questionText: 'Which statement about const is correct?',
+      options: ['It can be reassigned freely', 'It creates block-scoped immutable binding', 'It is function-scoped', 'It is hoisted without temporal dead zone'],
+      correctAnswer: 'It creates block-scoped immutable binding',
+      explanation: 'const is block scoped and cannot be reassigned after initialization.',
+      relatedSkill: 'JavaScript',
+      difficulty: 'easy',
+    },
+    {
+      questionText: 'What does === check in JavaScript?',
+      options: ['Value only', 'Type coercion then value', 'Type and value without coercion', 'Reference only'],
+      correctAnswer: 'Type and value without coercion',
+      explanation: 'Strict equality compares both type and value.',
+      relatedSkill: 'JavaScript',
+      difficulty: 'easy',
+    },
+    {
+      questionText: 'What does Array.prototype.map return?',
+      options: ['A mutated original array', 'A new array with transformed items', 'A boolean', 'The first matching item'],
+      correctAnswer: 'A new array with transformed items',
+      explanation: 'map creates a new array and leaves the original array unchanged.',
+      relatedSkill: 'JavaScript',
+      difficulty: 'easy',
+    },
+    {
+      questionText: 'Which value represents intentional absence of an object value?',
+      options: ['undefined', 'null', 'false', '0'],
+      correctAnswer: 'null',
+      explanation: 'null is usually used intentionally, while undefined often means not assigned.',
+      relatedSkill: 'JavaScript',
+      difficulty: 'easy',
+    },
+    {
+      questionText: 'What happens with setTimeout(fn, 0)?',
+      options: ['Runs immediately before current code ends', 'Runs after current call stack clears', 'Runs synchronously', 'Runs only on user interaction'],
+      correctAnswer: 'Runs after current call stack clears',
+      explanation: 'Callbacks are queued and executed after the current stack completes.',
+      relatedSkill: 'JavaScript',
+      difficulty: 'medium',
+    },
+    {
+      questionText: 'What is object destructuring?',
+      options: ['Looping over object keys only', 'Extracting properties into variables', 'Converting object to JSON automatically', 'Deep cloning objects'],
+      correctAnswer: 'Extracting properties into variables',
+      explanation: 'Destructuring lets you read object properties into local variables concisely.',
+      relatedSkill: 'JavaScript',
+      difficulty: 'easy',
+    },
+    {
+      questionText: 'Which syntax creates a template literal?',
+      options: ['"Hello ${name}"', '\'Hello ${name}\'', '`Hello ${name}`', 'Hello + ${name}'],
+      correctAnswer: '`Hello ${name}`',
+      explanation: 'Template literals use backticks and support interpolation.',
+      relatedSkill: 'JavaScript',
+      difficulty: 'easy',
+    },
+    {
+      questionText: 'Which method returns items that pass a condition?',
+      options: ['map', 'reduce', 'filter', 'findIndex'],
+      correctAnswer: 'filter',
+      explanation: 'filter returns a new array with elements that satisfy the callback.',
+      relatedSkill: 'JavaScript',
+      difficulty: 'easy',
+    },
+    {
+      questionText: 'How do you convert a JSON string into an object?',
+      options: ['JSON.stringify', 'JSON.parse', 'JSON.objectify', 'parseJSON'],
+      correctAnswer: 'JSON.parse',
+      explanation: 'JSON.parse parses JSON text into a JavaScript value/object.',
+      relatedSkill: 'JavaScript',
+      difficulty: 'easy',
+    },
+    {
+      questionText: 'What does async function always return?',
+      options: ['A string', 'A Promise', 'A callback', 'An iterator'],
+      correctAnswer: 'A Promise',
+      explanation: 'async functions wrap return values in a Promise.',
+      relatedSkill: 'JavaScript',
+      difficulty: 'medium',
+    },
+  ],
+  typescript: [
+    {
+      questionText: 'TypeScript primarily adds what to JavaScript?',
+      options: ['Runtime speed optimizations', 'Static type checking', 'Automatic backend APIs', 'Built-in database driver'],
+      correctAnswer: 'Static type checking',
+      explanation: 'TypeScript validates types at compile time.',
+      relatedSkill: 'TypeScript',
+      difficulty: 'easy',
+    },
+    {
+      questionText: 'How do you declare an optional property in an interface?',
+      options: ['name!: string', 'name?: string', 'optional name: string', 'name|optional: string'],
+      correctAnswer: 'name?: string',
+      explanation: 'The ? suffix marks a property as optional.',
+      relatedSkill: 'TypeScript',
+      difficulty: 'easy',
+    },
+    {
+      questionText: 'What is a union type?',
+      options: ['A type with one fixed value', 'A type that can be one of several types', 'A type imported from two files', 'A type alias for object only'],
+      correctAnswer: 'A type that can be one of several types',
+      explanation: 'Union types are written using | and allow multiple possible types.',
+      relatedSkill: 'TypeScript',
+      difficulty: 'easy',
+    },
+    {
+      questionText: 'What is the purpose of generics in TypeScript?',
+      options: ['Disable type checking', 'Create reusable typed components/functions', 'Force runtime casting', 'Replace interfaces completely'],
+      correctAnswer: 'Create reusable typed components/functions',
+      explanation: 'Generics preserve type information while keeping code reusable.',
+      relatedSkill: 'TypeScript',
+      difficulty: 'medium',
+    },
+    {
+      questionText: 'How should you handle a value typed as unknown?',
+      options: ['Use it directly', 'Cast to any always', 'Narrow or validate before use', 'Convert to string immediately'],
+      correctAnswer: 'Narrow or validate before use',
+      explanation: 'unknown is safer than any and requires explicit type checks.',
+      relatedSkill: 'TypeScript',
+      difficulty: 'medium',
+    },
+    {
+      questionText: 'What does readonly do on a property?',
+      options: ['Prevents the property from being deleted only', 'Allows assignment once and blocks later writes', 'Makes property private', 'Makes value immutable at runtime always'],
+      correctAnswer: 'Allows assignment once and blocks later writes',
+      explanation: 'readonly prevents reassignment through TypeScript type checks.',
+      relatedSkill: 'TypeScript',
+      difficulty: 'easy',
+    },
+    {
+      questionText: 'Which compiler command checks types without producing output files?',
+      options: ['tsc --emit', 'tsc --types-only', 'tsc --noEmit', 'tsc --skipLibCheck'],
+      correctAnswer: 'tsc --noEmit',
+      explanation: '--noEmit runs type checks only.',
+      relatedSkill: 'TypeScript',
+      difficulty: 'easy',
+    },
+    {
+      questionText: 'What does as const do for an object literal?',
+      options: ['Converts object to class', 'Narrows literal values and marks properties readonly', 'Adds runtime validation', 'Removes optional properties'],
+      correctAnswer: 'Narrows literal values and marks properties readonly',
+      explanation: 'as const infers the narrowest literal types.',
+      relatedSkill: 'TypeScript',
+      difficulty: 'medium',
+    },
+    {
+      questionText: 'Why is any risky in large codebases?',
+      options: ['It slows runtime execution', 'It bypasses type safety and hides errors', 'It prevents imports', 'It breaks JSX rendering'],
+      correctAnswer: 'It bypasses type safety and hides errors',
+      explanation: 'any disables helpful compiler checks and can introduce regressions.',
+      relatedSkill: 'TypeScript',
+      difficulty: 'easy',
+    },
+    {
+      questionText: 'Which check narrows a union of string | number at runtime?',
+      options: ['Array.isArray(value)', 'typeof value === "string"', 'value instanceof String always', 'value.toString()'],
+      correctAnswer: 'typeof value === "string"',
+      explanation: 'typeof checks are common control-flow narrowing tools.',
+      relatedSkill: 'TypeScript',
+      difficulty: 'easy',
+    },
+  ],
+  react: [
+    {
+      questionText: 'What does useState return?',
+      options: ['State value only', 'A reducer function', 'State value and setter function', 'A Promise'],
+      correctAnswer: 'State value and setter function',
+      explanation: 'useState returns a tuple [value, setValue].',
+      relatedSkill: 'React',
+      difficulty: 'easy',
+    },
+    {
+      questionText: 'Why is key prop important in rendered lists?',
+      options: ['It styles list items', 'It helps React identify item changes efficiently', 'It enables routing', 'It stores local storage keys'],
+      correctAnswer: 'It helps React identify item changes efficiently',
+      explanation: 'Stable keys let React reconcile list updates correctly.',
+      relatedSkill: 'React',
+      difficulty: 'easy',
+    },
+    {
+      questionText: 'When does useEffect with an empty dependency array run?',
+      options: ['Every render', 'Only after unmount', 'Once after initial mount', 'Before render'],
+      correctAnswer: 'Once after initial mount',
+      explanation: '[] means run the effect once after first render.',
+      relatedSkill: 'React',
+      difficulty: 'easy',
+    },
+    {
+      questionText: 'What is a controlled input in React?',
+      options: ['Input managed by DOM only', 'Input value driven by component state', 'Input without onChange', 'Input that cannot be edited'],
+      correctAnswer: 'Input value driven by component state',
+      explanation: 'Controlled components sync value and changes through React state.',
+      relatedSkill: 'React',
+      difficulty: 'easy',
+    },
+    {
+      questionText: 'What is lifting state up?',
+      options: ['Using Redux only', 'Moving shared state to the nearest common parent', 'Converting state to props', 'Removing local state'],
+      correctAnswer: 'Moving shared state to the nearest common parent',
+      explanation: 'Shared data should live in a common ancestor so siblings stay in sync.',
+      relatedSkill: 'React',
+      difficulty: 'medium',
+    },
+    {
+      questionText: 'Why should state updates avoid direct mutation?',
+      options: ['Mutation is slower in JavaScript', 'React relies on reference changes for updates', 'Mutation breaks TypeScript syntax', 'Mutation disables hooks'],
+      correctAnswer: 'React relies on reference changes for updates',
+      explanation: 'Immutable updates help React detect and render changes.',
+      relatedSkill: 'React',
+      difficulty: 'medium',
+    },
+    {
+      questionText: 'Which hook memoizes a computed value?',
+      options: ['useRef', 'useMemo', 'useState', 'useLayoutEffect'],
+      correctAnswer: 'useMemo',
+      explanation: 'useMemo caches expensive computations between renders.',
+      relatedSkill: 'React',
+      difficulty: 'easy',
+    },
+    {
+      questionText: 'What is the role of props in React?',
+      options: ['Store global app config only', 'Pass data from parent to child', 'Handle side effects', 'Persist data to database'],
+      correctAnswer: 'Pass data from parent to child',
+      explanation: 'Props are read-only inputs passed into components.',
+      relatedSkill: 'React',
+      difficulty: 'easy',
+    },
+    {
+      questionText: 'Which expression is common for conditional rendering?',
+      options: ['if() inside JSX return without braces', 'condition && <Component />', 'switch only in hooks', 'renderIf(condition) built-in'],
+      correctAnswer: 'condition && <Component />',
+      explanation: 'Logical && is a standard conditional rendering pattern in JSX.',
+      relatedSkill: 'React',
+      difficulty: 'easy',
+    },
+    {
+      questionText: 'What should happen in cleanup returned by useEffect?',
+      options: ['Trigger rerender manually', 'Release subscriptions/timers/listeners', 'Fetch next page data', 'Update unrelated state'],
+      correctAnswer: 'Release subscriptions/timers/listeners',
+      explanation: 'Cleanup prevents leaks and stale side effects when dependencies change or unmount.',
+      relatedSkill: 'React',
+      difficulty: 'medium',
+    },
+  ],
+  'rest api': [
+    {
+      questionText: 'REST APIs are typically:',
+      options: ['Stateful per client session', 'Stateless between requests', 'Limited to XML only', 'Only for internal services'],
+      correctAnswer: 'Stateless between requests',
+      explanation: 'Each request should contain all context needed by the server.',
+      relatedSkill: 'REST API',
+      difficulty: 'easy',
+    },
+    {
+      questionText: 'Which method is commonly used to retrieve data?',
+      options: ['POST', 'GET', 'PATCH', 'DELETE'],
+      correctAnswer: 'GET',
+      explanation: 'GET requests fetch resources without modifying them.',
+      relatedSkill: 'REST API',
+      difficulty: 'easy',
+    },
+    {
+      questionText: 'What HTTP status code usually indicates resource creation success?',
+      options: ['200', '201', '204', '304'],
+      correctAnswer: '201',
+      explanation: '201 Created signals that a new resource was created.',
+      relatedSkill: 'REST API',
+      difficulty: 'easy',
+    },
+    {
+      questionText: 'When partially updating a resource, the preferred method is often:',
+      options: ['PUT', 'PATCH', 'GET', 'OPTIONS'],
+      correctAnswer: 'PATCH',
+      explanation: 'PATCH is designed for partial updates.',
+      relatedSkill: 'REST API',
+      difficulty: 'easy',
+    },
+    {
+      questionText: 'Where is a Bearer token usually sent?',
+      options: ['Query string only', 'Request body only', 'Authorization header', 'Response header'],
+      correctAnswer: 'Authorization header',
+      explanation: 'Tokens are typically sent in Authorization: Bearer <token>.',
+      relatedSkill: 'REST API',
+      difficulty: 'easy',
+    },
+    {
+      questionText: 'A good endpoint naming practice is:',
+      options: ['Use verbs in path for all actions', 'Use plural nouns for resources', 'Use random abbreviations', 'Use file extensions in URLs'],
+      correctAnswer: 'Use plural nouns for resources',
+      explanation: 'Resource-oriented nouns keep APIs predictable.',
+      relatedSkill: 'REST API',
+      difficulty: 'medium',
+    },
+    {
+      questionText: 'Which response code indicates the server cannot find a resource?',
+      options: ['401', '403', '404', '409'],
+      correctAnswer: '404',
+      explanation: '404 Not Found means the requested resource does not exist.',
+      relatedSkill: 'REST API',
+      difficulty: 'easy',
+    },
+    {
+      questionText: 'What header indicates JSON payload format?',
+      options: ['Accept-Encoding: gzip', 'Content-Type: application/json', 'Cache-Control: no-store', 'Origin: localhost'],
+      correctAnswer: 'Content-Type: application/json',
+      explanation: 'Content-Type tells how the payload should be parsed.',
+      relatedSkill: 'REST API',
+      difficulty: 'easy',
+    },
+    {
+      questionText: 'Why use pagination in list endpoints?',
+      options: ['To hide data from users', 'To reduce payload and improve performance', 'To replace filtering', 'To avoid authentication'],
+      correctAnswer: 'To reduce payload and improve performance',
+      explanation: 'Pagination prevents large responses and improves API responsiveness.',
+      relatedSkill: 'REST API',
+      difficulty: 'medium',
+    },
+    {
+      questionText: 'Which operation should be idempotent by design?',
+      options: ['GET', 'POST', 'PATCH with random side effects', 'Webhooks without keys'],
+      correctAnswer: 'GET',
+      explanation: 'GET should not create side effects and can be safely repeated.',
+      relatedSkill: 'REST API',
+      difficulty: 'medium',
+    },
+  ],
+  'node.js': [
+    {
+      questionText: 'Node.js allows JavaScript to run:',
+      options: ['Only in browsers', 'On the server/runtime outside browsers', 'Only on mobile', 'Only in SQL databases'],
+      correctAnswer: 'On the server/runtime outside browsers',
+      explanation: 'Node.js is a JavaScript runtime built on V8.',
+      relatedSkill: 'Node.js',
+      difficulty: 'easy',
+    },
+    {
+      questionText: 'Which file commonly defines project scripts and dependencies?',
+      options: ['tsconfig.json', 'package.json', '.env', 'README.md'],
+      correctAnswer: 'package.json',
+      explanation: 'package.json stores metadata, scripts, and dependencies.',
+      relatedSkill: 'Node.js',
+      difficulty: 'easy',
+    },
+    {
+      questionText: 'In Express, middleware order is:',
+      options: ['Irrelevant', 'Execution follows registration order', 'Sorted alphabetically', 'Randomized per request'],
+      correctAnswer: 'Execution follows registration order',
+      explanation: 'Middleware runs in sequence as registered.',
+      relatedSkill: 'Node.js',
+      difficulty: 'medium',
+    },
+    {
+      questionText: 'Which object provides environment variables in Node.js?',
+      options: ['window.env', 'process.env', 'global.config', 'runtime.vars'],
+      correctAnswer: 'process.env',
+      explanation: 'process.env exposes environment variables to the app process.',
+      relatedSkill: 'Node.js',
+      difficulty: 'easy',
+    },
+    {
+      questionText: 'Why prefer async I/O APIs in Node.js?',
+      options: ['They are always simpler', 'They avoid blocking the event loop', 'They remove all callbacks', 'They are required by npm'],
+      correctAnswer: 'They avoid blocking the event loop',
+      explanation: 'Non-blocking I/O keeps the server responsive under concurrent load.',
+      relatedSkill: 'Node.js',
+      difficulty: 'medium',
+    },
+    {
+      questionText: 'What does npm run <script> execute?',
+      options: ['A random dependency command', 'A script defined in package.json', 'The Node REPL', 'Only global binaries'],
+      correctAnswer: 'A script defined in package.json',
+      explanation: 'npm run maps to named scripts under package.json scripts.',
+      relatedSkill: 'Node.js',
+      difficulty: 'easy',
+    },
+    {
+      questionText: 'Which module system syntax is CommonJS?',
+      options: ['import x from "x"', 'export default fn', 'const x = require("x")', 'use module x'],
+      correctAnswer: 'const x = require("x")',
+      explanation: 'require/module.exports are CommonJS conventions.',
+      relatedSkill: 'Node.js',
+      difficulty: 'easy',
+    },
+    {
+      questionText: 'What is the Node.js event loop responsible for?',
+      options: ['Compiling TypeScript', 'Scheduling asynchronous callbacks/tasks', 'Rendering HTML templates only', 'Managing git branches'],
+      correctAnswer: 'Scheduling asynchronous callbacks/tasks',
+      explanation: 'The event loop orchestrates execution of async callbacks.',
+      relatedSkill: 'Node.js',
+      difficulty: 'medium',
+    },
+    {
+      questionText: 'What is a practical reason to use a .env file in development?',
+      options: ['Store source maps', 'Keep secrets/config outside source code', 'Speed up npm install', 'Enable JSX parsing'],
+      correctAnswer: 'Keep secrets/config outside source code',
+      explanation: 'Environment files keep sensitive values and environment-specific config out of code.',
+      relatedSkill: 'Node.js',
+      difficulty: 'easy',
+    },
+    {
+      questionText: 'What should happen when an async route throws in production APIs?',
+      options: ['Return raw stack trace to clients', 'Use centralized error handling and safe messages', 'Ignore the error', 'Always restart server'],
+      correctAnswer: 'Use centralized error handling and safe messages',
+      explanation: 'Safe error handling prevents leaking internals and improves reliability.',
+      relatedSkill: 'Node.js',
+      difficulty: 'medium',
+    },
+  ],
+  git: [
+    {
+      questionText: 'What does git clone do?',
+      options: ['Creates a new branch', 'Copies a remote repository locally', 'Deletes remote history', 'Commits local changes'],
+      correctAnswer: 'Copies a remote repository locally',
+      explanation: 'git clone downloads repository history and working tree.',
+      relatedSkill: 'Git/GitHub',
+      difficulty: 'easy',
+    },
+    {
+      questionText: 'What is the staging area in Git?',
+      options: ['Remote production server', 'Area for selecting changes before commit', 'GitHub issue board', 'A branch alias'],
+      correctAnswer: 'Area for selecting changes before commit',
+      explanation: 'Staging lets you control which edits are included in the next commit.',
+      relatedSkill: 'Git/GitHub',
+      difficulty: 'easy',
+    },
+    {
+      questionText: 'git pull is roughly equivalent to:',
+      options: ['git add + git commit', 'git fetch + git merge', 'git reset + git push', 'git branch + git tag'],
+      correctAnswer: 'git fetch + git merge',
+      explanation: 'pull fetches new remote changes and merges into current branch.',
+      relatedSkill: 'Git/GitHub',
+      difficulty: 'easy',
+    },
+    {
+      questionText: 'Why use feature branches?',
+      options: ['To avoid writing commit messages', 'To isolate work before merging', 'To skip reviews', 'To disable CI'],
+      correctAnswer: 'To isolate work before merging',
+      explanation: 'Branches keep changes scoped and safer for collaboration.',
+      relatedSkill: 'Git/GitHub',
+      difficulty: 'easy',
+    },
+    {
+      questionText: 'What is the purpose of a Pull Request on GitHub?',
+      options: ['Delete branches automatically', 'Propose and review changes before merge', 'Run local tests only', 'Encrypt repository'],
+      correctAnswer: 'Propose and review changes before merge',
+      explanation: 'PRs enable collaboration, code review, and CI checks.',
+      relatedSkill: 'Git/GitHub',
+      difficulty: 'easy',
+    },
+    {
+      questionText: 'What is .gitignore used for?',
+      options: ['Encrypt ignored files', 'Prevent selected files from being tracked', 'Run scripts automatically', 'Configure issue templates'],
+      correctAnswer: 'Prevent selected files from being tracked',
+      explanation: '.gitignore lists files/patterns that Git should ignore.',
+      relatedSkill: 'Git/GitHub',
+      difficulty: 'easy',
+    },
+    {
+      questionText: 'Which command safely undoes a pushed commit by creating a new inverse commit?',
+      options: ['git reset --hard', 'git revert', 'git rm -rf', 'git clean -fd'],
+      correctAnswer: 'git revert',
+      explanation: 'git revert preserves history and is safer for shared branches.',
+      relatedSkill: 'Git/GitHub',
+      difficulty: 'medium',
+    },
+    {
+      questionText: 'Why is a README important in repositories?',
+      options: ['It increases CPU performance', 'It explains setup, usage, and context', 'It replaces all source files', 'It is required to run git'],
+      correctAnswer: 'It explains setup, usage, and context',
+      explanation: 'README provides onboarding and project documentation.',
+      relatedSkill: 'Git/GitHub',
+      difficulty: 'easy',
+    },
+    {
+      questionText: 'What does origin commonly refer to?',
+      options: ['First commit hash', 'Default name for the remote repository', 'Protected branch policy', 'Branch merge strategy'],
+      correctAnswer: 'Default name for the remote repository',
+      explanation: 'origin is the default remote alias after cloning.',
+      relatedSkill: 'Git/GitHub',
+      difficulty: 'easy',
+    },
+    {
+      questionText: 'What is a good commit message practice?',
+      options: ['Use random text', 'Describe intent and scope clearly', 'Leave empty messages', 'Only include emojis'],
+      correctAnswer: 'Describe intent and scope clearly',
+      explanation: 'Clear commit messages improve history readability and debugging.',
+      relatedSkill: 'Git/GitHub',
+      difficulty: 'easy',
+    },
+  ],
+}
+
+const SKILL_ALIASES: Record<string, string> = {
+  html: 'html',
+  css: 'css',
+  javascript: 'javascript',
+  typescript: 'typescript',
+  react: 'react',
+  'rest api': 'rest api',
+  api: 'rest api',
+  'node.js': 'node.js',
+  nodejs: 'node.js',
+  node: 'node.js',
+  git: 'git',
+  github: 'git',
+  'git/github': 'git',
+}
+
+function normalize(value: string) {
+  return value.trim().toLowerCase()
+}
+
+export function resolveQuizSkill(input: string[]) {
+  for (const raw of input) {
+    const key = SKILL_ALIASES[normalize(raw)]
+    if (key && QUIZ_BANK[key]) {
+      return key
+    }
+  }
+
+  return 'javascript'
+}
+
+export function getCuratedQuizQuestions(skill: string, count = QUIZ_QUESTION_COUNT): QuizQuestionSeed[] {
+  const normalized = SKILL_ALIASES[normalize(skill)] ?? 'javascript'
+  const bank = QUIZ_BANK[normalized] ?? QUIZ_BANK.javascript
+  return bank.slice(0, count)
+}
+
+export function inferQuizSkillFromTask(task: { title: string; description: string; focusSkills?: string[] }) {
+  const candidates = [
+    ...(task.focusSkills ?? []),
+    task.title,
+    task.description,
+  ]
+
+  const combined = candidates.join(' ').toLowerCase()
+
+  if (combined.includes('html')) return 'html'
+  if (combined.includes('css')) return 'css'
+  if (combined.includes('typescript')) return 'typescript'
+  if (combined.includes('javascript')) return 'javascript'
+  if (combined.includes('react')) return 'react'
+  if (combined.includes('rest') || combined.includes('api')) return 'rest api'
+  if (combined.includes('node')) return 'node.js'
+  if (combined.includes('git') || combined.includes('github')) return 'git'
+
+  return resolveQuizSkill(candidates)
+}

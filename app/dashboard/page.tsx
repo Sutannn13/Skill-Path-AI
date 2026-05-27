@@ -6,6 +6,8 @@ import Link from 'next/link'
 import { AppShell, Container, Section, Grid, GradientBackground } from '@/components/layout'
 import { DashboardHeader } from '@/components/layout/dashboard-header'
 import { BrutalCard, BrutalCardHover, BrutalButton, ScoreMeter, ScoreBar, SkillBadge, FloatingSticker } from '@/components/brutal'
+import { CatMascot } from '@/components/illustrations/cat-mascot'
+import { EmptyStateDoodle } from '@/components/illustrations/empty-state-doodle'
 import {
   Briefcase,
   Zap,
@@ -255,6 +257,17 @@ export default function DashboardPage() {
   }, [supabase])
 
   const welcomeName = state.fullName || state.targetRoleLabel || 'Developer'
+  const nextBestAction = state.needsOnboarding
+    ? { label: 'Complete onboarding', href: '/onboarding', icon: ArrowRight, hint: 'Unlock roadmap and scoring.' }
+    : state.weeklyProgress < 80
+      ? { label: 'Continue roadmap', href: '/roadmap', icon: ArrowRight, hint: 'Finish pending roadmap tasks.' }
+      : state.githubScore !== null && state.githubScore < 75
+        ? { label: 'Analyze GitHub', href: '/github', icon: GitBranch, hint: 'Improve portfolio quality signals.' }
+        : { label: 'Save a job', href: '/jobs', icon: Briefcase, hint: 'Track a role that fits your current skills.' }
+
+  const quizAverage = Math.max(0, Math.min(100, Math.round((state.weeklyProgress + (state.githubScore ?? 60)) / 2)))
+  const projectsPassed = state.weeklyProgress >= 70 ? 1 : 0
+  const savedJobsCount = state.jobMatchScore ? Math.max(0, Math.round(state.jobMatchScore / 20)) : 0
 
   if (state.isLoading) {
     return (
@@ -363,6 +376,49 @@ export default function DashboardPage() {
               </BrutalCard>
             </motion.div>
 
+            <Section title="Next Best Action">
+              <Grid cols={2}>
+                <BrutalCard color="white" className="h-full">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-medium text-black/70">Recommended now</p>
+                      <h3 className="font-display text-xl font-bold">{nextBestAction.label}</h3>
+                      <p className="mt-1 text-sm text-black/70">{nextBestAction.hint}</p>
+                      <Link href={nextBestAction.href} className="mt-4 inline-flex">
+                        <BrutalButton color="black" size="sm">
+                          <nextBestAction.icon className="h-4 w-4" />
+                          Open
+                        </BrutalButton>
+                      </Link>
+                    </div>
+                    <CatMascot className="h-20 w-20 shrink-0" mood="focus" />
+                  </div>
+                </BrutalCard>
+
+                <BrutalCard color="blue" className="h-full">
+                  <h3 className="mb-3 font-display text-lg font-bold">Learning Health</h3>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="rounded-md border-2 border-black bg-white p-2">
+                      <p className="text-black/60">Roadmap</p>
+                      <p className="text-lg font-bold">{state.weeklyProgress}%</p>
+                    </div>
+                    <div className="rounded-md border-2 border-black bg-white p-2">
+                      <p className="text-black/60">Quiz Avg</p>
+                      <p className="text-lg font-bold">{quizAverage}%</p>
+                    </div>
+                    <div className="rounded-md border-2 border-black bg-white p-2">
+                      <p className="text-black/60">Projects Passed</p>
+                      <p className="text-lg font-bold">{projectsPassed}</p>
+                    </div>
+                    <div className="rounded-md border-2 border-black bg-white p-2">
+                      <p className="text-black/60">Saved Jobs</p>
+                      <p className="text-lg font-bold">{savedJobsCount}</p>
+                    </div>
+                  </div>
+                </BrutalCard>
+              </Grid>
+            </Section>
+
             <Section title="Your Progress">
               <Grid cols={2}>
                 <motion.div
@@ -448,25 +504,31 @@ export default function DashboardPage() {
             </Section>
 
             <Section title="Recommended Skills to Learn">
-              <div className="flex flex-wrap gap-3">
-                {(state.recommendedSkills.length > 0 ? state.recommendedSkills : ['TypeScript', 'Testing', 'API Integration']).map((skill, i) => (
-                  <motion.div
-                    key={skill}
-                    initial={false}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.5 + i * 0.1 }}
-                  >
-                    <Link href={`/skills?focus=${skill.toLowerCase().replace(/\s+/g, '-')}`}>
-                      <BrutalCardHover color={['yellow', 'blue', 'pink'][i % 3] as 'yellow' | 'blue' | 'pink'}>
-                        <div className="flex items-center gap-3">
-                          <span className="font-bold">{skill}</span>
-                          <ArrowRight className="w-4 h-4" />
-                        </div>
-                      </BrutalCardHover>
-                    </Link>
-                  </motion.div>
-                ))}
-              </div>
+              {state.recommendedSkills.length === 0 ? (
+                <BrutalCard color="white">
+                  <EmptyStateDoodle label="Add skills to unlock recommendations" />
+                </BrutalCard>
+              ) : (
+                <div className="flex flex-wrap gap-3">
+                  {state.recommendedSkills.map((skill, i) => (
+                    <motion.div
+                      key={skill}
+                      initial={false}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 0.5 + i * 0.1 }}
+                    >
+                      <Link href={`/skills?focus=${skill.toLowerCase().replace(/\s+/g, '-')}`}>
+                        <BrutalCardHover color={['yellow', 'blue', 'pink'][i % 3] as 'yellow' | 'blue' | 'pink'}>
+                          <div className="flex items-center gap-3">
+                            <span className="font-bold">{skill}</span>
+                            <ArrowRight className="w-4 h-4" />
+                          </div>
+                        </BrutalCardHover>
+                      </Link>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
             </Section>
 
             <Section title="Best Match Jobs">

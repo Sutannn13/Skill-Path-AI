@@ -83,6 +83,10 @@ function filterJobs(jobs: JobPost[], filters: JobFilters): JobPost[] {
 }
 
 function parseFreshnessDays(value: string | null) {
+  if (value === 'all') {
+    return 180
+  }
+
   const parsed = Number(value)
   if (parsed === 7 || parsed === 30 || parsed === 90) {
     return parsed
@@ -220,7 +224,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         error: schemaMismatch
-          ? 'Jobs persistence schema is not ready in Supabase. Apply migration 005_roadmap_persistence.sql and retry.'
+          ? 'Jobs persistence schema is not ready in Supabase. Apply migrations 005_roadmap_persistence.sql and 006_learning_assessment_system.sql, then retry.'
           : 'Failed to fetch jobs',
       },
       { status: schemaMismatch ? 503 : 500 }

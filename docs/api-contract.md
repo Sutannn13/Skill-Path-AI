@@ -26,7 +26,7 @@ Behavior:
 - Reads `approved` and `pending_review` jobs by default.
 - Hides `rejected` and `expired` jobs.
 - Hides jobs older than the freshness window.
-- Supports `freshnessDays=7|30|90`.
+- Supports `freshnessDays=7|30|90|all` (`all` maps to active jobs within 180 days).
 - Supports `id=<job_id>` for detail-page reads.
 - Returns source attribution, posted or fetched dates, validity score, risk level, and match score.
 - Uses in-memory/live fallback only when Supabase persistence is not configured.
@@ -119,6 +119,55 @@ Behavior:
 - Returns real public repository data for the requested username.
 - Does not fall back to mock data on failure.
 - Returns safe `404`, `429`, or `502` errors for not found, rate limit, or upstream errors.
+
+## `POST /api/roadmap/quiz/seed`
+
+Seeds deterministic quiz metadata and 10 curated multiple-choice questions per roadmap task.
+
+Behavior:
+
+- Requires authenticated user and roadmap ownership.
+- Uses server-side skill inference and curated question bank.
+- Stores quiz metadata in `roadmap_quizzes` and answer keys in `roadmap_quiz_questions`.
+- Updates task requirement flags (`quiz_required`, `project_required`, `requirement_state`).
+
+## `POST /api/roadmap/quiz/start`
+
+Loads a task quiz without exposing correct answers.
+
+Behavior:
+
+- Requires authenticated user and task ownership.
+- Auto-seeds quiz/questions when missing.
+- Returns ordered 10-question payload and latest user attempt summary.
+
+## `POST /api/roadmap/quiz/submit`
+
+Grades quiz attempts server-side and persists attempt history.
+
+Behavior:
+
+- Requires authenticated user.
+- Stores attempt rows in `roadmap_quiz_attempts`.
+- Returns score, pass/fail, per-question explanation feedback.
+- Updates roadmap task `quiz_passed`, `requirement_state`, and completion status.
+
+## `POST /api/roadmap/project-review`
+
+Submits mini/final project URLs and runs rule-first review with optional Gemini assist.
+
+Behavior:
+
+- Requires authenticated user and roadmap ownership.
+- Performs deterministic checks first (URL validity, repo accessibility, README/activity signals).
+- Uses Gemini only after rule checks and within a daily guard.
+- Falls back to rule-only review if AI is unavailable.
+- Persists submission/review in `roadmap_project_submissions` and `roadmap_project_reviews`.
+- Updates task/roadmap completion flags (`project_passed`, `final_project_status`) accordingly.
+
+## `GET /api/roadmap/project-review`
+
+Loads the latest mini or final project submission + review summary for the current user.
 
 ## Web Application Flows
 

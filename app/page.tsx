@@ -7,6 +7,8 @@ import { Container, GradientBackground } from '@/components/layout'
 import { BrutalCard, BrutalCardHover, BrutalButton, FloatingSticker } from '@/components/brutal'
 import type { CardColor } from '@/components/brutal/brutal-card'
 import { CSSAnimatedScene, use3DSupport } from '@/components/three/css-animated-scene'
+import { CatMascot } from '@/components/illustrations/cat-mascot'
+import { DoodleBackground } from '@/components/illustrations/doodle-background'
 import {
   ArrowRight,
   Target,
@@ -35,7 +37,7 @@ const features = [
   },
   {
     icon: Compass,
-    title: 'Job Match Score',
+    title: 'Job Radar',
     description: 'Find remote jobs that match your skill level. No more applying to positions you are not ready for.',
     color: 'blue' as const,
   },
@@ -47,20 +49,20 @@ const features = [
   },
   {
     icon: Trophy,
-    title: 'GitHub Audit',
+    title: 'GitHub Portfolio Analyzer',
     description: 'Analyze your GitHub profile and get actionable suggestions to improve your portfolio.',
     color: 'green' as const,
   },
   {
     icon: TrendingUp,
-    title: 'Weekly Sprint',
-    description: 'Set weekly goals, track progress, and maintain your learning streak.',
+    title: 'Project Review',
+    description: 'Submit mini and final projects with rule-based checks and AI-assisted feedback.',
     color: 'orange' as const,
   },
   {
     icon: Zap,
-    title: 'Project Ideas',
-    description: 'Get project recommendations that fill your skill gaps and impress potential employers.',
+    title: 'Quiz-based Learning',
+    description: 'Lock task completion behind real quizzes so your progress reflects actual mastery.',
     color: 'purple' as const,
   },
 ]
@@ -136,6 +138,7 @@ export default function HomePage() {
       {/* Hero Section */}
       <section className="pt-32 pb-20 px-4">
         <Container className="relative">
+          <DoodleBackground />
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <motion.div
               initial={{ opacity: 0, y: 30 }}
@@ -166,6 +169,12 @@ export default function HomePage() {
                     View Demo
                   </BrutalButton>
                 </Link>
+              </div>
+              <div className="mt-6 flex items-center gap-3 rounded-md border-3 border-black bg-white px-4 py-3 shadow-brutal-sm">
+                <CatMascot className="h-14 w-14 shrink-0" mood="cheer" withMessage="Keep learning!" />
+                <p className="text-sm font-medium text-black">
+                  Weekly quizzes and project reviews keep your roadmap honest and portfolio-ready.
+                </p>
               </div>
             </motion.div>
 
@@ -200,6 +209,16 @@ export default function HomePage() {
                 size="sm"
                 className="absolute top-16 left-0"
               />
+              <div className="absolute -bottom-4 right-6 hidden md:block">
+                <BrutalCard color="white" className="px-3 py-2">
+                  <p className="text-xs font-bold">React + TypeScript</p>
+                </BrutalCard>
+              </div>
+              <div className="absolute top-12 right-2 hidden md:block">
+                <BrutalCard color="yellow" className="px-3 py-2">
+                  <p className="text-xs font-bold">Quiz 10/10</p>
+                </BrutalCard>
+              </div>
             </motion.div>
           </div>
         </Container>

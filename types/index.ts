@@ -137,6 +137,11 @@ export interface RoadmapTask {
   miniExerciseCompleted?: boolean
   deliverableCompleted?: boolean
   resources?: RoadmapResource[]
+  quizRequired?: boolean
+  quizPassed?: boolean
+  projectRequired?: boolean
+  projectPassed?: boolean
+  requirementState?: RoadmapTaskRequirementState
 }
 
 export type RoadmapResourceType = 'youtube' | 'article' | 'docs' | 'project' | 'quiz'
@@ -177,6 +182,80 @@ export interface Roadmap {
     skillsCovered: string[]
   }
   source: 'ai' | 'fallback'
+  createdAt: string
+}
+
+export type RoadmapTaskRequirementState =
+  | 'resources_pending'
+  | 'resources_completed'
+  | 'quiz_pending'
+  | 'quiz_passed'
+  | 'project_pending'
+  | 'project_passed'
+  | 'completed'
+
+export interface RoadmapQuizQuestion {
+  id: string
+  quizId: string
+  questionText: string
+  questionType: 'multiple_choice'
+  options: string[]
+  explanation: string
+  relatedSkill: string
+  difficulty: 'easy' | 'medium' | 'hard'
+  position: number
+}
+
+export interface RoadmapQuiz {
+  id: string
+  roadmapTaskId: string
+  title: string
+  passingScore: number
+  questionCount: number
+  questions: RoadmapQuizQuestion[]
+}
+
+export interface RoadmapQuizAttempt {
+  id: string
+  quizId: string
+  userId: string
+  score: number
+  totalQuestions: number
+  correctCount: number
+  passed: boolean
+  answers: Record<string, string>
+  startedAt: string
+  submittedAt: string
+}
+
+export type RoadmapProjectType = 'mini_project' | 'final_project'
+export type RoadmapProjectReviewStatus = 'pending' | 'submitted' | 'passed' | 'needs_revision' | 'needs_review'
+
+export interface RoadmapProjectSubmission {
+  id: string
+  userId: string
+  roadmapId: string
+  roadmapTaskId: string | null
+  projectType: RoadmapProjectType
+  repoUrl: string
+  liveUrl: string | null
+  notes: string | null
+  status: RoadmapProjectReviewStatus
+  createdAt: string
+  updatedAt: string
+}
+
+export interface RoadmapProjectReview {
+  id: string
+  submissionId: string
+  reviewer: string
+  score: number | null
+  status: RoadmapProjectReviewStatus
+  summary: string | null
+  strengths: string[]
+  issues: string[]
+  requiredFixes: string[]
+  suggestions: string[]
   createdAt: string
 }
 

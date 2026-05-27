@@ -19,6 +19,11 @@ export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
   title: 'SkillPath - Career Operating System for Developers',
   description: 'Find your developer career path before you waste months guessing. SkillPath checks your skills, compares them with real jobs, builds your learning roadmap, and tracks your progress every week.',
+  icons: {
+    icon: '/icon',
+    shortcut: '/icon',
+    apple: '/icon',
+  },
   keywords: ['developer', 'career', 'skills', 'learning', 'roadmap', 'jobs', 'internship', 'portfolio'],
   authors: [{ name: 'SkillPath' }],
   openGraph: {

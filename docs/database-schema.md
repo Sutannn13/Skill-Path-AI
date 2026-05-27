@@ -13,6 +13,11 @@ erDiagram
   ROADMAPS ||--o{ ROADMAP_TASKS : contains
   ROADMAP_TASKS ||--o{ ROADMAP_RESOURCES : contains
   ROADMAP_RESOURCES ||--o{ ROADMAP_RESOURCE_PROGRESS : tracked_as
+  ROADMAP_TASKS ||--|| ROADMAP_QUIZZES : has
+  ROADMAP_QUIZZES ||--o{ ROADMAP_QUIZ_QUESTIONS : contains
+  ROADMAP_QUIZZES ||--o{ ROADMAP_QUIZ_ATTEMPTS : attempted_by
+  ROADMAPS ||--o{ ROADMAP_PROJECT_SUBMISSIONS : receives
+  ROADMAP_PROJECT_SUBMISSIONS ||--o{ ROADMAP_PROJECT_REVIEWS : reviewed_as
   AUTH_USERS ||--o{ WEEKLY_SPRINTS : owns
   WEEKLY_SPRINTS ||--o{ SPRINT_TASKS : contains
   AUTH_USERS ||--o{ ACTIVITY_LOGS : emits
@@ -47,6 +52,11 @@ User-owned tables keep owner policies:
 - `roadmap_tasks`
 - `roadmap_resources`
 - `roadmap_resource_progress`
+- `roadmap_quizzes`
+- `roadmap_quiz_questions`
+- `roadmap_quiz_attempts`
+- `roadmap_project_submissions`
+- `roadmap_project_reviews`
 - `weekly_sprints`
 - `sprint_tasks`
 - `activity_logs`
@@ -111,3 +121,20 @@ Rollback plan for local development:
 4. Drop additive columns only after the app no longer depends on them.
 
 Production rollback should be forward-only. Archive old roadmaps instead of deleting them when regenerating.
+
+`006_learning_assessment_system.sql` is additive:
+
+- Adds roadmap task requirement-state columns for quiz/project gating.
+- Adds `roadmaps.final_project_passed` and `roadmaps.final_project_status`.
+- Adds quiz persistence tables: `roadmap_quizzes`, `roadmap_quiz_questions`, `roadmap_quiz_attempts`.
+- Adds project submission/review tables: `roadmap_project_submissions`, `roadmap_project_reviews`.
+- Enables RLS and owner-scoped policies for attempts/submissions/reviews.
+- Keeps quiz correct-answer storage server-side for submission grading.
+
+Rollback plan for local development:
+
+1. Remove app code that reads quiz/project assessment tables and requirement-state columns.
+2. Drop quiz/project policies and tables.
+3. Drop additive task/roadmap columns only after app code no longer references them.
+
+Production rollback should be forward-only; prefer soft migration corrections over destructive rollback.

@@ -91,6 +91,10 @@ export default function GitHubPage() {
     setAnalyzedUsername(trimmedUsername)
 
     try {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[GitHub] calling analyze endpoint', { username: trimmedUsername })
+      }
+
       const response = await fetch('/api/github/analyze', {
         method: 'POST',
         headers: {

@@ -13,3 +13,4 @@ build
 .next
 vendor
 .DS_Store
+.env.local

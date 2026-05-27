@@ -1,0 +1,138 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-background: #FFF7E6;
+  --color-black: #111111;
+  --color-yellow: #FFD447;
+  --color-blue: #7CC9FF;
+  --color-pink: #FF8FAB;
+  --color-green: #9BE564;
+  --color-orange: #FFB86B;
+  --color-purple: #B39DDB;
+  --color-red: #FF6B6B;
+  --color-white: #FFFFFF;
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  background-color: var(--color-background);
+  color: var(--color-black);
+  font-family: var(--font-body), system-ui, sans-serif;
+}
+
+/* Brutal Utility Classes */
+.brutal-border {
+  border: 3px solid var(--color-black);
+}
+
+.brutal-shadow {
+  box-shadow: 4px 4px 0px 0px var(--color-black);
+}
+
+.brutal-shadow-sm {
+  box-shadow: 2px 2px 0px 0px var(--color-black);
+}
+
+.brutal-shadow-lg {
+  box-shadow: 6px 6px 0px 0px var(--color-black);
+}
+
+.brutal-radius {
+  border-radius: 12px;
+}
+
+.brutal-card {
+  @apply brutal-border brutal-shadow brutal-radius bg-white;
+}
+
+.brutal-button {
+  @apply brutal-border brutal-shadow-sm brutal-radius font-bold px-6 py-3 transition-all duration-150;
+}
+
+.brutal-button:hover {
+  @apply translate-x-[-2px] translate-y-[-2px] shadow-brutal-lg;
+}
+
+.brutal-button:active {
+  @apply translate-x-0 translate-y-0 shadow-none;
+}
+
+/* Card Colors */
+.card-yellow {
+  background-color: var(--color-yellow);
+}
+
+.card-blue {
+  background-color: var(--color-blue);
+}
+
+.card-pink {
+  background-color: var(--color-pink);
+}
+
+.card-green {
+  background-color: var(--color-green);
+}
+
+.card-orange {
+  background-color: var(--color-orange);
+}
+
+.card-purple {
+  background-color: var(--color-purple);
+}
+
+/* Animation Classes */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+@keyframes wiggle {
+  0%, 100% {
+    transform: rotate(-3deg);
+  }
+  50% {
+    transform: rotate(3deg);
+  }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-wiggle {
+  animation: wiggle 2s ease-in-out infinite;
+}
+
+/* Hide scrollbar but allow scrolling */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .animate-float,
+  .animate-wiggle {
+    animation: none;
+  }
+}

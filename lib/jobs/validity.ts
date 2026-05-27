@@ -184,6 +184,7 @@ export function assessJobValidity(job: Partial<JobPost>): JobValidityAssessment 
   let score = 50 // Start with neutral score
 
   const title = (job.title || '').toLowerCase()
+  const rawTitle = job.title || ''
   const description = (job.description || '').toLowerCase()
   const company = (job.company || '').toLowerCase()
   const location = (job.location || '').toLowerCase()
@@ -191,7 +192,7 @@ export function assessJobValidity(job: Partial<JobPost>): JobValidityAssessment 
   const combinedText = `${title} ${description} ${company} ${location}`
 
   // Check for red flags
-  const redFlags = checkRedFlags(combinedText, title, description, applyUrl, job)
+  const redFlags = checkRedFlags(combinedText, title, rawTitle, description, applyUrl, job)
   score -= redFlags.length * 10
   reasons.push(...redFlags)
 
@@ -259,6 +260,7 @@ export function assessJobValidity(job: Partial<JobPost>): JobValidityAssessment 
 function checkRedFlags(
   combinedText: string,
   title: string,
+  rawTitle: string,
   description: string,
   applyUrl: string,
   job: Partial<JobPost>
@@ -306,14 +308,15 @@ function checkRedFlags(
   }
 
   // Check for spam keywords (excessive uppercase)
-  const uppercaseCount = (title.match(/[A-Z]/g) || []).length
-  if (uppercaseCount > title.length * 0.3) {
+  const uppercaseCount = (rawTitle.match(/[A-Z]/g) || []).length
+  if (rawTitle.length > 0 && uppercaseCount > rawTitle.length * 0.3) {
     flags.push('Title contains excessive uppercase (spam indicator)')
   }
 
   // Check for spam patterns
   for (const pattern of RED_FLAG_PATTERNS.spamKeywords) {
-    if (title.includes(pattern) || description.includes(pattern)) {
+    const normalizedPattern = pattern.toLowerCase()
+    if (title.includes(normalizedPattern) || description.includes(normalizedPattern)) {
       flags.push(`Spam keyword detected: "${pattern}"`)
     }
   }

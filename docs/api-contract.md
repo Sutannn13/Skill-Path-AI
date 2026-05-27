@@ -18,13 +18,25 @@ Internal stack traces and secrets must not be returned to clients.
 
 ## `GET /api/jobs`
 
-Returns available job posts from the local job store and configured adapters.
+Returns available job posts from Supabase first, with demo fallback only when durable storage is unavailable.
 
 Behavior:
 
 - Public read endpoint.
-- Uses fallback job data when external sources fail.
-- Filters and scoring are handled in application code.
+- Reads `approved` and `pending_review` jobs by default.
+- Hides `rejected` and `expired` jobs.
+- Hides jobs older than the freshness window.
+- Supports `freshnessDays=7|30|90`.
+- Supports `id=<job_id>` for detail-page reads.
+- Returns source attribution, posted or fetched dates, validity score, risk level, and match score.
+- Uses in-memory/live fallback only when Supabase persistence is not configured.
+
+Freshness rule:
+
+- Use `published_at` when present.
+- Use `fetched_at` only when `published_at` is missing.
+- Default public listing window is 90 days.
+- Jobs older than 180 days may be marked `expired`.
 
 ## `GET /api/cron/sync-jobs`
 
@@ -53,6 +65,8 @@ Success response:
   "syncTime": "2026-05-27T00:00:00.000Z",
   "summary": {
     "totalJobs": 10,
+    "storage": "supabase",
+    "expired": 0,
     "sources": []
   },
   "results": []
@@ -61,7 +75,7 @@ Success response:
 
 Idempotency note:
 
-The job store deduplicates job IDs, so repeat sync calls should converge on the same stored job set. A durable idempotency table is not present yet.
+The job sync upserts by deterministic job ID and the database has a source/external ID dedupe index. Repeat sync calls should converge on the same stored job set. Each run inserts `job_ingestion_runs` rows for audit and debugging.
 
 ## `POST /api/cron/sync-jobs`
 
@@ -86,6 +100,11 @@ Analyzes a job post for validity, risk, and skill fit.
 Behavior:
 
 - Uses server-side validation.
+- Runs deterministic validity first.
+- Uses Gemini only for user-requested analysis.
+- Does not run Gemini during normal job listing or cron ingestion.
+- Caches successful Gemini output in `ai_job_analyses`.
+- Uses an in-process daily guard for simple AI throttling.
 - Returns safe user-facing analysis.
 - Uses fallback behavior when AI is unavailable.
 
@@ -97,7 +116,9 @@ Behavior:
 
 - Uses GitHub REST API.
 - `GITHUB_TOKEN` is optional and increases rate limits.
-- Falls back safely when the external API fails.
+- Returns real public repository data for the requested username.
+- Does not fall back to mock data on failure.
+- Returns safe `404`, `429`, or `502` errors for not found, rate limit, or upstream errors.
 
 ## Web Application Flows
 
@@ -106,5 +127,8 @@ Behavior:
 | `/dashboard` | `user` | User learning dashboard. Admin sessions redirect to `/admin`. |
 | `/admin` | `admin` | Admin operations dashboard. Non-admin users see an admin-only state. |
 | `/onboarding` | Public/demo | Career setup flow. Complete auth UI is still a later phase. |
+| `/roadmap` | `user` or demo | Loads latest active Supabase roadmap, creates one when missing, persists task/resource progress, and asks before regeneration. |
+| `/jobs` | Public with optional session | Lists fresh jobs from Supabase and lets authenticated users persist `saved_jobs`. |
+| `/github` | Public | Calls `/api/github/analyze` and renders only the requested username's result unless demo is explicitly chosen. |
 
 Authorization must be enforced on the server. UI-only role checks are not security boundaries.

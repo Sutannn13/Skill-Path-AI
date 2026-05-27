@@ -95,10 +95,18 @@ export interface Job {
   type: 'full-time' | 'part-time' | 'contract' | 'freelance' | 'internship'
   tags: string[]
   url: string
+  sourceUrl?: string
   description: string
   requiredSkills: string[]
-  source: 'remotive' | 'mock'
+  source: string
+  sourceLabel?: string
   publishedAt: string
+  fetchedAt?: string
+  validityScore?: number
+  riskLevel?: 'low' | 'medium' | 'high'
+  moderationStatus?: 'approved' | 'pending_review' | 'rejected' | 'expired'
+  moderationReasons?: string[]
+  matchScore?: number
 }
 
 export interface SavedJob extends Job {
@@ -125,6 +133,28 @@ export interface RoadmapTask {
   difficulty: 'easy' | 'medium' | 'hard'
   deliverable: string
   status: 'todo' | 'in-progress' | 'completed'
+  completedAt?: string | null
+  miniExerciseCompleted?: boolean
+  deliverableCompleted?: boolean
+  resources?: RoadmapResource[]
+}
+
+export type RoadmapResourceType = 'youtube' | 'article' | 'docs' | 'project' | 'quiz'
+
+export interface RoadmapResource {
+  id: string
+  title: string
+  resourceType: RoadmapResourceType
+  url: string
+  provider: string
+  estimatedMinutes: number
+  isRequired: boolean
+  completionRule: string
+  watchedSeconds: number
+  durationSeconds: number | null
+  completionPercentage: number
+  isCompleted: boolean
+  completedAt: string | null
 }
 
 export interface MiniProject {

@@ -4,7 +4,12 @@ import { z } from 'zod'
 export const dynamic = 'force-dynamic'
 
 const analyzeRequestSchema = z.object({
-  username: z.string().min(1, 'Username is required'),
+  username: z
+    .string()
+    .trim()
+    .min(1, 'Username is required')
+    .max(39, 'GitHub username is too long')
+    .regex(/^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,37}[a-zA-Z0-9])?$/, 'Invalid GitHub username'),
 })
 
 const GITHUB_API_URL = 'https://api.github.com'
@@ -34,86 +39,84 @@ interface GitHubUser {
   created_at: string
 }
 
-interface GitHubRepoContent {
-  name: string
-  sha: string
+class GitHubApiError extends Error {
+  constructor(
+    public code: 'GITHUB_NOT_FOUND' | 'GITHUB_RATE_LIMIT' | 'GITHUB_API_ERROR',
+    public status: number
+  ) {
+    super(code)
+  }
 }
 
-async function fetchGitHubUser(username: string, token?: string): Promise<GitHubUser | null> {
-  try {
-    const headers: HeadersInit = {
-      'Accept': 'application/vnd.github.v3+json',
-      'User-Agent': 'SkillPath-App',
-    }
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`
-    }
+function createGitHubHeaders(token?: string): HeadersInit {
+  const headers: HeadersInit = {
+    Accept: 'application/vnd.github+json',
+    'User-Agent': 'SkillPath-App',
+    'X-GitHub-Api-Version': '2022-11-28',
+  }
 
-    const response = await fetch(`${GITHUB_API_URL}/users/${username}`, {
-      headers,
-      next: { revalidate: 3600 },
+  if (token) {
+    headers.Authorization = `Bearer ${token}`
+  }
+
+  return headers
+}
+
+async function fetchGitHubJson<T>(path: string, token?: string): Promise<T> {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 10000)
+
+  try {
+    const response = await fetch(`${GITHUB_API_URL}${path}`, {
+      headers: createGitHubHeaders(token),
+      cache: 'no-store',
+      signal: controller.signal,
     })
 
     if (!response.ok) {
       if (response.status === 404) {
-        return null
+        throw new GitHubApiError('GITHUB_NOT_FOUND', response.status)
       }
-      throw new Error(`GitHub API error: ${response.status}`)
+
+      const rateLimitRemaining = response.headers.get('x-ratelimit-remaining')
+      if (response.status === 403 && rateLimitRemaining === '0') {
+        throw new GitHubApiError('GITHUB_RATE_LIMIT', response.status)
+      }
+
+      throw new GitHubApiError('GITHUB_API_ERROR', response.status)
     }
 
-    return response.json()
+    return response.json() as Promise<T>
   } catch (error) {
-    console.error('Failed to fetch GitHub user:', error)
-    return null
+    if (error instanceof GitHubApiError) {
+      throw error
+    }
+
+    console.error('[GitHub] Request failed:', error instanceof Error ? error.message : 'Unknown error')
+    throw new GitHubApiError('GITHUB_API_ERROR', 502)
+  } finally {
+    clearTimeout(timeout)
   }
 }
 
+async function fetchGitHubUser(username: string, token?: string): Promise<GitHubUser> {
+  return fetchGitHubJson<GitHubUser>(`/users/${username}`, token)
+}
+
 async function fetchGitHubRepos(username: string, token?: string): Promise<GitHubRepo[]> {
-  try {
-    const headers: HeadersInit = {
-      'Accept': 'application/vnd.github.v3+json',
-      'User-Agent': 'SkillPath-App',
-    }
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`
-    }
-
-    const response = await fetch(
-      `${GITHUB_API_URL}/users/${username}/repos?sort=updated&per_page=100`,
-      {
-        headers,
-        next: { revalidate: 3600 },
-      }
-    )
-
-    if (!response.ok) {
-      throw new Error(`GitHub API error: ${response.status}`)
-    }
-
-    return response.json()
-  } catch (error) {
-    console.error('Failed to fetch GitHub repos:', error)
-    return []
-  }
+  return fetchGitHubJson<GitHubRepo[]>(`/users/${username}/repos?sort=updated&per_page=100`, token)
 }
 
 async function checkReadmeExists(username: string, repo: string, token?: string): Promise<boolean> {
   try {
-    const headers: HeadersInit = {
-      'Accept': 'application/vnd.github.v3+json',
-      'User-Agent': 'SkillPath-App',
-    }
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`
-    }
-
-    const response = await fetch(
-      `${GITHUB_API_URL}/repos/${username}/${repo}/contents/README.md`,
-      { headers }
-    )
+    const response = await fetch(`${GITHUB_API_URL}/repos/${username}/${repo}/contents/README.md`, {
+      headers: createGitHubHeaders(token),
+      cache: 'no-store',
+    })
 
     return response.ok
-  } catch {
+  } catch (error) {
+    console.warn('[GitHub] README check failed:', error instanceof Error ? error.message : 'Unknown error')
     return false
   }
 }
@@ -246,22 +249,8 @@ export async function POST(request: NextRequest) {
     const { username } = parseResult.data
     const token = process.env.GITHUB_TOKEN
 
-    // Fetch user and repos
-    const [user, repos] = await Promise.all([
-      fetchGitHubUser(username, token),
-      fetchGitHubRepos(username, token),
-    ])
-
-    // Handle user not found
-    if (!user) {
-      return NextResponse.json(
-        {
-          error: 'GitHub user not found',
-          message: `Could not find GitHub user "${username}". Please check the username and try again.`,
-        },
-        { status: 404 }
-      )
-    }
+    const user = await fetchGitHubUser(username, token)
+    const repos = await fetchGitHubRepos(user.login, token)
 
     // Check README status for repos (in parallel, but limit to prevent rate limiting)
     const readmeStatus = new Map<string, boolean>()
@@ -280,13 +269,46 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       analysis,
       meta: {
-        username,
+        username: user.login,
         analyzedAt: new Date().toISOString(),
         reposAnalyzed: repos.length,
         readmeChecksPerformed: reposToCheck.length,
       },
     })
   } catch (error) {
+    if (error instanceof GitHubApiError) {
+      if (error.code === 'GITHUB_NOT_FOUND') {
+        return NextResponse.json(
+          {
+            code: 'GITHUB_NOT_FOUND',
+            error: 'GitHub user not found',
+            message: 'Could not find that GitHub user. Check the username and try again.',
+          },
+          { status: 404 }
+        )
+      }
+
+      if (error.code === 'GITHUB_RATE_LIMIT') {
+        return NextResponse.json(
+          {
+            code: 'GITHUB_RATE_LIMIT',
+            error: 'GitHub rate limit reached',
+            message: 'GitHub rate limit was reached. Try again later or configure GITHUB_TOKEN on the server.',
+          },
+          { status: 429 }
+        )
+      }
+
+      return NextResponse.json(
+        {
+          code: 'GITHUB_API_ERROR',
+          error: 'GitHub API error',
+          message: 'GitHub could not complete this analysis right now. Please try again later.',
+        },
+        { status: 502 }
+      )
+    }
+
     console.error('GitHub analysis error:', error)
 
     return NextResponse.json(

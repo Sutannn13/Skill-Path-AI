@@ -25,7 +25,7 @@ export interface JobPost {
   expiresAt?: string
   validityScore: number
   riskLevel: 'low' | 'medium' | 'high'
-  moderationStatus: 'approved' | 'pending_review' | 'rejected'
+  moderationStatus: 'approved' | 'pending_review' | 'rejected' | 'expired'
   moderationReasons: string[]
   rawPayload?: Record<string, unknown>
 }

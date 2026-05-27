@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { timingSafeEqual } from 'crypto'
-import { fetchJobsFromAllSources, deduplicateJobs } from '@/lib/jobs/sources'
+import { fetchJobsFromAllSources, deduplicateJobs, jobSourceAdapters } from '@/lib/jobs/sources'
 import { assessJobValidity } from '@/lib/jobs/validity'
 import { JobPost, JobIngestionResult } from '@/lib/jobs/types'
 import {
-  setStoredJob,
-  getStoredJobCount,
   setLastSyncInfo,
-  cleanupRejectedJobs,
+  getPersistedJobCount,
+  markExpiredJobPosts,
+  recordJobIngestionRun,
+  upsertJobPosts,
+  upsertJobSources,
 } from '@/lib/jobs/store'
 
 export const dynamic = 'force-dynamic'
@@ -71,6 +73,8 @@ export async function GET(request: NextRequest) {
   const results: JobIngestionResult[] = []
 
   try {
+    await upsertJobSources(jobSourceAdapters)
+
     // Fetch from all enabled sources
     const fetchResult = await fetchJobsFromAllSources()
     console.log(`[Cron] Fetched ${fetchResult.jobs.length} jobs from ${fetchResult.sources.length} sources`)
@@ -86,8 +90,7 @@ export async function GET(request: NextRequest) {
     // Process each source
     for (const sourceSlug of fetchResult.sources) {
       const sourceJobs = uniqueJobs.filter(j => j.sourceSlug === sourceSlug)
-      let insertedCount = 0
-      let updatedCount = 0
+      const jobPosts: JobPost[] = []
       let rejectedCount = 0
 
       for (const jobData of sourceJobs) {
@@ -103,32 +106,53 @@ export async function GET(request: NextRequest) {
           moderationReasons: validity.reasons,
         } as JobPost
 
-        // Only insert/update approved or pending_review jobs
-        if (validity.status !== 'rejected') {
-          setStoredJob(jobPost)
-          updatedCount++
-        } else {
+        if (validity.status === 'rejected') {
           rejectedCount++
         }
+
+        jobPosts.push(jobPost)
       }
 
-      results.push({
+      const persistence = await upsertJobPosts(jobPosts)
+      const finishedAt = new Date().toISOString()
+      const result: JobIngestionResult = {
         sourceSlug,
         status: 'success',
         fetchedCount: sourceJobs.length,
-        insertedCount,
-        updatedCount,
+        insertedCount: persistence.insertedCount,
+        updatedCount: persistence.updatedCount,
         rejectedCount,
         startedAt: startTime,
+        finishedAt,
+      }
+
+      await recordJobIngestionRun(result)
+
+      results.push(result)
+    }
+
+    for (const sourceError of fetchResult.errors) {
+      const [sourceSlug, ...messageParts] = sourceError.split(':')
+      const failedResult: JobIngestionResult = {
+        sourceSlug: sourceSlug || 'unknown',
+        status: 'failed',
+        fetchedCount: 0,
+        insertedCount: 0,
+        updatedCount: 0,
+        rejectedCount: 0,
+        errorMessage: messageParts.join(':').trim() || sourceError,
+        startedAt: startTime,
         finishedAt: new Date().toISOString(),
-      })
+      }
+      await recordJobIngestionRun(failedResult)
+      results.push(failedResult)
     }
 
     // Store last sync info
     const finishTime = new Date().toISOString()
     const summaryResult: JobIngestionResult = {
       sourceSlug: 'all',
-      status: 'success',
+      status: fetchResult.errors.length > 0 ? 'partial' : 'success',
       fetchedCount: results.reduce((acc, r) => acc + r.fetchedCount, 0),
       insertedCount: results.reduce((acc, r) => acc + r.insertedCount, 0),
       updatedCount: results.reduce((acc, r) => acc + r.updatedCount, 0),
@@ -138,17 +162,20 @@ export async function GET(request: NextRequest) {
     }
 
     setLastSyncInfo(finishTime, summaryResult)
+    await recordJobIngestionRun(summaryResult)
 
-    // Clean up old rejected jobs (keep for 30 days)
-    cleanupRejectedJobs(30)
+    const expiredCount = await markExpiredJobPosts()
+    const persistedCount = await getPersistedJobCount()
 
-    console.log(`[Cron] Sync complete. Total: ${getStoredJobCount()} jobs stored`)
+    console.log(`[Cron] Sync complete. Total: ${persistedCount.count} jobs stored in ${persistedCount.source}`)
 
     return NextResponse.json({
       success: true,
       syncTime: finishTime,
       summary: {
-        totalJobs: getStoredJobCount(),
+        totalJobs: persistedCount.count,
+        storage: persistedCount.source,
+        expired: expiredCount,
         sources: results.map(r => ({
           slug: r.sourceSlug,
           status: r.status,

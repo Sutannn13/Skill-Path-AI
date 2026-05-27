@@ -2,13 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { JobPost } from '@/lib/jobs/types'
 import { assessJobValidity } from '@/lib/jobs/validity'
-import { SkillLevel } from '@/types'
+import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
 export const dynamic = 'force-dynamic'
 
 // Gemini API configuration
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent'
+const GEMINI_MODEL = 'gemini-1.5-flash'
 
 // In-memory cache for AI analysis
 const analysisCache = new Map<string, {
@@ -51,6 +52,16 @@ export interface JobAnalysisResult {
   comparisonNotes: string
   source: 'ai' | 'fallback'
   cached: boolean
+}
+
+interface CachedAnalysisRow {
+  summary: string | null
+  validity_explanation: string | null
+  skill_gap_explanation: string | null
+  risk_assessment: JobAnalysisResult['riskAssessment'] | null
+  suggested_skills: string[] | null
+  comparison_notes: string | null
+  source: 'ai' | 'fallback' | null
 }
 
 // Rate limiter
@@ -116,6 +127,61 @@ function generateFallbackAnalysis(job: z.infer<typeof analyzeJobRequestSchema>['
     comparisonNotes: `Your profile matches ${matchedSkills.length} of ${requiredSkills.length} required skills. Focus on the core technologies first.`,
     source: 'fallback',
     cached: false,
+  }
+}
+
+async function getCachedDbAnalysis(jobId: string): Promise<JobAnalysisResult | null> {
+  const supabase = createSupabaseAdminClient()
+  if (!supabase) return null
+
+  const { data, error } = await supabase
+    .from('ai_job_analyses')
+    .select('summary, validity_explanation, skill_gap_explanation, risk_assessment, suggested_skills, comparison_notes, source')
+    .eq('job_id', jobId)
+    .eq('model', GEMINI_MODEL)
+    .maybeSingle()
+
+  if (error) {
+    console.warn('[AI Job Analysis] Cache read failed:', error.message)
+    return null
+  }
+
+  if (!data) return null
+
+  const cached = data as CachedAnalysisRow
+  return {
+    summary: cached.summary ?? 'Cached job analysis',
+    validityExplanation: cached.validity_explanation ?? undefined,
+    skillGapExplanation: cached.skill_gap_explanation ?? undefined,
+    riskAssessment: cached.risk_assessment ?? undefined,
+    suggestedSkills: cached.suggested_skills ?? [],
+    comparisonNotes: cached.comparison_notes ?? '',
+    source: cached.source ?? 'ai',
+    cached: true,
+  }
+}
+
+async function saveDbAnalysis(jobId: string, analysis: JobAnalysisResult) {
+  const supabase = createSupabaseAdminClient()
+  if (!supabase || analysis.source !== 'ai') return
+
+  const { error } = await supabase
+    .from('ai_job_analyses')
+    .upsert({
+      job_id: jobId,
+      model: GEMINI_MODEL,
+      summary: analysis.summary,
+      validity_explanation: analysis.validityExplanation ?? null,
+      skill_gap_explanation: analysis.skillGapExplanation ?? null,
+      risk_assessment: analysis.riskAssessment ?? null,
+      suggested_skills: analysis.suggestedSkills,
+      comparison_notes: analysis.comparisonNotes,
+      source: analysis.source,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'job_id,model' })
+
+  if (error) {
+    console.warn('[AI Job Analysis] Cache write failed:', error.message)
   }
 }
 
@@ -199,17 +265,6 @@ Return ONLY JSON, no markdown or explanation.`
 
 export async function POST(request: NextRequest) {
   try {
-    // Check rate limit
-    if (!checkRateLimit()) {
-      return NextResponse.json(
-        {
-          error: 'Daily AI limit reached',
-          message: 'Please try again tomorrow or use the fallback analysis.',
-        },
-        { status: 429 }
-      )
-    }
-
     const body = await request.json()
 
     // Validate request
@@ -223,19 +278,7 @@ export async function POST(request: NextRequest) {
 
     const { job, userSkills } = parseResult.data
 
-    // Check cache
-    const cacheKey = job.id
-    const cached = analysisCache.get(cacheKey)
-    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-      return NextResponse.json({
-        analysis: {
-          ...cached.analysis,
-          cached: true,
-        },
-      })
-    }
-
-    // Perform validity assessment
+    // Deterministic validity remains the primary assessment.
     const jobForValidity: Partial<JobPost> = {
       id: job.id,
       title: job.title,
@@ -246,8 +289,63 @@ export async function POST(request: NextRequest) {
     }
     const validity = assessJobValidity(jobForValidity)
 
+    // Check cache
+    const cacheKey = job.id
+    const cached = analysisCache.get(cacheKey)
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      return NextResponse.json({
+        analysis: {
+          ...cached.analysis,
+          cached: true,
+        },
+        validity,
+      })
+    }
+
+    const cachedDbAnalysis = await getCachedDbAnalysis(cacheKey)
+    if (cachedDbAnalysis) {
+      analysisCache.set(cacheKey, {
+        analysis: cachedDbAnalysis,
+        timestamp: Date.now(),
+      })
+
+      return NextResponse.json({
+        analysis: cachedDbAnalysis,
+        validity,
+        usage: {
+          remaining: MAX_DAILY_REQUESTS - dailyUsageCount,
+          resetsAt: dailyUsageReset.toISOString(),
+        },
+      })
+    }
+
+    if (!checkRateLimit()) {
+      const fallback = generateFallbackAnalysis(job)
+      if (validity.riskLevel !== 'low') {
+        fallback.riskAssessment = {
+          score: validity.validityScore,
+          level: validity.riskLevel,
+          concerns: validity.reasons.slice(0, 3),
+        }
+      }
+
+      return NextResponse.json({
+        analysis: fallback,
+        validity,
+        usage: {
+          remaining: 0,
+          resetsAt: dailyUsageReset.toISOString(),
+        },
+        message: 'Daily AI limit reached. Returned deterministic fallback analysis.',
+      })
+    }
+
     // Try AI analysis
     let analysis = await generateAIAnalysis(job, userSkills)
+    if (analysis) {
+      incrementUsage()
+      await saveDbAnalysis(cacheKey, analysis)
+    }
 
     // If AI failed, use fallback
     if (!analysis) {
@@ -268,9 +366,6 @@ export async function POST(request: NextRequest) {
       analysis,
       timestamp: Date.now(),
     })
-
-    // Increment usage
-    incrementUsage()
 
     return NextResponse.json({
       analysis,

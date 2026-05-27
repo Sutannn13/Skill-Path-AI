@@ -1,19 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Job } from '@/types'
-import { JobPost, JobFilters, TECH_STACK_MAPPING, mapRegionType } from '@/lib/jobs/types'
-import { fetchJobsFromAllSources, deduplicateJobs, getSourceAttribution } from '@/lib/jobs/sources'
-import { assessJobValidity, filterJobsByValidity } from '@/lib/jobs/validity'
 import { MOCK_JOBS } from '@/lib/data/mock-jobs'
+import { getDeterministicMatchScore } from '@/lib/jobs/display'
+import { fetchJobsFromAllSources, deduplicateJobs, getAdapterBySlug } from '@/lib/jobs/sources'
+import { getPublicJobById, getPublicJobPosts, upsertJobPosts } from '@/lib/jobs/store'
+import { assessJobValidity } from '@/lib/jobs/validity'
+import { JobFilters, JobPost, TECH_STACK_MAPPING } from '@/lib/jobs/types'
 
 export const dynamic = 'force-dynamic'
 
-// In-memory cache for fetched jobs
-let jobCache: JobPost[] = []
-let lastFetch: number = 0
-const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
-
-// Convert JobPost (new type) to Job (existing type)
 function toJob(job: JobPost): Job {
+  const adapter = getAdapterBySlug(job.sourceSlug)
+
   return {
     id: job.id,
     title: job.title,
@@ -22,18 +20,24 @@ function toJob(job: JobPost): Job {
     type: job.employmentType,
     tags: job.tags,
     url: job.applyUrl,
+    sourceUrl: job.sourceUrl,
     description: job.description,
     requiredSkills: job.requiredSkills,
-    source: job.sourceSlug as 'remotive' | 'mock',
+    source: job.sourceSlug,
+    sourceLabel: adapter?.attributionLabel ?? job.sourceSlug,
     publishedAt: job.publishedAt,
+    fetchedAt: job.fetchedAt,
+    validityScore: job.validityScore,
+    riskLevel: job.riskLevel,
+    moderationStatus: job.moderationStatus,
+    moderationReasons: job.moderationReasons,
+    matchScore: getDeterministicMatchScore(job.id),
   }
 }
 
-// Filter jobs based on criteria
 function filterJobs(jobs: JobPost[], filters: JobFilters): JobPost[] {
   let filtered = jobs
 
-  // Filter by query
   if (filters.query) {
     const query = filters.query.toLowerCase()
     filtered = filtered.filter(job =>
@@ -43,22 +47,18 @@ function filterJobs(jobs: JobPost[], filters: JobFilters): JobPost[] {
     )
   }
 
-  // Filter by region
   if (filters.region && filters.region !== 'all') {
     filtered = filtered.filter(job => job.regionType === filters.region)
   }
 
-  // Filter by employment type
   if (filters.employmentType && filters.employmentType !== 'all') {
     filtered = filtered.filter(job => job.employmentType === filters.employmentType)
   }
 
-  // Filter by experience level
   if (filters.experienceLevel && filters.experienceLevel !== 'all') {
     filtered = filtered.filter(job => job.experienceLevel === filters.experienceLevel)
   }
 
-  // Filter by tech stack
   if (filters.techStack && filters.techStack !== 'all') {
     const stackSkills = TECH_STACK_MAPPING[filters.techStack] || []
     filtered = filtered.filter(job =>
@@ -71,7 +71,6 @@ function filterJobs(jobs: JobPost[], filters: JobFilters): JobPost[] {
     )
   }
 
-  // Filter by tags
   if (filters.tags && filters.tags.length > 0) {
     filtered = filtered.filter(job =>
       filters.tags!.some(tag => job.tags.includes(tag))
@@ -81,55 +80,69 @@ function filterJobs(jobs: JobPost[], filters: JobFilters): JobPost[] {
   return filtered
 }
 
-async function getLiveJobs(): Promise<JobPost[]> {
-  const now = Date.now()
-
-  // Return cached jobs if fresh
-  if (jobCache.length > 0 && now - lastFetch < CACHE_TTL) {
-    return jobCache
+function parseFreshnessDays(value: string | null) {
+  const parsed = Number(value)
+  if (parsed === 7 || parsed === 30 || parsed === 90) {
+    return parsed
   }
 
-  try {
-    const result = await fetchJobsFromAllSources()
+  return 90
+}
 
-    if (result.jobs.length === 0) {
-      return []
-    }
+async function loadDemoJobsIntoMemory() {
+  const result = await fetchJobsFromAllSources()
+  const jobsWithValidity = deduplicateJobs(result.jobs).map((job) => {
+    const validity = assessJobValidity(job)
+    return {
+      ...job,
+      validityScore: validity.validityScore,
+      riskLevel: validity.riskLevel,
+      moderationStatus: validity.status,
+      moderationReasons: validity.reasons,
+    } as JobPost
+  })
 
-    // Assess validity for each job
-    const jobsWithValidity = result.jobs.map(job => {
-      const validity = assessJobValidity(job)
-      return {
-        ...job,
-        validityScore: validity.validityScore,
-        riskLevel: validity.riskLevel,
-        moderationStatus: validity.status,
-        moderationReasons: validity.reasons,
-      } as JobPost
-    })
+  await upsertJobPosts(jobsWithValidity)
+}
 
-    // Only return approved jobs
-    const approvedJobs = filterJobsByValidity(jobsWithValidity, 'approved')
-
-    // Deduplicate and filter out jobs without id
-    const uniqueJobs = deduplicateJobs(approvedJobs).filter((j): j is JobPost => Boolean(j.id))
-
-    // Update cache
-    jobCache = uniqueJobs
-    lastFetch = now
-
-    return uniqueJobs
-  } catch (error) {
-    console.error('Failed to fetch live jobs:', error)
-    return []
+function toMockJob(job: Job): Job {
+  return {
+    ...job,
+    source: 'mock',
+    sourceLabel: 'Demo Data',
+    fetchedAt: new Date().toISOString(),
+    validityScore: 72,
+    riskLevel: 'low',
+    moderationStatus: 'approved',
+    matchScore: getDeterministicMatchScore(job.id),
   }
 }
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
 
-    // Parse filters
+    if (id) {
+      const job = await getPublicJobById(id)
+
+      if (!job) {
+        return NextResponse.json(
+          { error: 'Job not found', job: null },
+          { status: 404 }
+        )
+      }
+
+      return NextResponse.json({
+        job: toJob(job),
+        meta: {
+          source: 'supabase',
+        },
+      })
+    }
+
+    const freshnessDays = parseFreshnessDays(searchParams.get('freshnessDays'))
+    const includePending = searchParams.get('includePending') !== 'false'
     const filters: JobFilters = {
       query: searchParams.get('query') || undefined,
       region: (searchParams.get('region') as JobFilters['region']) || 'all',
@@ -139,65 +152,39 @@ export async function GET(request: NextRequest) {
       tags: searchParams.get('tags')?.split(',').filter(Boolean) || undefined,
     }
 
-    // Get live jobs
-    let liveJobs = await getLiveJobs()
-    let jobs: Job[] = liveJobs.map(toJob)
+    let { jobs: liveJobs, source } = await getPublicJobPosts({
+      freshnessDays,
+      includePending,
+      limit: 200,
+    })
 
-    // If no live jobs, use mock data as fallback
-    if (jobs.length === 0) {
-      jobs = MOCK_JOBS
+    if (source === 'memory' && liveJobs.length === 0) {
+      await loadDemoJobsIntoMemory()
+      const reloaded = await getPublicJobPosts({
+        freshnessDays,
+        includePending,
+        limit: 200,
+      })
+      liveJobs = reloaded.jobs
+      source = reloaded.source
     }
 
-    // Apply filters
-    const filteredJobs = filterJobs(
-      jobs.map(j => ({
-        id: j.id,
-        sourceSlug: j.source,
-        externalId: j.id,
-        title: j.title,
-        company: j.company,
-        location: j.location,
-        regionType: mapRegionType(j.location),
-        workMode: 'remote' as const,
-        employmentType: j.type,
-        experienceLevel: 'junior' as const,
-        description: j.description,
-        applyUrl: j.url,
-        sourceUrl: j.url,
-        tags: j.tags,
-        requiredSkills: j.requiredSkills,
-        publishedAt: j.publishedAt,
-        fetchedAt: new Date().toISOString(),
-        validityScore: 50,
-        riskLevel: 'low' as const,
-        moderationStatus: 'approved' as const,
-        moderationReasons: [],
-      })),
-      filters
-    )
+    const filteredJobs = filterJobs(liveJobs, filters)
+    let resultJobs = filteredJobs.map(toJob)
+    let responseSource: 'supabase' | 'memory' | 'mock' = source
 
-    // Convert back to Job type
-    const resultJobs = filteredJobs.map(fj => ({
-      id: fj.id,
-      title: fj.title,
-      company: fj.company,
-      location: fj.location,
-      type: fj.employmentType,
-      tags: fj.tags,
-      url: fj.applyUrl,
-      description: fj.description,
-      requiredSkills: fj.requiredSkills,
-      source: fj.sourceSlug as 'remotive' | 'mock',
-      publishedAt: fj.publishedAt,
-    }))
-
-    // Get source attribution
-    const attribution = getSourceAttribution()
+    if (resultJobs.length === 0 && source === 'memory') {
+      resultJobs = MOCK_JOBS.map(toMockJob)
+      responseSource = 'mock'
+    }
 
     return NextResponse.json({
       jobs: resultJobs,
       meta: {
         total: resultJobs.length,
+        source: responseSource,
+        freshnessDays,
+        includePending,
         filters: {
           query: filters.query || null,
           region: filters.region,
@@ -205,16 +192,19 @@ export async function GET(request: NextRequest) {
           experience: filters.experienceLevel,
           tech: filters.techStack,
         },
-        source: jobs.length > 0 && jobs[0].source !== 'mock' ? 'live' : 'mock',
-        attribution: attribution
-          ? `Job data powered by ${attribution.label}`
-          : 'Demo data',
       },
     })
   } catch (error) {
-    console.error('Jobs API error:', error)
+    console.error('Jobs API error:', error instanceof Error ? error.message : 'Unknown error')
     return NextResponse.json(
-      { error: 'Failed to fetch jobs', jobs: MOCK_JOBS },
+      {
+        error: 'Failed to fetch jobs',
+        jobs: MOCK_JOBS.map(toMockJob),
+        meta: {
+          source: 'mock',
+          fallbackReason: 'jobs_api_error',
+        },
+      },
       { status: 500 }
     )
   }

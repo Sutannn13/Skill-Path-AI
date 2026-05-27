@@ -18,11 +18,14 @@ SkillPath is a career operating system for students and beginner developers. It 
 Phase 0 and Phase 1 establish the security and auth foundation:
 
 - Production cron sync fails closed when `CRON_SECRET` is missing or invalid.
-- Next.js is upgraded to the patched 14.2 line.
+- Next.js is on the patched 15.5 line.
 - Supabase SSR clients are available for server, browser, and middleware session refresh.
 - `profiles.role` supports `admin` and `user`.
 - `/dashboard` is the user dashboard surface.
 - `/admin` is a separate admin dashboard surface with server-side role checks.
+- `/github` calls the real GitHub analysis route and keeps mock data behind an explicit demo action.
+- `/roadmap` persists active roadmaps, task gates, learning resources, and resource progress in Supabase.
+- `/jobs` reads durable `job_posts`, logs cron runs, applies freshness rules, and persists `saved_jobs`.
 
 ## Setup
 
@@ -55,6 +58,8 @@ Apply migrations in order:
 ```bash
 supabase db push
 ```
+
+The latest additive migration is `supabase/migrations/005_roadmap_persistence.sql`. It adds roadmap learning resources, durable job freshness fields, public job RLS, and AI job analysis cache fields.
 
 To promote an admin, run a trusted SQL update after the user's profile exists:
 

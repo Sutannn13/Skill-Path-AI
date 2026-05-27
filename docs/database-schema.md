@@ -11,6 +11,8 @@ erDiagram
   AUTH_USERS ||--o{ SAVED_JOBS : owns
   AUTH_USERS ||--o{ ROADMAPS : owns
   ROADMAPS ||--o{ ROADMAP_TASKS : contains
+  ROADMAP_TASKS ||--o{ ROADMAP_RESOURCES : contains
+  ROADMAP_RESOURCES ||--o{ ROADMAP_RESOURCE_PROGRESS : tracked_as
   AUTH_USERS ||--o{ WEEKLY_SPRINTS : owns
   WEEKLY_SPRINTS ||--o{ SPRINT_TASKS : contains
   AUTH_USERS ||--o{ ACTIVITY_LOGS : emits
@@ -43,11 +45,19 @@ User-owned tables keep owner policies:
 - `saved_jobs`
 - `roadmaps`
 - `roadmap_tasks`
+- `roadmap_resources`
+- `roadmap_resource_progress`
 - `weekly_sprints`
 - `sprint_tasks`
 - `activity_logs`
 
 Phase 1 adds admin read policies using `private.is_admin()`. The helper function lives outside the exposed `public` schema and is executable by authenticated users only for policy evaluation.
+
+Public job data uses RLS too:
+
+- `job_sources`: anonymous and authenticated users can select enabled sources.
+- `job_posts`: anonymous and authenticated users can select only fresh `approved` or `pending_review` jobs.
+- `job_ingestion_runs`: admin read only.
 
 ## Client Update Boundary
 
@@ -82,3 +92,21 @@ Rollback plan for local development:
 4. Drop `public.app_role` if no data depends on it.
 
 Production rollback should be forward-only unless profile role reads are removed from deployed application code first.
+
+`005_roadmap_persistence.sql` is additive:
+
+- Adds `roadmaps.is_active`, `roadmaps.archived_at`, and `roadmaps.context`.
+- Adds task ordering, week metadata, mini exercise state, deliverable state, and task `updated_at`.
+- Adds `roadmap_resources` and `roadmap_resource_progress`.
+- Enables RLS for public job source/post reads and admin ingestion-run reads.
+- Adds job freshness indexes, `job_posts.last_seen_at`, and a source/external ID dedupe index.
+- Adds AI job analysis cache fields for suggested skills, comparison notes, source, and `updated_at`.
+
+Rollback plan for local development:
+
+1. Remove application code that reads resource tables and new roadmap columns.
+2. Drop `roadmap_resource_progress` and `roadmap_resources`.
+3. Drop policies added for job public reads and roadmap resources.
+4. Drop additive columns only after the app no longer depends on them.
+
+Production rollback should be forward-only. Archive old roadmaps instead of deleting them when regenerating.

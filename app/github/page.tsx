@@ -6,9 +6,8 @@ import Link from 'next/link'
 import { AppShell, Container, GradientBackground } from '@/components/layout'
 import { DashboardHeader } from '@/components/layout/dashboard-header'
 import { BrutalCard, BrutalButton, BrutalCardHover, ScoreMeter } from '@/components/brutal'
-import { cn } from '@/lib/utils'
 import { Github, Search, ExternalLink, AlertCircle, CheckCircle2, XCircle, Loader2 } from 'lucide-react'
-import { GitHubAnalysis, GitHubRepo } from '@/types'
+import { GitHubAnalysis } from '@/types'
 
 // Mock analysis data
 const mockAnalysis: GitHubAnalysis = {
@@ -72,24 +71,62 @@ const mockAnalysis: GitHubAnalysis = {
 export default function GitHubPage() {
   const [username, setUsername] = useState('')
   const [isAnalyzing, setIsAnalyzing] = useState(false)
-  const [analysis, setAnalysis] = useState<GitHubAnalysis | null>(mockAnalysis)
+  const [analysis, setAnalysis] = useState<GitHubAnalysis | null>(null)
+  const [analyzedUsername, setAnalyzedUsername] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const analyzeGitHub = async () => {
-    if (!username.trim()) return
+    const trimmedUsername = username.trim()
+
+    if (!trimmedUsername) {
+      setAnalysis(null)
+      setAnalyzedUsername(null)
+      setError('Enter a GitHub username before analyzing.')
+      return
+    }
 
     setIsAnalyzing(true)
     setError(null)
+    setAnalysis(null)
+    setAnalyzedUsername(trimmedUsername)
 
-    // Simulate API call
     try {
-      await new Promise((resolve) => setTimeout(resolve, 2000))
-      setAnalysis(mockAnalysis)
-    } catch {
-      setError('Failed to analyze GitHub profile. Please check the username and try again.')
+      const response = await fetch('/api/github/analyze', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username: trimmedUsername }),
+      })
+
+      const data = await response.json().catch(() => null)
+
+      if (!response.ok) {
+        throw new Error(data?.message || data?.error || 'Failed to analyze GitHub profile.')
+      }
+
+      if (!data?.analysis) {
+        throw new Error('GitHub analysis response was empty.')
+      }
+
+      setAnalysis(data.analysis)
+      setAnalyzedUsername(data.analysis.username || trimmedUsername)
+    } catch (requestError) {
+      const message = requestError instanceof Error
+        ? requestError.message
+        : 'Failed to analyze GitHub profile. Please check the username and try again.'
+      setAnalyzedUsername(null)
+      setError(message)
     } finally {
       setIsAnalyzing(false)
     }
+  }
+
+  const loadDemoAnalysis = () => {
+    setUsername(mockAnalysis.username)
+    setAnalyzedUsername(mockAnalysis.username)
+    setAnalysis(mockAnalysis)
+    setError(null)
   }
 
   return (
@@ -111,7 +148,8 @@ export default function GitHubPage() {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   placeholder="e.g., octocat"
-                  className="w-full px-4 py-3 brutal-border brutal-radius bg-white text-lg"
+                  disabled={isAnalyzing}
+                  className="w-full px-4 py-3 brutal-border brutal-radius bg-white text-lg text-black placeholder-gray-500 caret-black disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-500"
                   onKeyDown={(e) => e.key === 'Enter' && analyzeGitHub()}
                 />
               </div>
@@ -120,6 +158,7 @@ export default function GitHubPage() {
                   color="yellow"
                   onClick={analyzeGitHub}
                   loading={isAnalyzing}
+                  disabled={isAnalyzing}
                   className="w-full sm:w-auto"
                 >
                   {isAnalyzing ? (
@@ -133,6 +172,17 @@ export default function GitHubPage() {
                       Analyze
                     </>
                   )}
+                </BrutalButton>
+              </div>
+              <div className="flex items-end">
+                <BrutalButton
+                  variant="outline"
+                  color="white"
+                  onClick={loadDemoAnalysis}
+                  disabled={isAnalyzing}
+                  className="w-full sm:w-auto"
+                >
+                  Try Demo
                 </BrutalButton>
               </div>
             </div>
@@ -149,6 +199,18 @@ export default function GitHubPage() {
           {/* Analysis Results */}
           {analysis && (
             <div className="space-y-6">
+              <BrutalCard color="black" className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-bold text-white/70">Analyzed GitHub profile</p>
+                  <h2 className="font-display text-2xl font-bold">@{analysis.username}</h2>
+                </div>
+                {analyzedUsername && analyzedUsername !== analysis.username && (
+                  <p className="text-sm text-white/70">
+                    GitHub resolved this search from @{analyzedUsername}.
+                  </p>
+                )}
+              </BrutalCard>
+
               {/* Summary Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <motion.div
@@ -226,74 +288,83 @@ export default function GitHubPage() {
               {/* Repository Audit */}
               <div>
                 <h3 className="font-display font-bold text-xl mb-4">Repository Audit</h3>
-                <div className="space-y-4">
-                  {analysis.repos.map((repo, i) => (
-                    <motion.div
-                      key={repo.name}
-                      initial={false}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.4 + i * 0.1 }}
-                    >
-                      <BrutalCardHover color="white" className="relative">
-                        <div className="flex flex-col sm:flex-row gap-4">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <h4 className="font-bold text-lg">{repo.name}</h4>
-                              {repo.isPrivate && (
-                                <span className="text-xs px-2 py-0.5 bg-gray-200 brutal-radius">Private</span>
-                              )}
+                {analysis.repos.length === 0 ? (
+                  <BrutalCard color="white">
+                    <p className="font-bold">No public repositories found for @{analysis.username}.</p>
+                    <p className="mt-1 text-sm text-gray-600">
+                      Private repositories cannot be analyzed from this public profile audit.
+                    </p>
+                  </BrutalCard>
+                ) : (
+                  <div className="space-y-4">
+                    {analysis.repos.map((repo, i) => (
+                      <motion.div
+                        key={`${analysis.username}-${repo.name}`}
+                        initial={false}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.4 + i * 0.1 }}
+                      >
+                        <BrutalCardHover color="white" className="relative">
+                          <div className="flex flex-col sm:flex-row gap-4">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h4 className="font-bold text-lg">{repo.name}</h4>
+                                {repo.isPrivate && (
+                                  <span className="text-xs px-2 py-0.5 bg-gray-200 brutal-radius">Private</span>
+                                )}
+                              </div>
+                              <p className="text-sm text-gray-600 mb-2">
+                                {repo.description || 'No description'}
+                              </p>
+                              <div className="flex items-center gap-4 text-sm text-gray-500">
+                                <span>{repo.language || 'No primary language'}</span>
+                                <span>{repo.stars} stars</span>
+                                <span>{repo.forks} forks</span>
+                              </div>
                             </div>
-                            <p className="text-sm text-gray-600 mb-2">
-                              {repo.description || 'No description'}
-                            </p>
-                            <div className="flex items-center gap-4 text-sm text-gray-500">
-                              <span>{repo.language}</span>
-                              <span>{repo.stars} stars</span>
-                              <span>{repo.forks} forks</span>
+
+                            <div className="flex flex-col gap-2 min-w-[140px]">
+                              <div className="flex items-center gap-2">
+                                {repo.hasReadme ? (
+                                  <CheckCircle2 className="w-5 h-5 text-green" />
+                                ) : (
+                                  <XCircle className="w-5 h-5 text-red" />
+                                )}
+                                <span className="text-sm">README</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {repo.hasHomepage ? (
+                                  <CheckCircle2 className="w-5 h-5 text-green" />
+                                ) : (
+                                  <XCircle className="w-5 h-5 text-orange" />
+                                )}
+                                <span className="text-sm">Demo Link</span>
+                              </div>
+                              <a
+                                href={repo.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-sm text-blue hover:underline flex items-center gap-1"
+                              >
+                                View on GitHub
+                                <ExternalLink className="w-3 h-3" />
+                              </a>
                             </div>
                           </div>
 
-                          <div className="flex flex-col gap-2 min-w-[140px]">
-                            <div className="flex items-center gap-2">
-                              {repo.hasReadme ? (
-                                <CheckCircle2 className="w-5 h-5 text-green" />
-                              ) : (
-                                <XCircle className="w-5 h-5 text-red" />
-                              )}
-                              <span className="text-sm">README</span>
+                          {/* Issues */}
+                          {!repo.hasReadme && (
+                            <div className="absolute top-2 right-2">
+                              <span className="text-xs px-2 py-1 bg-red/20 text-red brutal-radius">
+                                Missing README
+                              </span>
                             </div>
-                            <div className="flex items-center gap-2">
-                              {repo.hasHomepage ? (
-                                <CheckCircle2 className="w-5 h-5 text-green" />
-                              ) : (
-                                <XCircle className="w-5 h-5 text-orange" />
-                              )}
-                              <span className="text-sm">Demo Link</span>
-                            </div>
-                            <a
-                              href={repo.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-sm text-blue hover:underline flex items-center gap-1"
-                            >
-                              View on GitHub
-                              <ExternalLink className="w-3 h-3" />
-                            </a>
-                          </div>
-                        </div>
-
-                        {/* Issues */}
-                        {!repo.hasReadme && (
-                          <div className="absolute top-2 right-2">
-                            <span className="text-xs px-2 py-1 bg-red/20 text-red brutal-radius">
-                              Missing README
-                            </span>
-                          </div>
-                        )}
-                      </BrutalCardHover>
-                    </motion.div>
-                  ))}
-                </div>
+                          )}
+                        </BrutalCardHover>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Suggestions */}
@@ -323,10 +394,13 @@ export default function GitHubPage() {
           {!analysis && !error && (
             <BrutalCard color="gray" className="text-center py-16">
               <Github className="w-20 h-20 mx-auto mb-4 text-gray-300" />
-              <h3 className="font-display font-bold text-2xl mb-2">Analyze Your GitHub</h3>
+              <h3 className="font-display font-bold text-2xl mb-2">
+                {isAnalyzing && analyzedUsername ? `Analyzing @${analyzedUsername}` : 'Analyze Your GitHub'}
+              </h3>
               <p className="text-gray-600 max-w-md mx-auto mb-6">
-                Enter your GitHub username above to get a detailed analysis of your portfolio,
-                including repository quality, language usage, and personalized suggestions.
+                {isAnalyzing
+                  ? 'Fetching public repositories and checking portfolio signals.'
+                  : 'Enter your GitHub username above to get a detailed analysis of your portfolio, including repository quality, language usage, and personalized suggestions.'}
               </p>
               <Link
                 href="https://github.com"

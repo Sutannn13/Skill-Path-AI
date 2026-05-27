@@ -1,11 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { generateFallbackRoadmap } from '@/lib/ai'
 import { z } from 'zod'
+import { TargetRole } from '@/types'
 
 export const dynamic = 'force-dynamic'
 
+const targetRoleSchema = z.enum([
+  'frontend-developer',
+  'backend-developer',
+  'fullstack-developer',
+  'ui-engineer',
+  'mobile-developer',
+  'data-analyst',
+])
+
 const roadmapRequestSchema = z.object({
-  targetRole: z.string(),
+  targetRole: targetRoleSchema,
   currentLevel: z.string().optional(),
   missingSkills: z.array(z.string()).optional(),
   studyTime: z.string().optional(),
@@ -50,7 +60,7 @@ const roadmapResponseSchema = z.object({
 
 // Gemini API configuration
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent'
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent'
 
 async function generateAIRoadmap(input: {
   targetRole: string
@@ -197,7 +207,7 @@ export async function POST(request: NextRequest) {
 
     // Fall back to template-based roadmap
     const fallbackRoadmap = generateFallbackRoadmap({
-      targetRole: targetRole as any,
+      targetRole: targetRole as TargetRole,
       currentLevel: currentLevel || 'beginner',
       missingSkills: missingSkills || [],
       studyTime: studyTime || '1hour',

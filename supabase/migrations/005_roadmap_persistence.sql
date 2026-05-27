@@ -29,42 +29,30 @@ ALTER TABLE public.job_sources ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.job_posts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.job_ingestion_runs ENABLE ROW LEVEL SECURITY;
 
-DO $$
-BEGIN
-    CREATE POLICY "Public can view enabled job sources" ON public.job_sources
-        FOR SELECT
-        TO anon, authenticated
-        USING (enabled = TRUE);
-EXCEPTION
-    WHEN duplicate_object THEN NULL;
-END $$;
+DROP POLICY IF EXISTS "Public can view enabled job sources" ON public.job_sources;
+CREATE POLICY "Public can view enabled job sources" ON public.job_sources
+    FOR SELECT
+    TO anon, authenticated
+    USING (enabled = TRUE);
 
-DO $$
-BEGIN
-    CREATE POLICY "Public can view fresh visible job posts" ON public.job_posts
-        FOR SELECT
-        TO anon, authenticated
-        USING (
-            moderation_status IN ('approved', 'pending_review')
-            AND (expires_at IS NULL OR expires_at > NOW())
-            AND (
-                (published_at IS NOT NULL AND published_at >= NOW() - INTERVAL '90 days')
-                OR (published_at IS NULL AND fetched_at >= NOW() - INTERVAL '90 days')
-            )
-        );
-EXCEPTION
-    WHEN duplicate_object THEN NULL;
-END $$;
+DROP POLICY IF EXISTS "Public can view fresh visible job posts" ON public.job_posts;
+CREATE POLICY "Public can view fresh visible job posts" ON public.job_posts
+    FOR SELECT
+    TO anon, authenticated
+    USING (
+        moderation_status IN ('approved', 'pending_review')
+        AND (expires_at IS NULL OR expires_at > NOW())
+        AND (
+            (published_at IS NOT NULL AND published_at >= NOW() - INTERVAL '90 days')
+            OR (published_at IS NULL AND fetched_at >= NOW() - INTERVAL '90 days')
+        )
+    );
 
-DO $$
-BEGIN
-    CREATE POLICY "Admins can view job ingestion runs" ON public.job_ingestion_runs
-        FOR SELECT
-        TO authenticated
-        USING (private.is_admin());
-EXCEPTION
-    WHEN duplicate_object THEN NULL;
-END $$;
+DROP POLICY IF EXISTS "Admins can view job ingestion runs" ON public.job_ingestion_runs;
+CREATE POLICY "Admins can view job ingestion runs" ON public.job_ingestion_runs
+    FOR SELECT
+    TO authenticated
+    USING (private.is_admin());
 
 GRANT SELECT ON public.job_sources TO anon, authenticated;
 GRANT SELECT ON public.job_posts TO anon, authenticated;
@@ -143,147 +131,115 @@ CREATE TRIGGER roadmap_resource_progress_updated_at
 ALTER TABLE public.roadmap_resources ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.roadmap_resource_progress ENABLE ROW LEVEL SECURITY;
 
-DO $$
-BEGIN
-    CREATE POLICY "Users can view own roadmap resources" ON public.roadmap_resources
-        FOR SELECT
-        TO authenticated
-        USING (
-            EXISTS (
-                SELECT 1
-                FROM public.roadmap_tasks
-                JOIN public.roadmaps ON roadmaps.id = roadmap_tasks.roadmap_id
-                WHERE roadmap_tasks.id = roadmap_resources.roadmap_task_id
-                  AND roadmaps.user_id = auth.uid()
-            )
-        );
-EXCEPTION
-    WHEN duplicate_object THEN NULL;
-END $$;
-
-DO $$
-BEGIN
-    CREATE POLICY "Users can insert own roadmap resources" ON public.roadmap_resources
-        FOR INSERT
-        TO authenticated
-        WITH CHECK (
-            EXISTS (
-                SELECT 1
-                FROM public.roadmap_tasks
-                JOIN public.roadmaps ON roadmaps.id = roadmap_tasks.roadmap_id
-                WHERE roadmap_tasks.id = roadmap_resources.roadmap_task_id
-                  AND roadmaps.user_id = auth.uid()
-            )
-        );
-EXCEPTION
-    WHEN duplicate_object THEN NULL;
-END $$;
-
-DO $$
-BEGIN
-    CREATE POLICY "Users can update own roadmap resources" ON public.roadmap_resources
-        FOR UPDATE
-        TO authenticated
-        USING (
-            EXISTS (
-                SELECT 1
-                FROM public.roadmap_tasks
-                JOIN public.roadmaps ON roadmaps.id = roadmap_tasks.roadmap_id
-                WHERE roadmap_tasks.id = roadmap_resources.roadmap_task_id
-                  AND roadmaps.user_id = auth.uid()
-            )
+DROP POLICY IF EXISTS "Users can view own roadmap resources" ON public.roadmap_resources;
+CREATE POLICY "Users can view own roadmap resources" ON public.roadmap_resources
+    FOR SELECT
+    TO authenticated
+    USING (
+        EXISTS (
+            SELECT 1
+            FROM public.roadmap_tasks
+            JOIN public.roadmaps ON roadmaps.id = roadmap_tasks.roadmap_id
+            WHERE roadmap_tasks.id = roadmap_resources.roadmap_task_id
+              AND roadmaps.user_id = auth.uid()
         )
-        WITH CHECK (
-            EXISTS (
-                SELECT 1
-                FROM public.roadmap_tasks
-                JOIN public.roadmaps ON roadmaps.id = roadmap_tasks.roadmap_id
-                WHERE roadmap_tasks.id = roadmap_resources.roadmap_task_id
-                  AND roadmaps.user_id = auth.uid()
-            )
-        );
-EXCEPTION
-    WHEN duplicate_object THEN NULL;
-END $$;
+    );
 
-DO $$
-BEGIN
-    CREATE POLICY "Users can delete own roadmap resources" ON public.roadmap_resources
-        FOR DELETE
-        TO authenticated
-        USING (
-            EXISTS (
-                SELECT 1
-                FROM public.roadmap_tasks
-                JOIN public.roadmaps ON roadmaps.id = roadmap_tasks.roadmap_id
-                WHERE roadmap_tasks.id = roadmap_resources.roadmap_task_id
-                  AND roadmaps.user_id = auth.uid()
-            )
-        );
-EXCEPTION
-    WHEN duplicate_object THEN NULL;
-END $$;
+DROP POLICY IF EXISTS "Users can insert own roadmap resources" ON public.roadmap_resources;
+CREATE POLICY "Users can insert own roadmap resources" ON public.roadmap_resources
+    FOR INSERT
+    TO authenticated
+    WITH CHECK (
+        EXISTS (
+            SELECT 1
+            FROM public.roadmap_tasks
+            JOIN public.roadmaps ON roadmaps.id = roadmap_tasks.roadmap_id
+            WHERE roadmap_tasks.id = roadmap_resources.roadmap_task_id
+              AND roadmaps.user_id = auth.uid()
+        )
+    );
 
-DO $$
-BEGIN
-    CREATE POLICY "Users can view own resource progress" ON public.roadmap_resource_progress
-        FOR SELECT
-        TO authenticated
-        USING (user_id = auth.uid());
-EXCEPTION
-    WHEN duplicate_object THEN NULL;
-END $$;
+DROP POLICY IF EXISTS "Users can update own roadmap resources" ON public.roadmap_resources;
+CREATE POLICY "Users can update own roadmap resources" ON public.roadmap_resources
+    FOR UPDATE
+    TO authenticated
+    USING (
+        EXISTS (
+            SELECT 1
+            FROM public.roadmap_tasks
+            JOIN public.roadmaps ON roadmaps.id = roadmap_tasks.roadmap_id
+            WHERE roadmap_tasks.id = roadmap_resources.roadmap_task_id
+              AND roadmaps.user_id = auth.uid()
+        )
+    )
+    WITH CHECK (
+        EXISTS (
+            SELECT 1
+            FROM public.roadmap_tasks
+            JOIN public.roadmaps ON roadmaps.id = roadmap_tasks.roadmap_id
+            WHERE roadmap_tasks.id = roadmap_resources.roadmap_task_id
+              AND roadmaps.user_id = auth.uid()
+        )
+    );
 
-DO $$
-BEGIN
-    CREATE POLICY "Users can insert own resource progress" ON public.roadmap_resource_progress
-        FOR INSERT
-        TO authenticated
-        WITH CHECK (
-            user_id = auth.uid()
-            AND EXISTS (
-                SELECT 1
-                FROM public.roadmap_resources
-                JOIN public.roadmap_tasks ON roadmap_tasks.id = roadmap_resources.roadmap_task_id
-                JOIN public.roadmaps ON roadmaps.id = roadmap_tasks.roadmap_id
-                WHERE roadmap_resources.id = roadmap_resource_progress.resource_id
-                  AND roadmaps.user_id = auth.uid()
-            )
-        );
-EXCEPTION
-    WHEN duplicate_object THEN NULL;
-END $$;
+DROP POLICY IF EXISTS "Users can delete own roadmap resources" ON public.roadmap_resources;
+CREATE POLICY "Users can delete own roadmap resources" ON public.roadmap_resources
+    FOR DELETE
+    TO authenticated
+    USING (
+        EXISTS (
+            SELECT 1
+            FROM public.roadmap_tasks
+            JOIN public.roadmaps ON roadmaps.id = roadmap_tasks.roadmap_id
+            WHERE roadmap_tasks.id = roadmap_resources.roadmap_task_id
+              AND roadmaps.user_id = auth.uid()
+        )
+    );
 
-DO $$
-BEGIN
-    CREATE POLICY "Users can update own resource progress" ON public.roadmap_resource_progress
-        FOR UPDATE
-        TO authenticated
-        USING (user_id = auth.uid())
-        WITH CHECK (
-            user_id = auth.uid()
-            AND EXISTS (
-                SELECT 1
-                FROM public.roadmap_resources
-                JOIN public.roadmap_tasks ON roadmap_tasks.id = roadmap_resources.roadmap_task_id
-                JOIN public.roadmaps ON roadmaps.id = roadmap_tasks.roadmap_id
-                WHERE roadmap_resources.id = roadmap_resource_progress.resource_id
-                  AND roadmaps.user_id = auth.uid()
-            )
-        );
-EXCEPTION
-    WHEN duplicate_object THEN NULL;
-END $$;
+DROP POLICY IF EXISTS "Users can view own resource progress" ON public.roadmap_resource_progress;
+CREATE POLICY "Users can view own resource progress" ON public.roadmap_resource_progress
+    FOR SELECT
+    TO authenticated
+    USING (user_id = auth.uid());
 
-DO $$
-BEGIN
-    CREATE POLICY "Users can delete own resource progress" ON public.roadmap_resource_progress
-        FOR DELETE
-        TO authenticated
-        USING (user_id = auth.uid());
-EXCEPTION
-    WHEN duplicate_object THEN NULL;
-END $$;
+DROP POLICY IF EXISTS "Users can insert own resource progress" ON public.roadmap_resource_progress;
+CREATE POLICY "Users can insert own resource progress" ON public.roadmap_resource_progress
+    FOR INSERT
+    TO authenticated
+    WITH CHECK (
+        user_id = auth.uid()
+        AND EXISTS (
+            SELECT 1
+            FROM public.roadmap_resources
+            JOIN public.roadmap_tasks ON roadmap_tasks.id = roadmap_resources.roadmap_task_id
+            JOIN public.roadmaps ON roadmaps.id = roadmap_tasks.roadmap_id
+            WHERE roadmap_resources.id = roadmap_resource_progress.resource_id
+              AND roadmaps.user_id = auth.uid()
+        )
+    );
+
+DROP POLICY IF EXISTS "Users can update own resource progress" ON public.roadmap_resource_progress;
+CREATE POLICY "Users can update own resource progress" ON public.roadmap_resource_progress
+    FOR UPDATE
+    TO authenticated
+    USING (user_id = auth.uid())
+    WITH CHECK (
+        user_id = auth.uid()
+        AND EXISTS (
+            SELECT 1
+            FROM public.roadmap_resources
+            JOIN public.roadmap_tasks ON roadmap_tasks.id = roadmap_resources.roadmap_task_id
+            JOIN public.roadmaps ON roadmaps.id = roadmap_tasks.roadmap_id
+            WHERE roadmap_resources.id = roadmap_resource_progress.resource_id
+              AND roadmaps.user_id = auth.uid()
+        )
+    );
+
+DROP POLICY IF EXISTS "Users can delete own resource progress" ON public.roadmap_resource_progress;
+CREATE POLICY "Users can delete own resource progress" ON public.roadmap_resource_progress
+    FOR DELETE
+    TO authenticated
+    USING (user_id = auth.uid());
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.roadmap_resources TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.roadmap_resource_progress TO authenticated;

@@ -6,8 +6,10 @@ import { fetchJobsFromAllSources, deduplicateJobs, getAdapterBySlug } from '@/li
 import { getPublicJobById, getPublicJobPosts, upsertJobPosts } from '@/lib/jobs/store'
 import { assessJobValidity } from '@/lib/jobs/validity'
 import { JobFilters, JobPost, TECH_STACK_MAPPING } from '@/lib/jobs/types'
+import { isSupabaseAdminConfigured } from '@/lib/supabase/admin'
 
 export const dynamic = 'force-dynamic'
+const IS_DEVELOPMENT = process.env.NODE_ENV === 'development'
 
 function toJob(job: JobPost): Job {
   const adapter = getAdapterBySlug(job.sourceSlug)
@@ -89,6 +91,18 @@ function parseFreshnessDays(value: string | null) {
   return 90
 }
 
+function isJobsSchemaMismatchError(message: string) {
+  const normalized = message.toLowerCase()
+  return [
+    'column job_posts.last_seen_at does not exist',
+    'relation "job_posts" does not exist',
+    'relation "job_ingestion_runs" does not exist',
+    'relation "job_sources" does not exist',
+    'column ai_job_analyses.suggested_skills does not exist',
+    'column ai_job_analyses.comparison_notes does not exist',
+  ].some((fragment) => normalized.includes(fragment))
+}
+
 async function loadDemoJobsIntoMemory() {
   const result = await fetchJobsFromAllSources()
   const jobsWithValidity = deduplicateJobs(result.jobs).map((job) => {
@@ -120,6 +134,7 @@ function toMockJob(job: Job): Job {
 
 export async function GET(request: NextRequest) {
   try {
+    const supabaseAdminConfigured = isSupabaseAdminConfigured()
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
 
@@ -158,7 +173,7 @@ export async function GET(request: NextRequest) {
       limit: 200,
     })
 
-    if (source === 'memory' && liveJobs.length === 0) {
+    if (!supabaseAdminConfigured && source === 'memory' && liveJobs.length === 0) {
       await loadDemoJobsIntoMemory()
       const reloaded = await getPublicJobPosts({
         freshnessDays,
@@ -173,7 +188,7 @@ export async function GET(request: NextRequest) {
     let resultJobs = filteredJobs.map(toJob)
     let responseSource: 'supabase' | 'memory' | 'mock' = source
 
-    if (resultJobs.length === 0 && source === 'memory') {
+    if (!supabaseAdminConfigured && resultJobs.length === 0 && source === 'memory') {
       resultJobs = MOCK_JOBS.map(toMockJob)
       responseSource = 'mock'
     }
@@ -195,17 +210,20 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('Jobs API error:', error instanceof Error ? error.message : 'Unknown error')
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    const schemaMismatch = isJobsSchemaMismatchError(errorMessage)
+
+    if (IS_DEVELOPMENT) {
+      console.error('[Jobs API] request failed:', errorMessage)
+    }
+
     return NextResponse.json(
       {
-        error: 'Failed to fetch jobs',
-        jobs: MOCK_JOBS.map(toMockJob),
-        meta: {
-          source: 'mock',
-          fallbackReason: 'jobs_api_error',
-        },
+        error: schemaMismatch
+          ? 'Jobs persistence schema is not ready in Supabase. Apply migration 005_roadmap_persistence.sql and retry.'
+          : 'Failed to fetch jobs',
       },
-      { status: 500 }
+      { status: schemaMismatch ? 503 : 500 }
     )
   }
 }

@@ -135,7 +135,7 @@ export default function JobsPage() {
   const [loadingError, setLoadingError] = useState<string | null>(null)
   const [saveStatus, setSaveStatus] = useState<SaveStatus | null>(null)
   const [savingJobId, setSavingJobId] = useState<string | null>(null)
-  const [dataSource, setDataSource] = useState<'supabase' | 'memory' | 'mock'>('mock')
+  const [dataSource, setDataSource] = useState<'supabase' | 'memory' | 'mock' | 'error'>('mock')
   const [filters, setFilters] = useState<Filters>({
     region: 'all',
     jobType: 'all',
@@ -167,6 +167,7 @@ export default function JobsPage() {
         if (!isActive) return
         setLoadingError(error instanceof Error ? error.message : 'Failed to load jobs.')
         setJobs([])
+        setDataSource('error')
       } finally {
         if (isActive) {
           setIsLoading(false)
@@ -492,7 +493,13 @@ export default function JobsPage() {
               {filters.jobType !== 'all' && ` (${filters.jobType})`}
             </p>
             <span className="brutal-border brutal-radius bg-white px-3 py-1 text-xs font-bold">
-              Source: {dataSource === 'supabase' ? 'Supabase' : dataSource === 'memory' ? 'Demo memory fallback' : 'Demo data'}
+              Source: {dataSource === 'supabase'
+                ? 'Supabase'
+                : dataSource === 'memory'
+                  ? 'Demo memory fallback'
+                  : dataSource === 'mock'
+                    ? 'Demo data'
+                    : 'Unavailable'}
             </span>
           </div>
 

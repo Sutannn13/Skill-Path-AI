@@ -99,6 +99,7 @@ Production rollback should be forward-only unless profile role reads are removed
 - Adds task ordering, week metadata, mini exercise state, deliverable state, and task `updated_at`.
 - Adds `roadmap_resources` and `roadmap_resource_progress`.
 - Enables RLS for public job source/post reads and admin ingestion-run reads.
+- Recreates roadmap/job policies with `DROP POLICY IF EXISTS` + `CREATE POLICY` so reruns stay idempotent.
 - Adds job freshness indexes, `job_posts.last_seen_at`, and a source/external ID dedupe index.
 - Adds AI job analysis cache fields for suggested skills, comparison notes, source, and `updated_at`.
 

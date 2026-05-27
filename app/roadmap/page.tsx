@@ -33,6 +33,8 @@ import { CurrentLevel, Roadmap, RoadmapResource, RoadmapTask, RoadmapWeek, Skill
 type RoadmapMode = 'loading' | 'supabase' | 'demo' | 'error'
 type SaveState = 'idle' | 'saving' | 'saved' | 'error'
 
+const ROADMAP_SETUP_REQUIRED_MESSAGE = 'Roadmap persistence schema is not ready in Supabase. Apply migration 005_roadmap_persistence.sql, then reload this page.'
+
 interface RoadmapRow {
   id: string
   title: string
@@ -262,6 +264,30 @@ function buildRoadmapFromRows(
     source: roadmapRow.source,
     createdAt: roadmapRow.created_at,
   }
+}
+
+function isRoadmapSchemaMismatchError(message: string) {
+  const normalized = message.toLowerCase()
+  return [
+    'column roadmaps.is_active does not exist',
+    'column roadmaps.archived_at does not exist',
+    'column roadmaps.context does not exist',
+    'column roadmap_tasks.task_order does not exist',
+    'column roadmap_tasks.week_title does not exist',
+    'column roadmap_tasks.mini_exercise_completed does not exist',
+    'relation "roadmap_resources" does not exist',
+    'relation "roadmap_resource_progress" does not exist',
+  ].some((fragment) => normalized.includes(fragment))
+}
+
+function getRoadmapSafeErrorMessage(error: unknown) {
+  const fallback = 'Failed to load roadmap.'
+  if (!(error instanceof Error)) return fallback
+  if (isRoadmapSchemaMismatchError(error.message)) {
+    return ROADMAP_SETUP_REQUIRED_MESSAGE
+  }
+
+  return error.message || fallback
 }
 
 async function fetchGeneratedRoadmap(input: {
@@ -607,9 +633,13 @@ export default function RoadmapPage() {
         }
       } catch (error) {
         if (isActive) {
-          setRoadmap(demoRoadmap)
+          const safeMessage = getRoadmapSafeErrorMessage(error)
+          const isSchemaError = safeMessage === ROADMAP_SETUP_REQUIRED_MESSAGE
+          setRoadmap(isSchemaError ? null : demoRoadmap)
           setMode('error')
-          setStatusMessage(error instanceof Error ? error.message : 'Failed to load roadmap.')
+          setStatusMessage(isSchemaError
+            ? safeMessage
+            : (error instanceof Error ? error.message : 'Failed to load roadmap.'))
         }
       }
     }
@@ -933,7 +963,7 @@ export default function RoadmapPage() {
       setSaveMessage('New roadmap saved')
     } catch (error) {
       setSaveState('error')
-      setSaveMessage(error instanceof Error ? error.message : 'Failed to regenerate roadmap')
+      setSaveMessage(getRoadmapSafeErrorMessage(error))
     } finally {
       setIsGenerating(false)
     }
@@ -1166,9 +1196,17 @@ export default function RoadmapPage() {
 function getYouTubeEmbedUrl(url: string) {
   try {
     const parsed = new URL(url)
-    const videoId = parsed.hostname.includes('youtu.be')
-      ? parsed.pathname.replace('/', '')
-      : parsed.searchParams.get('v')
+    let videoId: string | null = null
+
+    if (parsed.hostname.includes('youtu.be')) {
+      videoId = parsed.pathname.replace('/', '')
+    } else if (parsed.pathname.startsWith('/watch')) {
+      videoId = parsed.searchParams.get('v')
+    } else if (parsed.pathname.startsWith('/shorts/')) {
+      videoId = parsed.pathname.split('/')[2] ?? null
+    } else if (parsed.pathname.startsWith('/embed/')) {
+      videoId = parsed.pathname.split('/')[2] ?? null
+    }
 
     if (!videoId) return null
     return `https://www.youtube.com/embed/${videoId}`
@@ -1292,7 +1330,9 @@ function TaskItem({
                       ) : (
                         <Check className="h-4 w-4" />
                       )}
-                      {resource.isCompleted ? 'Completed' : 'Mark complete'}
+                      {resource.resourceType === 'youtube'
+                        ? (resource.isCompleted ? 'Watched' : 'Mark video as watched')
+                        : (resource.isCompleted ? 'Completed' : 'Mark complete')}
                     </BrutalButton>
                   </div>
                 </div>

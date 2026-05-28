@@ -1,0 +1,10 @@
+{
+  "model": "gpt-4o",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Jawab satu kalimat: API BluesMinds berhasil?"
+    }
+  ],
+  "max_tokens": 50
+}

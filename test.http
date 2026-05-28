@@ -1,0 +1,14 @@
+POST https://api.bluesminds.com/v1/chat/completions
+Content-Type: application/json
+Authorization: Bearer sk-zrZFU6XKKmjCazn7cuw8DT0Q5uTk66CURQX5pPYVmYe6q7bu
+
+{
+  "model": "claude-sonnet-4-6",
+  "max_tokens": 500,
+  "messages": [
+    {
+      "role": "user",
+      "content": "Halo! Testing API Bluesminds, works?"
+    }
+  ]
+}

@@ -8,8 +8,8 @@ import { Target, Mail, Lock, AlertCircle, ArrowRight, Eye, EyeOff, ArrowLeft } f
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser'
 import { BrutalCard, BrutalButton } from '@/components/brutal'
 import { cn } from '@/lib/utils'
-import { CatMascot } from '@/components/illustrations/cat-mascot'
-import { DoodleBackground } from '@/components/illustrations/doodle-background'
+import { AnimatedBrutalBackground, BrutalBackgroundStyles } from '@/components/illustrations/animated-brutal-background'
+import { AnimatedCatMascot } from '@/components/illustrations/animated-cat-mascot'
 
 interface LoginFormData {
   email: string
@@ -59,10 +59,8 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Background */}
-      <div className="fixed inset-0 -z-10">
-        <div className="absolute inset-0 bg-gradient-to-br from-yellow/20 via-pink/10 to-blue/20" />
-      </div>
+      <BrutalBackgroundStyles />
+      <AnimatedBrutalBackground variant="login" intensity="high" showDoodles />
 
       {/* Header */}
       <header className="border-b-3 border-black bg-white">
@@ -89,15 +87,25 @@ export default function LoginPage() {
           transition={{ duration: 0.4 }}
           className="grid gap-6 lg:grid-cols-5"
         >
-          <BrutalCard color="yellow" shadow="lg" className="relative hidden p-8 lg:col-span-2 lg:block">
-            <DoodleBackground className="opacity-20" />
+          <BrutalCard color="yellow" shadow="lg" className="relative hidden p-8 lg:col-span-2 lg:block overflow-hidden">
             <div className="relative z-10">
-              <CatMascot className="mb-4 h-28 w-28" mood="focus" withMessage="Keep going!" />
+              <div className="mb-4">
+                <AnimatedCatMascot
+                  size="xl"
+                  mood="focus"
+                  animated={true}
+                  withMessage="Welcome back!"
+                />
+              </div>
               <h2 className="font-display text-2xl font-bold">Welcome Back</h2>
               <p className="mt-2 text-sm text-black/70">
                 Continue your roadmap, finish quizzes, and ship your next project milestone.
               </p>
             </div>
+            {/* Decorative shapes */}
+            <div className="absolute -top-3 -right-3 w-12 h-12 bg-pink brutal-border brutal-radius opacity-40 animate-wiggle" />
+            <div className="absolute -bottom-4 -left-4 w-16 h-16 bg-blue brutal-border brutal-radius opacity-30 animate-float" />
+            <div className="absolute top-1/2 right-2 w-6 h-6 bg-green brutal-border rounded-full opacity-30 animate-bounce" />
           </BrutalCard>
 
           <div className="lg:col-span-3">
@@ -213,13 +221,16 @@ export default function LoginPage() {
               )}
             </BrutalCard>
 
-            <div className="mt-6 text-center">
+            <div className="mt-6 text-center space-y-2">
               <p className="text-gray-600">
                 Do not have an account?{' '}
                 <Link href="/register" className="font-bold text-black hover:underline">
                   Create one
                 </Link>
               </p>
+              <Link href="/forgot-password" className="block text-sm text-gray-500 hover:text-black transition-colors">
+                Forgot your password?
+              </Link>
             </div>
           </div>
         </motion.div>

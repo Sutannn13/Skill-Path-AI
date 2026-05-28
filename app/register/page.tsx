@@ -8,8 +8,8 @@ import { Target, Mail, Lock, User, AlertCircle, CheckCircle, ArrowRight, Eye, Ey
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser'
 import { BrutalCard, BrutalButton } from '@/components/brutal'
 import { cn } from '@/lib/utils'
-import { CatMascot } from '@/components/illustrations/cat-mascot'
-import { DoodleBackground } from '@/components/illustrations/doodle-background'
+import { AnimatedBrutalBackground, BrutalBackgroundStyles } from '@/components/illustrations/animated-brutal-background'
+import { AnimatedCatMascot } from '@/components/illustrations/animated-cat-mascot'
 
 interface RegisterFormData {
   fullName: string
@@ -121,10 +121,8 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Background */}
-      <div className="fixed inset-0 -z-10">
-        <div className="absolute inset-0 bg-gradient-to-br from-yellow/20 via-pink/10 to-blue/20" />
-      </div>
+      <BrutalBackgroundStyles />
+      <AnimatedBrutalBackground variant="register" intensity="high" showDoodles />
 
       {/* Header */}
       <header className="border-b-3 border-black bg-white">
@@ -151,15 +149,25 @@ export default function RegisterPage() {
           transition={{ duration: 0.4 }}
           className="grid gap-6 lg:grid-cols-5"
         >
-          <BrutalCard color="pink" shadow="lg" className="relative hidden p-8 lg:col-span-2 lg:block">
-            <DoodleBackground className="opacity-20" />
+          <BrutalCard color="pink" shadow="lg" className="relative hidden p-8 lg:col-span-2 lg:block overflow-hidden">
             <div className="relative z-10">
-              <CatMascot className="mb-4 h-28 w-28" mood="cheer" withMessage="You can do this!" />
+              <div className="mb-4">
+                <AnimatedCatMascot
+                  size="xl"
+                  mood="cheer"
+                  animated={true}
+                  withMessage="Join us!"
+                />
+              </div>
               <h2 className="font-display text-2xl font-bold">Create your account</h2>
               <p className="mt-2 text-sm text-black/70">
                 Build your learning roadmap, pass quizzes, and submit portfolio projects in one place.
               </p>
             </div>
+            {/* Decorative shapes */}
+            <div className="absolute -top-3 -left-3 w-12 h-12 bg-yellow brutal-border brutal-radius opacity-40 animate-wiggle" />
+            <div className="absolute -bottom-4 -right-4 w-16 h-16 bg-green brutal-border brutal-radius opacity-30 animate-float" />
+            <div className="absolute top-1/3 left-4 w-8 h-8 bg-blue brutal-border rounded-full opacity-30 animate-bounce" />
           </BrutalCard>
 
           <div className="lg:col-span-3">

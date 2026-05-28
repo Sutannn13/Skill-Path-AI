@@ -73,6 +73,11 @@ function safeStringArray(input: unknown): string[] {
   return input.filter((item): item is string => typeof item === 'string')
 }
 
+function isOptionalFinalProjectColumnError(error: { message?: string } | null) {
+  const message = error?.message?.toLowerCase() ?? ''
+  return message.includes('final_project_passed') || message.includes('final_project_status')
+}
+
 export async function POST(request: NextRequest) {
   const supabase = await createSupabaseServerClient()
   if (!supabase) {
@@ -324,7 +329,7 @@ export async function POST(request: NextRequest) {
       .eq('id', input.roadmapId)
       .eq('user_id', user.id)
 
-    if (roadmapUpdateError) {
+    if (roadmapUpdateError && !isOptionalFinalProjectColumnError(roadmapUpdateError)) {
       return NextResponse.json({ error: `Failed to update final project status: ${roadmapUpdateError.message}` }, { status: 500 })
     }
   }

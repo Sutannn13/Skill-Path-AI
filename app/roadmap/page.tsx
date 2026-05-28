@@ -52,6 +52,8 @@ type SaveState = 'idle' | 'saving' | 'saved' | 'error'
 const IS_DEVELOPMENT = process.env.NODE_ENV === 'development'
 
 const ROADMAP_SETUP_REQUIRED_MESSAGE = 'Roadmap persistence schema is not ready in Supabase. Apply migrations 005_roadmap_persistence.sql and 006_learning_assessment_system.sql, then reload this page.'
+const ROADMAP_TASK_FULL_SELECT = 'id, roadmap_id, week_number, title, description, skill_related, difficulty, estimated_time, deliverable, status, completed_at, task_key, task_order, week_title, week_goal, focus_skills, mini_project, mini_exercise_completed, deliverable_completed, quiz_required, quiz_passed, project_required, project_passed, requirement_state'
+const ROADMAP_TASK_BASE_SELECT = 'id, roadmap_id, week_number, title, description, skill_related, difficulty, estimated_time, deliverable, status, completed_at, task_key, task_order, week_title, week_goal, focus_skills, mini_project, mini_exercise_completed, deliverable_completed'
 
 interface RoadmapRow {
   id: string
@@ -59,8 +61,13 @@ interface RoadmapRow {
   summary: string | null
   duration_weeks: number | null
   source: 'ai' | 'fallback'
-  final_project_passed: boolean | null
-  final_project_status: RoadmapProjectReviewStatus | null
+  context: {
+    targetRole?: TargetRole | null
+    currentLevel?: CurrentLevel | null
+    studyTime?: string | null
+    missingSkills?: string[] | null
+    finalPortfolioProject?: Roadmap['finalPortfolioProject']
+  } | null
   created_at: string
 }
 
@@ -312,6 +319,24 @@ function getDefaultProjectState(): ProjectSubmissionState {
   }
 }
 
+function getContextFinalPortfolioProject(context: RoadmapRow['context']) {
+  if (context?.finalPortfolioProject) {
+    return context.finalPortfolioProject
+  }
+
+  if (context?.targetRole && getRoleById(context.targetRole)) {
+    return generateFallbackRoadmap({
+      targetRole: context.targetRole,
+      currentLevel: context.currentLevel ?? 'beginner',
+      missingSkills: context.missingSkills ?? [],
+      studyTime: context.studyTime ?? '1hour',
+      durationWeeks: 6,
+    }).finalPortfolioProject
+  }
+
+  return undefined
+}
+
 function buildRoadmapFromRows(
   roadmapRow: RoadmapRow,
   taskRows: RoadmapTaskRow[],
@@ -389,6 +414,7 @@ function buildRoadmapFromRows(
     summary: roadmapRow.summary ?? '',
     durationWeeks: roadmapRow.duration_weeks ?? weeks.size,
     weeks: Array.from(weeks.values()).sort((a, b) => a.week - b.week),
+    finalPortfolioProject: getContextFinalPortfolioProject(roadmapRow.context),
     source: roadmapRow.source,
     createdAt: roadmapRow.created_at,
   }
@@ -400,6 +426,10 @@ function isRoadmapSchemaMismatchError(message: string) {
     'column roadmaps.is_active does not exist',
     'column roadmaps.archived_at does not exist',
     'column roadmaps.context does not exist',
+    'column roadmaps.final_project_passed does not exist',
+    'column roadmaps.final_project_status does not exist',
+    "could not find the 'final_project_passed' column",
+    "could not find the 'final_project_status' column",
     'column roadmap_tasks.task_order does not exist',
     'column roadmap_tasks.week_title does not exist',
     'column roadmap_tasks.mini_exercise_completed does not exist',
@@ -415,6 +445,17 @@ function isRoadmapSchemaMismatchError(message: string) {
     'relation "roadmap_quiz_attempts" does not exist',
     'relation "roadmap_project_submissions" does not exist',
     'relation "roadmap_project_reviews" does not exist',
+  ].some((fragment) => normalized.includes(fragment))
+}
+
+function isTaskAssessmentSchemaMismatchError(message: string) {
+  const normalized = message.toLowerCase()
+  return [
+    'column roadmap_tasks.quiz_required does not exist',
+    'column roadmap_tasks.quiz_passed does not exist',
+    'column roadmap_tasks.project_required does not exist',
+    'column roadmap_tasks.project_passed does not exist',
+    'column roadmap_tasks.requirement_state does not exist',
   ].some((fragment) => normalized.includes(fragment))
 }
 
@@ -470,6 +511,7 @@ export default function RoadmapPage() {
   const [saveState, setSaveState] = useState<SaveState>('idle')
   const [saveMessage, setSaveMessage] = useState<string | null>(null)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  const [assessmentPersistenceAvailable, setAssessmentPersistenceAvailable] = useState(true)
   const [isGenerating, setIsGenerating] = useState(false)
   const [finalProjectStatus, setFinalProjectStatus] = useState<RoadmapProjectReviewStatus | null>(null)
   const [activeQuizTaskId, setActiveQuizTaskId] = useState<string | null>(null)
@@ -521,7 +563,7 @@ export default function RoadmapPage() {
 
       const { data: roadmapRow, error: roadmapError } = await supabase
         .from('roadmaps')
-        .select('id, title, summary, duration_weeks, source, final_project_passed, final_project_status, created_at')
+        .select('id, title, summary, duration_weeks, source, context, created_at')
         .eq('user_id', userId)
         .eq('is_active', true)
         .order('created_at', { ascending: false })
@@ -541,20 +583,40 @@ export default function RoadmapPage() {
 
       const typedRoadmap = roadmapRow as RoadmapRow
       if (isActive) {
-        setFinalProjectStatus(typedRoadmap.final_project_status ?? null)
+        setFinalProjectStatus(null)
       }
       const { data: taskRows, error: taskError } = await supabase
         .from('roadmap_tasks')
-        .select('id, roadmap_id, week_number, title, description, skill_related, difficulty, estimated_time, deliverable, status, completed_at, task_key, task_order, week_title, week_goal, focus_skills, mini_project, mini_exercise_completed, deliverable_completed, quiz_required, quiz_passed, project_required, project_passed, requirement_state')
+        .select(ROADMAP_TASK_FULL_SELECT)
         .eq('roadmap_id', typedRoadmap.id)
         .order('week_number', { ascending: true })
         .order('task_order', { ascending: true })
 
-      if (taskError) {
+      let resolvedTaskRows = taskRows as unknown[] | null
+      if (taskError && isTaskAssessmentSchemaMismatchError(taskError.message)) {
+        if (isActive) {
+          setAssessmentPersistenceAvailable(false)
+        }
+
+        const { data: fallbackTaskRows, error: fallbackTaskError } = await supabase
+          .from('roadmap_tasks')
+          .select(ROADMAP_TASK_BASE_SELECT)
+          .eq('roadmap_id', typedRoadmap.id)
+          .order('week_number', { ascending: true })
+          .order('task_order', { ascending: true })
+
+        if (fallbackTaskError) {
+          throw new Error(`Failed to load roadmap tasks: ${fallbackTaskError.message}`)
+        }
+
+        resolvedTaskRows = fallbackTaskRows
+      } else if (taskError) {
         throw new Error(`Failed to load roadmap tasks: ${taskError.message}`)
+      } else if (isActive) {
+        setAssessmentPersistenceAvailable(true)
       }
 
-      const typedTasks = (taskRows ?? []) as RoadmapTaskRow[]
+      const typedTasks = (resolvedTaskRows ?? []) as RoadmapTaskRow[]
       const taskIds = typedTasks.map((task) => task.id)
       let typedResources: RoadmapResourceRow[] = []
       let typedProgress: RoadmapProgressRow[] = []
@@ -682,16 +744,15 @@ export default function RoadmapPage() {
           duration_weeks: roadmapWithResources.durationWeeks,
           source: roadmapWithResources.source,
           is_active: true,
-          final_project_passed: false,
-          final_project_status: 'pending',
           context: {
             targetRole,
             currentLevel,
             studyTime,
             targetRoleLabel: getRoleById(targetRole)?.label ?? targetRole,
+            finalPortfolioProject: roadmapWithResources.finalPortfolioProject ?? null,
           },
         })
-        .select('id, title, summary, duration_weeks, source, final_project_passed, final_project_status, created_at')
+        .select('id, title, summary, duration_weeks, source, context, created_at')
         .single()
 
       if (insertRoadmapError || !insertedRoadmap) {
@@ -786,6 +847,7 @@ export default function RoadmapPage() {
     const loadRoadmap = async () => {
       setMode('loading')
       setStatusMessage('Loading roadmap...')
+      setAssessmentPersistenceAvailable(true)
 
       if (!supabase) {
         if (isActive) {
@@ -867,19 +929,34 @@ export default function RoadmapPage() {
     const requirementState = deriveRequirementState(task)
     const nextStatus = requirementState === 'completed' ? 'completed' : 'todo'
 
+    const updatePayload: {
+      status: RoadmapTask['status']
+      completed_at: string | null
+      mini_exercise_completed: boolean
+      deliverable_completed: boolean
+      quiz_required?: boolean
+      quiz_passed?: boolean
+      project_required?: boolean
+      project_passed?: boolean
+      requirement_state?: RoadmapTaskRequirementState
+    } = {
+      status: nextStatus,
+      completed_at: nextStatus === 'completed' ? (task.completedAt ?? new Date().toISOString()) : null,
+      mini_exercise_completed: task.miniExerciseCompleted === true,
+      deliverable_completed: task.deliverableCompleted === true,
+    }
+
+    if (assessmentPersistenceAvailable) {
+      updatePayload.quiz_required = task.quizRequired !== false
+      updatePayload.quiz_passed = task.quizPassed === true
+      updatePayload.project_required = task.projectRequired === true
+      updatePayload.project_passed = task.projectPassed === true
+      updatePayload.requirement_state = requirementState
+    }
+
     const { error } = await supabase
       .from('roadmap_tasks')
-      .update({
-        status: nextStatus,
-        completed_at: nextStatus === 'completed' ? (task.completedAt ?? new Date().toISOString()) : null,
-        mini_exercise_completed: task.miniExerciseCompleted === true,
-        deliverable_completed: task.deliverableCompleted === true,
-        quiz_required: task.quizRequired !== false,
-        quiz_passed: task.quizPassed === true,
-        project_required: task.projectRequired === true,
-        project_passed: task.projectPassed === true,
-        requirement_state: requirementState,
-      })
+      .update(updatePayload)
       .eq('id', task.id)
 
     if (error) {
@@ -1011,6 +1088,10 @@ export default function RoadmapPage() {
         return
       }
 
+      if (projectType === 'final_project') {
+        setFinalProjectStatus(data.submission.status ?? data.review?.status ?? null)
+      }
+
       setProjectState(key, (state) => ({
         ...state,
         repoUrl: data.submission.repoUrl ?? '',
@@ -1041,6 +1122,14 @@ export default function RoadmapPage() {
 
     const key = input.roadmapTaskId ?? 'final_project'
     const current = projectStates[key] ?? getDefaultProjectState()
+    if (mode !== 'supabase') {
+      setProjectState(key, (state) => ({
+        ...state,
+        error: 'Project review requires a saved Supabase roadmap. Apply the roadmap assessment migration and regenerate after signing in.',
+      }))
+      return
+    }
+
     if (!current.repoUrl.trim()) {
       setProjectState(key, (state) => ({
         ...state,
@@ -1145,12 +1234,18 @@ export default function RoadmapPage() {
     setQuizError(null)
 
     try {
+      const parentWeek = roadmap?.weeks.find((week) => week.tasks.some((item) => item.id === task.id))
       const response = await fetch('/api/roadmap/quiz/start', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ taskId: task.id }),
+        body: JSON.stringify({
+          taskId: task.id,
+          title: task.title,
+          description: task.description,
+          focusSkills: parentWeek?.focusSkills ?? [],
+        }),
       })
 
       const data = await response.json().catch(() => null)
@@ -1181,6 +1276,7 @@ export default function RoadmapPage() {
     setQuizError(null)
 
     try {
+      const currentTask = findTask(roadmap, taskId)
       const response = await fetch('/api/roadmap/quiz/submit', {
         method: 'POST',
         headers: {
@@ -1189,6 +1285,18 @@ export default function RoadmapPage() {
         body: JSON.stringify({
           quizId: activeQuiz.id,
           answers: quizAnswers,
+          resourcesComplete: hasRequiredResourcesCompleted(currentTask ?? {
+            id: taskId,
+            title: '',
+            description: '',
+            estimatedTime: '',
+            difficulty: 'easy',
+            deliverable: '',
+            status: 'todo',
+            resources: [],
+          }),
+          projectRequired: currentTask?.projectRequired === true,
+          projectPassed: currentTask?.projectPassed === true,
         }),
       })
 
@@ -1331,11 +1439,15 @@ export default function RoadmapPage() {
               duration_weeks: roadmapWithResources.durationWeeks,
               source: roadmapWithResources.source,
               is_active: true,
-              final_project_passed: false,
-              final_project_status: 'pending',
-              context: { targetRole, currentLevel, studyTime },
+              context: {
+                targetRole,
+                currentLevel,
+                studyTime,
+                targetRoleLabel: getRoleById(targetRole)?.label ?? targetRole,
+                finalPortfolioProject: roadmapWithResources.finalPortfolioProject ?? null,
+              },
             })
-            .select('id, title, summary, duration_weeks, source, final_project_passed, final_project_status, created_at')
+            .select('id, title, summary, duration_weeks, source, context, created_at')
             .single()
 
           if (insertRoadmapError || !insertedRoadmap) {
@@ -1845,6 +1957,7 @@ function getYouTubeEmbedUrl(url: string) {
   try {
     const parsed = new URL(url)
     let videoId: string | null = null
+    const startSeconds = getYouTubeStartSeconds(parsed)
 
     if (parsed.hostname.includes('youtu.be')) {
       videoId = parsed.pathname.replace('/', '')
@@ -1857,10 +1970,32 @@ function getYouTubeEmbedUrl(url: string) {
     }
 
     if (!videoId) return null
-    return `https://www.youtube.com/embed/${videoId}`
+    return `https://www.youtube.com/embed/${videoId}${startSeconds > 0 ? `?start=${startSeconds}` : ''}`
   } catch {
     return null
   }
+}
+
+function getYouTubeStartSeconds(url: URL) {
+  const start = url.searchParams.get('start')
+  if (start && /^\d+$/.test(start)) {
+    return Number(start)
+  }
+
+  const time = url.searchParams.get('t')
+  if (!time) return 0
+
+  if (/^\d+$/.test(time)) {
+    return Number(time)
+  }
+
+  const match = time.match(/(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?/)
+  if (!match) return 0
+
+  const hours = Number(match[1] ?? 0)
+  const minutes = Number(match[2] ?? 0)
+  const seconds = Number(match[3] ?? 0)
+  return hours * 3600 + minutes * 60 + seconds
 }
 
 function TaskItem({

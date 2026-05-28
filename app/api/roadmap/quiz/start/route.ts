@@ -12,7 +12,10 @@ import {
 export const dynamic = 'force-dynamic'
 
 const startSchema = z.object({
-  taskId: z.string().uuid(),
+  taskId: z.string().min(1),
+  title: z.string().optional().default('Roadmap task'),
+  description: z.string().optional().default(''),
+  focusSkills: z.array(z.string()).optional().default([]),
 })
 
 interface TaskOwnershipRow {
@@ -23,6 +26,66 @@ interface TaskOwnershipRow {
   roadmaps: {
     user_id: string
   } | null
+}
+
+function isUuid(value: string) {
+  return z.string().uuid().safeParse(value).success
+}
+
+function isQuizPersistenceUnavailableError(message: string) {
+  const normalized = message.toLowerCase()
+  return [
+    'roadmap_quizzes',
+    'roadmap_quiz_questions',
+    'roadmap_quiz_attempts',
+    'schema cache',
+  ].some((fragment) => normalized.includes(fragment))
+}
+
+function getLocalQuizId(skill: string) {
+  return `local:${encodeURIComponent(skill)}`
+}
+
+function getLocalQuestionId(skill: string, position: number) {
+  return `${getLocalQuizId(skill)}:${position}`
+}
+
+function createLocalQuizPayload(input: {
+  taskId: string
+  title: string
+  description: string
+  focusSkills: string[]
+}) {
+  const skill = inferQuizSkillFromTask({
+    title: input.title,
+    description: input.description,
+    focusSkills: input.focusSkills,
+  })
+  const quizId = getLocalQuizId(skill)
+  const questions = getCuratedQuizQuestions(skill, QUIZ_QUESTION_COUNT)
+
+  return {
+    quiz: {
+      id: quizId,
+      roadmapTaskId: input.taskId,
+      title: `${input.title} quiz`,
+      passingScore: QUIZ_PASSING_SCORE,
+      questionCount: questions.length,
+      questions: questions.map((question, index) => ({
+        id: getLocalQuestionId(skill, index + 1),
+        quizId,
+        questionText: question.questionText,
+        questionType: 'multiple_choice',
+        options: question.options,
+        explanation: question.explanation,
+        relatedSkill: question.relatedSkill,
+        difficulty: question.difficulty,
+        position: index + 1,
+      })),
+    },
+    latestAttempt: null,
+    mode: 'local',
+  }
 }
 
 async function ensureQuizForTask(input: {
@@ -110,6 +173,21 @@ async function ensureQuizForTask(input: {
 }
 
 export async function POST(request: NextRequest) {
+  const body = await request.json().catch(() => null)
+  const parsed = startSchema.safeParse(body)
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: 'Invalid request body', details: parsed.error.issues },
+      { status: 400 }
+    )
+  }
+
+  const { taskId } = parsed.data
+
+  if (!isUuid(taskId)) {
+    return NextResponse.json(createLocalQuizPayload(parsed.data))
+  }
+
   const supabase = await createSupabaseServerClient()
   if (!supabase) {
     return NextResponse.json({ error: 'Supabase is not configured.' }, { status: 503 })
@@ -124,17 +202,6 @@ export async function POST(request: NextRequest) {
   if (userError || !user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
-
-  const body = await request.json().catch(() => null)
-  const parsed = startSchema.safeParse(body)
-  if (!parsed.success) {
-    return NextResponse.json(
-      { error: 'Invalid request body', details: parsed.error.issues },
-      { status: 400 }
-    )
-  }
-
-  const { taskId } = parsed.data
 
   const { data: taskRow, error: taskError } = await supabase
     .from('roadmap_tasks')
@@ -157,6 +224,15 @@ export async function POST(request: NextRequest) {
   })
 
   if (!quizResult.quizId) {
+    if (quizResult.error && isQuizPersistenceUnavailableError(quizResult.error)) {
+      return NextResponse.json(createLocalQuizPayload({
+        taskId: typedTask.id,
+        title: typedTask.title,
+        description: typedTask.description ?? '',
+        focusSkills: typedTask.focus_skills ?? [],
+      }))
+    }
+
     return NextResponse.json({ error: quizResult.error ?? 'Failed to initialize quiz.' }, { status: 500 })
   }
 

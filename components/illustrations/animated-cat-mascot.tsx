@@ -84,7 +84,7 @@ export function AnimatedCatMascot({
       return { r: 3, ry: 1 }
     }
     if (currentMood === 'sleepy') {
-      return { r: 4, ry: 2, transform: 'scaleY(0.6)' }
+      return { r: 4, ry: 2 }
     }
     if (currentMood === 'excited' || currentMood === 'cheer') {
       return { r: 6, ry: 6 }
@@ -202,7 +202,7 @@ export function AnimatedCatMascot({
           />
 
           {/* Left Eye */}
-          <g transform={isBlinking ? 'scaleY(0.3)' : ''}>
+          <g transform={isBlinking ? 'translate(0 56) scale(1 0.3)' : undefined}>
             <ellipse
               cx="60"
               cy="80"
@@ -222,7 +222,7 @@ export function AnimatedCatMascot({
           </g>
 
           {/* Right Eye */}
-          <g transform={isBlinking ? 'scaleY(0.3)' : ''}>
+          <g transform={isBlinking ? 'translate(0 56) scale(1 0.3)' : undefined}>
             <ellipse
               cx="100"
               cy="80"

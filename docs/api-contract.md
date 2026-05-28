@@ -140,6 +140,7 @@ Behavior:
 - Requires authenticated user and task ownership.
 - Auto-seeds quiz/questions when missing.
 - Returns ordered 10-question payload and latest user attempt summary.
+- For local/demo fallback roadmap tasks with non-UUID IDs, returns a transient server-generated quiz without Supabase persistence.
 
 ## `POST /api/roadmap/quiz/submit`
 
@@ -151,6 +152,7 @@ Behavior:
 - Stores attempt rows in `roadmap_quiz_attempts`.
 - Returns score, pass/fail, per-question explanation feedback.
 - Updates roadmap task `quiz_passed`, `requirement_state`, and completion status.
+- For transient local/demo quizzes, grades server-side and returns feedback without writing database rows.
 
 ## `POST /api/roadmap/project-review`
 
@@ -163,7 +165,7 @@ Behavior:
 - Uses Gemini only after rule checks and within a daily guard.
 - Falls back to rule-only review if AI is unavailable.
 - Persists submission/review in `roadmap_project_submissions` and `roadmap_project_reviews`.
-- Updates task/roadmap completion flags (`project_passed`, `final_project_status`) accordingly.
+- Updates task completion flags (`project_passed`) when the task assessment columns exist. Final project status is read from the latest project submission/review; optional legacy roadmap final-status columns are not required for the UI to load.
 
 ## `GET /api/roadmap/project-review`
 

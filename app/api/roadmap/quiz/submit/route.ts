@@ -1,12 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import {
+  QUIZ_PASSING_SCORE,
+  getCuratedQuizQuestions,
+} from '@/lib/roadmap/quiz-bank'
 
 export const dynamic = 'force-dynamic'
 
 const submitSchema = z.object({
-  quizId: z.string().uuid(),
+  quizId: z.string().min(1),
   answers: z.record(z.string(), z.string()),
+  resourcesComplete: z.boolean().optional().default(true),
+  projectRequired: z.boolean().optional().default(false),
+  projectPassed: z.boolean().optional().default(false),
 })
 
 function deriveRequirementState(input: {
@@ -34,7 +41,90 @@ function deriveRequirementState(input: {
   return 'completed'
 }
 
+function isUuid(value: string) {
+  return z.string().uuid().safeParse(value).success
+}
+
+function getLocalSkillFromQuizId(quizId: string) {
+  if (!quizId.startsWith('local:')) return null
+  const encoded = quizId.split(':')[1]
+  if (!encoded) return null
+
+  try {
+    return decodeURIComponent(encoded)
+  } catch {
+    return null
+  }
+}
+
+function getLocalQuestionId(skill: string, position: number) {
+  return `local:${encodeURIComponent(skill)}:${position}`
+}
+
+function gradeLocalQuiz(input: z.infer<typeof submitSchema>) {
+  const skill = getLocalSkillFromQuizId(input.quizId)
+  if (!skill) {
+    return null
+  }
+
+  const questions = getCuratedQuizQuestions(skill)
+  const grading = questions.map((question, index) => {
+    const questionId = getLocalQuestionId(skill, index + 1)
+    const selectedAnswer = input.answers[questionId] ?? ''
+    const isCorrect = selectedAnswer.trim() !== '' && selectedAnswer === question.correctAnswer
+
+    return {
+      questionId,
+      questionText: question.questionText,
+      selectedAnswer,
+      correctAnswer: question.correctAnswer,
+      isCorrect,
+      explanation: question.explanation,
+    }
+  })
+
+  const correctCount = grading.filter((item) => item.isCorrect).length
+  const totalQuestions = questions.length
+  const score = totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0
+  const passed = score >= QUIZ_PASSING_SCORE
+  const requirementState = deriveRequirementState({
+    resourcesComplete: input.resourcesComplete,
+    quizPassed: passed,
+    projectRequired: input.projectRequired,
+    projectPassed: input.projectPassed,
+  })
+
+  return {
+    passed,
+    score,
+    passingScore: QUIZ_PASSING_SCORE,
+    correctCount,
+    totalQuestions,
+    requirementState,
+    feedback: grading,
+    mode: 'local',
+  }
+}
+
 export async function POST(request: NextRequest) {
+  const body = await request.json().catch(() => null)
+  const parsed = submitSchema.safeParse(body)
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: 'Invalid request body', details: parsed.error.issues },
+      { status: 400 }
+    )
+  }
+
+  const localResult = gradeLocalQuiz(parsed.data)
+  if (localResult) {
+    return NextResponse.json(localResult)
+  }
+
+  if (!isUuid(parsed.data.quizId)) {
+    return NextResponse.json({ error: 'Quiz not found.' }, { status: 404 })
+  }
+
   const supabase = await createSupabaseServerClient()
   if (!supabase) {
     return NextResponse.json({ error: 'Supabase is not configured.' }, { status: 503 })
@@ -47,15 +137,6 @@ export async function POST(request: NextRequest) {
 
   if (userError || !user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  const body = await request.json().catch(() => null)
-  const parsed = submitSchema.safeParse(body)
-  if (!parsed.success) {
-    return NextResponse.json(
-      { error: 'Invalid request body', details: parsed.error.issues },
-      { status: 400 }
-    )
   }
 
   const { quizId, answers } = parsed.data

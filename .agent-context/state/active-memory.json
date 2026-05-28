@@ -8,7 +8,7 @@
   },
   "project": {
     "name": "project gabut",
-    "currentFocus": "Phase 0 security patch and Phase 1 Supabase admin/user role foundation",
+    "currentFocus": "Role-aware roadmap learning path, granular resources, and quiz/project assessment compatibility",
     "durableFacts": [
       "SkillPath uses Next.js App Router, Supabase Auth/RLS, and a neobrutalism UI system.",
       "User dashboard lives at /dashboard; admin dashboard lives at /admin and is guarded by profiles.role.",
@@ -17,26 +17,25 @@
   },
   "progress": {
     "lastAchievements": [
-      "Upgraded Next.js to 15.5.18 and resolved npm audit runtime vulnerabilities with a PostCSS override.",
-      "Added Supabase SSR/browser/middleware helpers and server-side admin/user role checks.",
-      "Added additive Supabase migration 002_add_auth_roles.sql for profiles.role and admin read RLS policies.",
-      "Updated README and baseline docs for auth, API, database, flow, and design scope."
+      "Added role-specific fallback roadmaps for frontend, backend, fullstack, UI, mobile, and data analyst targets.",
+      "Expanded roadmap resources into granular task-level video/docs resources instead of broad one-video shortcuts.",
+      "Added local quiz fallback for demo roadmaps and schema-missing quiz persistence paths.",
+      "Kept roadmap final project status compatible with Supabase databases that have not applied optional final_project columns yet."
     ],
     "pendingIssues": [
-      "Complete sign-in/sign-out UI is still a later auth phase.",
-      "Admin write actions for moderation and role management are not implemented yet.",
-      "docs/design-intent.json remains a seed scaffold for future broad UI redesign work."
+      "Apply Supabase migration 006_learning_assessment_system.sql to persist quiz attempts and project review state fully.",
+      "Verify the roadmap page manually with a signed-in Backend Developer profile against the live Supabase project.",
+      "External learning resource links should be spot-checked in browser before a release demo."
     ],
     "nextBestActions": [
-      "Apply Supabase migrations and promote the first admin through trusted SQL.",
-      "Build the auth UI and callback flow.",
-      "Add admin moderation actions with server-side validation and audit logs."
+      "Regenerate the signed-in user's roadmap after selecting the target role to create role-specific persisted tasks.",
+      "Run Supabase migration 006 in the target project and reload /roadmap.",
+      "Smoke-test mini quiz start and submit from a frontend task and a backend task."
     ],
     "validationState": [
-      "npm run typecheck passed",
-      "npm run lint passed with Next 16 deprecation warning for next lint",
-      "npm run build passed",
-      "npm audit --omit=dev passed with 0 vulnerabilities"
+      "npm run typecheck passed on 2026-05-28 for roadmap role/quiz changes",
+      "npm run lint passed on 2026-05-28 with Next 16 deprecation warning for next lint",
+      "npm run build passed on 2026-05-28"
     ]
   },
   "designContinuity": {
@@ -54,5 +53,5 @@
     "redactSensitiveTextBeforeWriting": true
   },
   "generatedAt": "2026-05-26T09:05:08.903Z",
-  "lastUpdatedAt": "2026-05-27T00:00:00.000Z"
+  "lastUpdatedAt": "2026-05-28T12:00:00.000Z"
 }

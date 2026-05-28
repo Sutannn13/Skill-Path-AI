@@ -59,7 +59,7 @@ Apply migrations in order:
 supabase db push
 ```
 
-The latest additive migration is `supabase/migrations/005_roadmap_persistence.sql`. It adds roadmap learning resources, durable job freshness fields, public job RLS, and AI job analysis cache fields.
+The latest additive migration is `supabase/migrations/006_learning_assessment_system.sql`. It adds roadmap quizzes, quiz attempts, mini/final project submissions, project reviews, and assessment state fields. Run migrations in order so `005_roadmap_persistence.sql` is applied before `006_learning_assessment_system.sql`.
 
 To promote an admin, run a trusted SQL update after the user's profile exists:
 

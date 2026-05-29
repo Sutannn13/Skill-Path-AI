@@ -28,6 +28,21 @@ export interface JobPost {
   moderationStatus: 'approved' | 'pending_review' | 'rejected' | 'expired'
   moderationReasons: string[]
   rawPayload?: Record<string, unknown>
+  // AI Analysis fields (populated after Gemini/keyword classification)
+  hash?: string
+  category?: string
+  role?: string
+  ai_status?: 'pending' | 'analyzed' | 'failed' | 'fallback'
+  ai_confidence?: number
+  ai_match_score?: number
+  ai_match_reason?: string
+  ai_summary?: string
+  ai_skill_gaps?: string[]
+  ai_red_flags?: string[]
+  ai_beginner_friendly?: boolean
+  ai_fresh_graduate_friendly?: boolean
+  ai_tech_stacks?: string[]
+  ai_analyzed_at?: string
 }
 
 // Source adapter interface

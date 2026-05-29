@@ -1,4 +1,4 @@
-import type { RoadmapTask, RoadmapWeek } from '@/types'
+import type { RoadmapTask, RoadmapWeek, TargetRole } from '@/types'
 
 export type RoadmapResourceType = 'youtube' | 'article' | 'docs' | 'project' | 'quiz'
 
@@ -10,6 +10,11 @@ export interface RoadmapResourceSeed {
   estimatedMinutes: number
   isRequired: boolean
   completionRule: string
+}
+
+export interface GetCuratedResourcesOptions {
+  targetRole?: TargetRole | null
+  usedUrls?: Set<string>
 }
 
 function youtube(title: string, url: string, estimatedMinutes: number, provider = 'YouTube'): RoadmapResourceSeed {
@@ -31,7 +36,7 @@ function docs(title: string, url: string, estimatedMinutes: number, provider: st
     url,
     provider,
     estimatedMinutes,
-    isRequired: false,
+    isRequired: true,
     completionRule: 'manual_mark_complete',
   }
 }
@@ -197,6 +202,10 @@ const RESOURCE_LIBRARY: Record<string, RoadmapResourceSeed[]> = {
     youtube('npm basics focused lesson', 'https://www.youtube.com/watch?v=jHDhaSSKmB0', 20, 'Traversy Media'),
     docs('npm scripts docs', 'https://docs.npmjs.com/cli/v10/using-npm/scripts', 25, 'npm Docs'),
   ],
+  'environment variables': [
+    youtube('Environment variables in Node.js', 'https://www.youtube.com/watch?v=17UVejOw3zA', 18, 'Fireship'),
+    docs('Node.js environment variables', 'https://nodejs.org/en/learn/command-line/how-to-read-environment-variables-from-nodejs', 20, 'Node.js'),
+  ],
   'node.js': [
     youtube('Node.js focused introduction', 'https://www.youtube.com/watch?v=ENrzD9HAZK4', 18, 'Fireship'),
     docs('Node.js learn', 'https://nodejs.org/en/learn', 35, 'Node.js'),
@@ -220,6 +229,86 @@ const RESOURCE_LIBRARY: Record<string, RoadmapResourceSeed[]> = {
   'rest api': [
     youtube('REST API concepts and practice', 'https://www.youtube.com/watch?v=qbLc5a9jdXo', 25, 'Caleb Curry'),
     docs('MDN HTTP overview', 'https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Overview', 30, 'MDN Web Docs'),
+  ],
+  'http basics': [
+    youtube('HTTP requests, methods, and status codes', 'https://www.youtube.com/watch?v=iYM2zFP3Zn0', 24, 'freeCodeCamp.org'),
+    docs('MDN HTTP overview', 'https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Overview', 30, 'MDN Web Docs'),
+  ],
+  json: [
+    youtube('JSON crash course for APIs', 'https://www.youtube.com/watch?v=iiADhChRriM', 16, 'Traversy Media'),
+    docs('MDN JSON guide', 'https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/Scripting/JSON', 28, 'MDN Web Docs'),
+  ],
+  'git basics': [
+    youtube('Git and GitHub crash course', 'https://www.youtube.com/watch?v=RGOj5yH7evk', 30, 'freeCodeCamp.org'),
+    docs('GitHub Hello World', 'https://docs.github.com/en/get-started/start-your-journey/hello-world', 25, 'GitHub Docs'),
+  ],
+  'backend folder structure': [
+    youtube('How to structure Node.js projects', 'https://www.youtube.com/watch?v=5FJM5mWQ5iM', 18, 'JavaScript Mastery'),
+    docs('Node.js architecture and structure patterns', 'https://nodejs.org/en/learn/getting-started/nodejs-the-difference-between-development-and-production', 25, 'Node.js'),
+  ],
+  controllers: [
+    youtube('Express MVC controllers pattern', 'https://www.youtube.com/watch?v=0oXYLzuucwE', 22, 'Academind'),
+    docs('Express routing guide', 'https://expressjs.com/en/guide/routing.html', 30, 'Express'),
+  ],
+  crud: [
+    youtube('Build CRUD API with Express and PostgreSQL', 'https://www.youtube.com/watch?v=DihOP19LQdg', 28, 'Traversy Media'),
+    docs('REST API design best practices', 'https://learn.microsoft.com/en-us/azure/architecture/best-practices/api-design', 30, 'Microsoft Learn'),
+  ],
+  'error handling': [
+    youtube('Express error handling middleware', 'https://www.youtube.com/watch?v=3dSKnY8Ny4M', 20, 'Academind'),
+    docs('Express error handling', 'https://expressjs.com/en/guide/error-handling.html', 25, 'Express'),
+  ],
+  'sql basics': [
+    youtube('SQL for beginners in one hour', 'https://www.youtube.com/watch?v=HXV3zeQKqGY', 32, 'freeCodeCamp.org'),
+    docs('PostgreSQL SQL tutorial', 'https://www.postgresql.org/docs/current/tutorial-sql.html', 35, 'PostgreSQL'),
+  ],
+  'database schema': [
+    youtube('Database schema design basics', 'https://www.youtube.com/watch?v=ztHopE5Wnpc', 25, 'freeCodeCamp.org'),
+    docs('PostgreSQL data definition', 'https://www.postgresql.org/docs/current/ddl.html', 30, 'PostgreSQL'),
+  ],
+  prisma: [
+    youtube('Prisma ORM crash course', 'https://www.youtube.com/watch?v=RebA5J-rlwg', 24, 'Web Dev Simplified'),
+    docs('Prisma getting started', 'https://www.prisma.io/docs/getting-started', 30, 'Prisma'),
+  ],
+  migrations: [
+    youtube('Database migrations with Prisma', 'https://www.youtube.com/watch?v=b2xYQuzJMN8', 22, 'Prisma'),
+    docs('Prisma migrate workflows', 'https://www.prisma.io/docs/orm/prisma-migrate/workflows/development-and-production', 30, 'Prisma'),
+  ],
+  bcrypt: [
+    youtube('Hash passwords with bcrypt in Node.js', 'https://www.youtube.com/watch?v=2jqok-WgelI', 20, 'Web Dev Simplified'),
+    docs('bcrypt npm package docs', 'https://www.npmjs.com/package/bcrypt', 20, 'npm Docs'),
+  ],
+  jwt: [
+    youtube('JWT authentication tutorial', 'https://www.youtube.com/watch?v=7Q17ubqLfaM', 26, 'Web Dev Simplified'),
+    docs('JWT introduction', 'https://jwt.io/introduction', 20, 'jwt.io'),
+  ],
+  session: [
+    youtube('Sessions and cookies for auth', 'https://www.youtube.com/watch?v=sovAIX4doOE', 20, 'Traversy Media'),
+    docs('express-session docs', 'https://www.npmjs.com/package/express-session', 25, 'npm Docs'),
+  ],
+  'protected routes': [
+    youtube('Protect API routes with middleware', 'https://www.youtube.com/watch?v=mbsmsi7l3r4', 20, 'Traversy Media'),
+    docs('Express middleware guide', 'https://expressjs.com/en/guide/using-middleware.html', 25, 'Express'),
+  ],
+  'role-based authorization': [
+    youtube('Role based access control in Node.js', 'https://www.youtube.com/watch?v=R2hOvZ7bwXU', 22, 'freeCodeCamp.org'),
+    docs('OWASP authorization cheat sheet', 'https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html', 30, 'OWASP'),
+  ],
+  postman: [
+    youtube('Postman API testing for beginners', 'https://www.youtube.com/watch?v=VywxIQ2ZXw4', 25, 'freeCodeCamp.org'),
+    docs('Postman learning center', 'https://learning.postman.com/docs/getting-started/introduction/', 25, 'Postman'),
+  ],
+  'thunder client': [
+    youtube('Thunder Client in VS Code', 'https://www.youtube.com/watch?v=rQ7VlkN18hM', 12, 'Raphael Mendo'),
+    docs('Thunder Client docs', 'https://www.thunderclient.com/docs', 20, 'Thunder Client'),
+  ],
+  'jest supertest': [
+    youtube('API testing with Jest and Supertest', 'https://www.youtube.com/watch?v=FKnzS_icp20', 30, 'freeCodeCamp.org'),
+    docs('Supertest docs', 'https://github.com/ladjs/supertest', 25, 'GitHub'),
+  ],
+  'backend deployment': [
+    youtube('Deploy Node.js API to Render', 'https://www.youtube.com/watch?v=l134cBAJCuc', 24, 'Traversy Media'),
+    docs('Render deploy Node.js service', 'https://render.com/docs/deploy-node-express-app', 25, 'Render'),
   ],
   'sql tables': [
     youtube('SQL tables and constraints segment', 'https://www.youtube.com/watch?v=Hl4NZB1XR9c&t=200s', 20, 'Programming with Mosh'),
@@ -279,42 +368,230 @@ const RESOURCE_LIBRARY: Record<string, RoadmapResourceSeed[]> = {
   ],
 }
 
-const DEFAULT_RESOURCE: RoadmapResourceSeed = {
-  title: 'Build the task deliverable',
-  resourceType: 'project',
-  url: '/projects',
-  provider: 'SkillPath Practice',
-  estimatedMinutes: 45,
-  isRequired: true,
-  completionRule: 'manual_mark_complete',
+const FRONTEND_ONLY_HINTS = [
+  'react',
+  'next.js',
+  'nextjs',
+  'css',
+  'html',
+  'tailwind',
+  'ui component',
+  'state management',
+  'jsx',
+]
+
+const BACKEND_HINTS = [
+  'node',
+  'express',
+  'rest api',
+  'postgres',
+  'sql',
+  'auth',
+  'jwt',
+  'bcrypt',
+  'middleware',
+  'controller',
+  'migration',
+  'prisma',
+  'deployment',
+]
+
+const KEY_ALIASES: Record<string, string[]> = {
+  'javascript variables': ['javascript basics', 'javascript and typescript basics'],
+  typescript: ['typescript basics', 'typescript'],
+  'http basics': ['http basics', 'http methods', 'status codes'],
+  json: ['json'],
+  'git basics': ['git basics', 'git workflow', 'git'],
+  'node.js runtime': ['node.js runtime', 'node runtime', 'event loop'],
+  'npm scripts': ['npm scripts', 'npm packages', 'package.json'],
+  'environment variables': ['environment variables', '.env', 'configuration'],
+  'backend folder structure': ['backend folder structure', 'project structure', 'module boundaries'],
+  'express routing': ['express setup', 'express routing', 'routes'],
+  controllers: ['controllers', 'controller'],
+  middleware: ['middleware'],
+  crud: ['crud', 'restful crud', 'create update delete'],
+  'error handling': ['error handling', 'safe errors'],
+  'sql basics': ['sql basics', 'sql'],
+  postgresql: ['postgresql', 'postgres'],
+  'database schema': ['database schema', 'schema design', 'erd'],
+  prisma: ['prisma', 'orm'],
+  migrations: ['migration', 'migrations'],
+  'database access': ['database crud', 'data access', 'repository'],
+  bcrypt: ['bcrypt', 'password hashing'],
+  jwt: ['jwt', 'token auth'],
+  session: ['session auth', 'session'],
+  'protected routes': ['protected routes', 'route guard'],
+  'role-based authorization': ['role-based authorization', 'rbac', 'authorization'],
+  validation: ['input validation', 'validation'],
+  postman: ['postman'],
+  'thunder client': ['thunder client'],
+  'jest supertest': ['jest', 'supertest', 'api testing'],
+  'api documentation': ['api documentation', 'openapi', 'swagger'],
+  'backend deployment': ['backend deployment', 'render', 'railway', 'vercel deployment'],
+  'react components': ['react components', 'component basics'],
+  'react state': ['react state', 'state management'],
+  'next.js app router': ['next.js', 'app router'],
 }
 
 function normalizeSkill(value: string) {
   return value.trim().toLowerCase()
 }
 
-function inferResourceKeys(task: RoadmapTask, week: RoadmapWeek): string[] {
-  const source = [
-    task.title,
-    task.description,
-    task.deliverable,
-    ...week.focusSkills,
-  ].join(' ').toLowerCase()
-
-  return Object.keys(RESOURCE_LIBRARY)
-    .filter((key) => source.includes(key))
-    .sort((a, b) => b.length - a.length)
+function normalizeText(value: string) {
+  return value.toLowerCase()
 }
 
-export function getCuratedResourcesForTask(task: RoadmapTask, week: RoadmapWeek): RoadmapResourceSeed[] {
-  const inferredSkills = inferResourceKeys(task, week)
-  const broadSkills = week.focusSkills.map(normalizeSkill)
-  const skills = Array.from(new Set([...inferredSkills, ...broadSkills]))
+function buildUnavailableResource(resourceType: 'youtube' | 'docs', reason: string): RoadmapResourceSeed {
+  return {
+    title: resourceType === 'youtube'
+      ? 'Resource unavailable: no matching video found'
+      : 'Resource unavailable: no matching docs found',
+    resourceType,
+    url: '',
+    provider: 'SkillPath Curation',
+    estimatedMinutes: 0,
+    isRequired: true,
+    completionRule: `resource_unavailable:${reason}`,
+  }
+}
 
-  const resources = skills
-    .flatMap((skill) => RESOURCE_LIBRARY[skill] ?? [])
-    .filter((resource, index, all) => all.findIndex((item) => item.url === resource.url) === index)
-    .slice(0, 2)
+function inferRoleTrack(
+  task: RoadmapTask,
+  week: RoadmapWeek,
+  targetRole?: TargetRole | null
+): 'backend' | 'frontend' | 'mixed' {
+  if (targetRole === 'backend-developer') return 'backend'
+  if (targetRole === 'frontend-developer' || targetRole === 'ui-engineer') return 'frontend'
+  if (targetRole === 'fullstack-developer') return 'mixed'
 
-  return resources.length > 0 ? resources : [DEFAULT_RESOURCE]
+  const source = normalizeText(
+    `${task.id} ${task.title} ${task.description} ${task.deliverable} ${week.title} ${week.goal} ${week.focusSkills.join(' ')}`
+  )
+
+  const backendHits = BACKEND_HINTS.filter((keyword) => source.includes(keyword)).length
+  const frontendHits = FRONTEND_ONLY_HINTS.filter((keyword) => source.includes(keyword)).length
+
+  if (backendHits > frontendHits) return 'backend'
+  if (frontendHits > backendHits) return 'frontend'
+  return 'mixed'
+}
+
+function inferResourceKeys(task: RoadmapTask, week: RoadmapWeek): string[] {
+  const source = normalizeText(
+    `${task.title} ${task.description} ${task.deliverable} ${week.title} ${week.goal} ${week.focusSkills.join(' ')}`
+  )
+
+  const fromAliases = Object.entries(KEY_ALIASES)
+    .filter(([, aliases]) => aliases.some((alias) => source.includes(alias)))
+    .map(([key]) => key)
+
+  const directMatches = Object.keys(RESOURCE_LIBRARY)
+    .filter((key) => source.includes(key))
+
+  const fallbackFocusSkills = week.focusSkills
+    .map(normalizeSkill)
+    .filter((skill) => RESOURCE_LIBRARY[skill])
+
+  const keys = Array.from(new Set([...fromAliases, ...directMatches]))
+
+  if (keys.length > 0) {
+    return keys.sort((a, b) => b.length - a.length)
+  }
+
+  return fallbackFocusSkills
+}
+
+function isTrackCompatible(
+  track: 'backend' | 'frontend' | 'mixed',
+  key: string
+) {
+  const normalizedKey = normalizeSkill(key)
+  const isFrontendKey = FRONTEND_ONLY_HINTS.some((keyword) => normalizedKey.includes(keyword))
+  const isBackendKey = BACKEND_HINTS.some((keyword) => normalizedKey.includes(keyword))
+
+  if (track === 'backend') return !isFrontendKey || isBackendKey
+  if (track === 'frontend') return !isBackendKey || isFrontendKey
+  return true
+}
+
+function hasSemanticOverlap(task: RoadmapTask, week: RoadmapWeek, key: string, title: string) {
+  const source = normalizeText(
+    `${task.title} ${task.description} ${task.deliverable} ${week.title} ${week.goal} ${week.focusSkills.join(' ')}`
+  )
+  const keyTokens = normalizeSkill(key).split(/\s+/).filter((token) => token.length > 2)
+  const titleTokens = normalizeSkill(title).split(/\s+/).filter((token) => token.length > 2)
+  const overlapFromKey = keyTokens.some((token) => source.includes(token))
+  const overlapFromTitle = titleTokens.some((token) => source.includes(token))
+  return overlapFromKey || overlapFromTitle
+}
+
+export function isResourceLikelyRelevant(
+  task: RoadmapTask,
+  week: RoadmapWeek,
+  resource: Pick<RoadmapResourceSeed, 'title' | 'resourceType'>,
+  targetRole?: TargetRole | null
+) {
+  const track = inferRoleTrack(task, week, targetRole)
+  const source = normalizeText(
+    `${task.title} ${task.description} ${task.deliverable} ${week.title} ${week.goal} ${week.focusSkills.join(' ')}`
+  )
+  const resourceTitle = normalizeText(resource.title)
+
+  const frontendHit = FRONTEND_ONLY_HINTS.some((keyword) => resourceTitle.includes(keyword))
+  const backendHit = BACKEND_HINTS.some((keyword) => resourceTitle.includes(keyword))
+
+  if (track === 'backend' && frontendHit && !backendHit) {
+    return false
+  }
+  if (track === 'frontend' && backendHit && !frontendHit) {
+    return false
+  }
+
+  const keys = inferResourceKeys(task, week)
+  if (keys.length === 0) return true
+
+  return keys.some((key) => hasSemanticOverlap(task, week, key, resource.title) || source.includes(key))
+}
+
+function selectResourceByType(
+  resourceType: 'youtube' | 'docs',
+  keys: string[],
+  task: RoadmapTask,
+  week: RoadmapWeek,
+  track: 'backend' | 'frontend' | 'mixed',
+  usedUrls: Set<string>
+) {
+  for (const key of keys) {
+    if (!isTrackCompatible(track, key)) continue
+
+    const entries = (RESOURCE_LIBRARY[key] ?? []).filter((entry) => entry.resourceType === resourceType)
+    for (const entry of entries) {
+      if (!entry.url || usedUrls.has(entry.url)) continue
+      if (!hasSemanticOverlap(task, week, key, entry.title)) continue
+      usedUrls.add(entry.url)
+      return entry
+    }
+  }
+
+  return null
+}
+
+export function getCuratedResourcesForTask(
+  task: RoadmapTask,
+  week: RoadmapWeek,
+  options?: GetCuratedResourcesOptions
+): RoadmapResourceSeed[] {
+  const track = inferRoleTrack(task, week, options?.targetRole)
+  const keys = inferResourceKeys(task, week)
+  const usedUrls = options?.usedUrls ?? new Set<string>()
+
+  const selectedVideo = selectResourceByType('youtube', keys, task, week, track, usedUrls)
+  const selectedDocs = selectResourceByType('docs', keys, task, week, track, usedUrls)
+
+  const resolved: RoadmapResourceSeed[] = [
+    selectedVideo ?? buildUnavailableResource('youtube', 'missing_video_match'),
+    selectedDocs ?? buildUnavailableResource('docs', 'missing_docs_match'),
+  ]
+
+  return resolved
 }

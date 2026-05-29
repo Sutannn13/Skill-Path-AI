@@ -38,6 +38,21 @@ interface JobPostRow {
   moderation_status: JobPost['moderationStatus'] | null
   moderation_reasons: string[] | null
   raw_payload: Record<string, unknown> | null
+  hash: string | null
+  // AI Analysis fields
+  category: string | null
+  role: string | null
+  ai_status: 'pending' | 'analyzed' | 'failed' | 'fallback' | null
+  ai_confidence: number | null
+  ai_match_score: number | null
+  ai_match_reason: string | null
+  ai_summary: string | null
+  ai_skill_gaps: string[] | null
+  ai_red_flags: string[] | null
+  ai_beginner_friendly: boolean | null
+  ai_fresh_graduate_friendly: boolean | null
+  ai_tech_stacks: string[] | null
+  ai_analyzed_at: string | null
 }
 
 interface JobSourceRow {
@@ -134,6 +149,21 @@ function toJobPostRow(job: JobPost): JobPostRow {
     moderation_status: job.moderationStatus,
     moderation_reasons: job.moderationReasons,
     raw_payload: job.rawPayload ?? null,
+    hash: job.hash ?? null,
+    // AI Analysis fields
+    category: job.category ?? null,
+    role: job.role ?? null,
+    ai_status: job.ai_status ?? null,
+    ai_confidence: job.ai_confidence ?? null,
+    ai_match_score: job.ai_match_score ?? null,
+    ai_match_reason: job.ai_match_reason ?? null,
+    ai_summary: job.ai_summary ?? null,
+    ai_skill_gaps: job.ai_skill_gaps ?? null,
+    ai_red_flags: job.ai_red_flags ?? null,
+    ai_beginner_friendly: job.ai_beginner_friendly ?? null,
+    ai_fresh_graduate_friendly: job.ai_fresh_graduate_friendly ?? null,
+    ai_tech_stacks: job.ai_tech_stacks ?? null,
+    ai_analyzed_at: job.ai_analyzed_at ?? null,
   }
 }
 
@@ -167,6 +197,21 @@ function fromJobPostRow(row: JobPostRow): JobPost {
     moderationStatus: row.moderation_status ?? 'pending_review',
     moderationReasons: row.moderation_reasons ?? [],
     rawPayload: row.raw_payload ?? undefined,
+    hash: row.hash ?? undefined,
+    // AI Analysis fields
+    category: row.category ?? undefined,
+    role: row.role ?? undefined,
+    ai_status: row.ai_status ?? undefined,
+    ai_confidence: row.ai_confidence ?? undefined,
+    ai_match_score: row.ai_match_score ?? undefined,
+    ai_match_reason: row.ai_match_reason ?? undefined,
+    ai_summary: row.ai_summary ?? undefined,
+    ai_skill_gaps: row.ai_skill_gaps ?? undefined,
+    ai_red_flags: row.ai_red_flags ?? undefined,
+    ai_beginner_friendly: row.ai_beginner_friendly ?? undefined,
+    ai_fresh_graduate_friendly: row.ai_fresh_graduate_friendly ?? undefined,
+    ai_tech_stacks: row.ai_tech_stacks ?? undefined,
+    ai_analyzed_at: row.ai_analyzed_at ?? undefined,
   }
 }
 
@@ -380,27 +425,81 @@ export async function getPublicJobPosts(options?: {
 
   if (supabase) {
     const statuses = includePending ? ['approved', 'pending_review'] : ['approved']
-    const { data, error } = await supabase
-      .from('job_posts')
-      .select('id, source_slug, external_id, title, company, company_domain, location, country, region_type, work_mode, employment_type, experience_level, description, apply_url, source_url, tags, required_skills, salary_min, salary_max, currency, published_at, fetched_at, expires_at, last_seen_at, validity_score, risk_level, moderation_status, moderation_reasons, raw_payload')
-      .in('moderation_status', statuses)
-      .limit(500)
 
-    if (error) {
-      throw new Error(`Failed to load job posts: ${error.message}`)
+    // Base columns that exist in all schemas
+    const baseColumns = [
+      'id', 'source_slug', 'external_id', 'title', 'company', 'company_domain',
+      'location', 'country', 'region_type', 'work_mode', 'employment_type',
+      'experience_level', 'description', 'apply_url', 'source_url', 'tags',
+      'required_skills', 'salary_min', 'salary_max', 'currency', 'published_at',
+      'fetched_at', 'expires_at', 'last_seen_at', 'validity_score', 'risk_level',
+      'moderation_status', 'moderation_reasons', 'raw_payload',
+    ].join(', ')
+
+    // Optional AI columns that may not exist yet
+    const optionalColumns = [
+      'hash', 'category', 'role', 'ai_status', 'ai_confidence', 'ai_match_score',
+      'ai_match_reason', 'ai_summary', 'ai_skill_gaps', 'ai_red_flags',
+      'ai_beginner_friendly', 'ai_fresh_graduate_friendly', 'ai_tech_stacks',
+      'ai_analyzed_at',
+    ].map(col => {
+      // Supabase will just return null for non-existent columns
+      return col
+    }).join(', ')
+
+    try {
+      const { data, error } = await supabase
+        .from('job_posts')
+        .select(`${baseColumns}, ${optionalColumns}`)
+        .in('moderation_status', statuses)
+        .limit(500)
+
+      if (error) {
+        // If AI columns don't exist, fallback to just base columns
+        if (error.message.includes('does not exist') || error.code === 'PGRST204') {
+          const { data: baseData, error: baseError } = await supabase
+            .from('job_posts')
+            .select(baseColumns)
+            .in('moderation_status', statuses)
+            .limit(500)
+
+          if (baseError) {
+            throw new Error(`Failed to load job posts: ${baseError.message}`)
+          }
+
+          const jobs = ((baseData ?? []) as unknown as JobPostRow[])
+            .map(fromJobPostRow)
+            .filter((job) => isPubliclyVisible(job, freshnessDays))
+            .sort((a, b) => {
+              const bDate = getFreshnessDate(b)?.getTime() ?? 0
+              const aDate = getFreshnessDate(a)?.getTime() ?? 0
+              return bDate - aDate
+            })
+            .slice(0, limit)
+
+          return { jobs, source: 'supabase' as const }
+        }
+        throw new Error(`Failed to load job posts: ${error.message}`)
+      }
+
+      const jobs = ((data ?? []) as unknown as JobPostRow[])
+        .map(fromJobPostRow)
+        .filter((job) => isPubliclyVisible(job, freshnessDays))
+        .sort((a, b) => {
+          const bDate = getFreshnessDate(b)?.getTime() ?? 0
+          const aDate = getFreshnessDate(a)?.getTime() ?? 0
+          return bDate - aDate
+        })
+        .slice(0, limit)
+
+      return { jobs, source: 'supabase' as const }
+    } catch (e) {
+      // If any error, fallback to memory store
+      const jobs = getStoredJobs()
+        .filter((job) => isPubliclyVisible(job, freshnessDays))
+        .slice(0, limit)
+      return { jobs, source: 'memory' as const }
     }
-
-    const jobs = ((data ?? []) as JobPostRow[])
-      .map(fromJobPostRow)
-      .filter((job) => isPubliclyVisible(job, freshnessDays))
-      .sort((a, b) => {
-        const bDate = getFreshnessDate(b)?.getTime() ?? 0
-        const aDate = getFreshnessDate(a)?.getTime() ?? 0
-        return bDate - aDate
-      })
-      .slice(0, limit)
-
-    return { jobs, source: 'supabase' }
   }
 
   const jobs = getStoredJobs()
@@ -414,22 +513,63 @@ export async function getPublicJobById(id: string): Promise<JobPost | null> {
   const supabase = createSupabaseAdminClient()
 
   if (supabase) {
-    const { data, error } = await supabase
-      .from('job_posts')
-      .select('id, source_slug, external_id, title, company, company_domain, location, country, region_type, work_mode, employment_type, experience_level, description, apply_url, source_url, tags, required_skills, salary_min, salary_max, currency, published_at, fetched_at, expires_at, last_seen_at, validity_score, risk_level, moderation_status, moderation_reasons, raw_payload')
-      .eq('id', id)
-      .maybeSingle()
+    const baseColumns = [
+      'id', 'source_slug', 'external_id', 'title', 'company', 'company_domain',
+      'location', 'country', 'region_type', 'work_mode', 'employment_type',
+      'experience_level', 'description', 'apply_url', 'source_url', 'tags',
+      'required_skills', 'salary_min', 'salary_max', 'currency', 'published_at',
+      'fetched_at', 'expires_at', 'last_seen_at', 'validity_score', 'risk_level',
+      'moderation_status', 'moderation_reasons', 'raw_payload',
+    ].join(', ')
 
-    if (error) {
-      throw new Error(`Failed to load job post: ${error.message}`)
+    const optionalColumns = [
+      'hash', 'category', 'role', 'ai_status', 'ai_confidence', 'ai_match_score',
+      'ai_match_reason', 'ai_summary', 'ai_skill_gaps', 'ai_red_flags',
+      'ai_beginner_friendly', 'ai_fresh_graduate_friendly', 'ai_tech_stacks',
+      'ai_analyzed_at',
+    ].join(', ')
+
+    try {
+      const { data, error } = await supabase
+        .from('job_posts')
+        .select(`${baseColumns}, ${optionalColumns}`)
+        .eq('id', id)
+        .maybeSingle()
+
+      if (error) {
+        // Try base columns only if AI columns don't exist
+        if (error.message.includes('does not exist') || error.code === 'PGRST204') {
+          const { data: baseData, error: baseError } = await supabase
+            .from('job_posts')
+            .select(baseColumns)
+            .eq('id', id)
+            .maybeSingle()
+
+          if (baseError) {
+            throw new Error(`Failed to load job post: ${baseError.message}`)
+          }
+
+          if (!baseData) {
+            return null
+          }
+
+          const job = fromJobPostRow(baseData as unknown as JobPostRow)
+          return isPubliclyVisible(job, JOB_VISIBILITY_DAYS) ? job : null
+        }
+        throw new Error(`Failed to load job post: ${error.message}`)
+      }
+
+      if (!data) {
+        return null
+      }
+
+      const job = fromJobPostRow(data as unknown as JobPostRow)
+      return isPubliclyVisible(job, JOB_VISIBILITY_DAYS) ? job : null
+    } catch (e) {
+      // Fallback to memory store
+      const job = getStoredJobById(id)
+      return job && isPubliclyVisible(job, JOB_VISIBILITY_DAYS) ? job : null
     }
-
-    if (!data) {
-      return null
-    }
-
-    const job = fromJobPostRow(data as JobPostRow)
-    return isPubliclyVisible(job, JOB_VISIBILITY_DAYS) ? job : null
   }
 
   const job = getStoredJobById(id)

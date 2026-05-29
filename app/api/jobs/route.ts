@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Job } from '@/types'
 import { MOCK_JOBS } from '@/lib/data/mock-jobs'
-import { getDeterministicMatchScore } from '@/lib/jobs/display'
 import { fetchJobsFromAllSources, deduplicateJobs, getAdapterBySlug } from '@/lib/jobs/sources'
 import { indonesiaSampleAdapter } from '@/lib/jobs/adapters/indonesia-sample'
 import { getPublicJobById, getPublicJobPosts, upsertJobPosts } from '@/lib/jobs/store'
@@ -10,19 +9,117 @@ import { JobFilters, JobPost, TECH_STACK_MAPPING } from '@/lib/jobs/types'
 import { isSupabaseAdminConfigured } from '@/lib/supabase/admin'
 
 export const dynamic = 'force-dynamic'
-const IS_DEVELOPMENT = process.env.NODE_ENV === 'development'
-const MIN_CURATED_JOB_COUNT = 24
+
+// Pagination constants
+const DEFAULT_PAGE = 1
+const DEFAULT_LIMIT = 10
+const MAX_LIMIT = 50
+
+// Valid filter values (experienceLevel includes 'freshgraduate' for AI classification)
+const VALID_LEVELS = ['all', 'intern', 'freshgraduate', 'junior', 'mid', 'senior', 'beginner']
+const VALID_EMPLOYMENT_TYPES = ['all', 'internship', 'full-time', 'part-time', 'contract', 'freelance']
+const VALID_WORK_MODES = ['all', 'remote', 'hybrid', 'onsite']
+const VALID_COUNTRY_SCOPES = ['all', 'indonesia', 'international']
+const VALID_CATEGORIES = [
+  'Software Development',
+  'Frontend Development',
+  'Backend Development',
+  'Fullstack Development',
+  'Mobile Development',
+  'Data & AI',
+  'DevOps & Cloud',
+  'Cybersecurity',
+  'QA & Testing',
+  'UI/UX Design',
+  'Product & Business',
+  'IT Support & Infrastructure',
+  'Internship & Fresh Graduate',
+]
+
+// Valid roles
+const VALID_ROLES = [
+  'Frontend Developer',
+  'Backend Developer',
+  'Fullstack Developer',
+  'Software Engineer',
+  'Web Developer',
+  'React Developer',
+  'Next.js Developer',
+  'Node.js Developer',
+  'Laravel Developer',
+  'Java Developer',
+  'Python Developer',
+  'Golang Developer',
+  'Mobile Developer',
+  'Flutter Developer',
+  'Android Developer',
+  'iOS Developer',
+  'QA Engineer',
+  'Automation Tester',
+  'Data Analyst',
+  'Data Scientist',
+  'Data Engineer',
+  'Machine Learning Engineer',
+  'AI Engineer',
+  'DevOps Engineer',
+  'Cloud Engineer',
+  'Cybersecurity Analyst',
+  'Security Engineer',
+  'UI/UX Designer',
+  'Product Manager',
+  'Business Analyst',
+  'IT Support',
+  'System Administrator',
+  'Network Engineer',
+  'Junior Developer',
+  'Fresh Graduate Program',
+  'Frontend Intern',
+  'Backend Intern',
+  'Data Analyst Intern',
+  'QA Intern',
+  'UI/UX Intern',
+  'IT Intern',
+]
+
+interface PaginationParams {
+  page: number
+  limit: number
+  totalJobs: number
+  totalPages: number
+  hasNextPage: boolean
+  hasPrevPage: boolean
+}
+
+interface ExtendedFilters extends JobFilters {
+  role?: string
+  category?: string
+  countryScope?: string
+  workMode?: string
+  salaryMin?: number
+  salaryMax?: string
+  sortBy?: 'newest' | 'best_match' | 'highest_salary' | 'beginner_friendly'
+}
 
 function toJob(job: JobPost): Job {
   const adapter = getAdapterBySlug(job.sourceSlug)
+
+  // Calculate match score: use AI score if available, otherwise deterministic
+  let matchScore = 75
+  if (typeof job.ai_match_score === 'number' && job.ai_match_score > 0) {
+    matchScore = job.ai_match_score
+  } else {
+    // Fallback to deterministic score based on job ID hash
+    const hash = job.id.split('').reduce((acc, c) => ((acc << 5) - acc) + c.charCodeAt(0), 0)
+    matchScore = 70 + (Math.abs(hash) % 30)
+  }
 
   return {
     id: job.id,
     title: job.title,
     company: job.company,
     location: job.location,
-    workMode: job.workMode,
-    type: job.employmentType,
+    workMode: job.workMode as Job['workMode'] || 'remote',
+    type: job.employmentType as Job['type'],
     tags: job.tags,
     url: job.applyUrl,
     sourceUrl: job.sourceUrl,
@@ -36,13 +133,14 @@ function toJob(job: JobPost): Job {
     riskLevel: job.riskLevel,
     moderationStatus: job.moderationStatus,
     moderationReasons: job.moderationReasons,
-    matchScore: getDeterministicMatchScore(job.id),
+    matchScore: matchScore,
   }
 }
 
-function filterJobs(jobs: JobPost[], filters: JobFilters): JobPost[] {
+function filterJobs(jobs: JobPost[], filters: ExtendedFilters): JobPost[] {
   let filtered = jobs
 
+  // Keyword search
   if (filters.query) {
     const query = filters.query.toLowerCase()
     filtered = filtered.filter(job =>
@@ -57,8 +155,10 @@ function filterJobs(jobs: JobPost[], filters: JobFilters): JobPost[] {
         job.experienceLevel,
         job.description,
         job.sourceSlug,
-        ...job.tags,
-        ...job.requiredSkills,
+        job.category,
+        job.role,
+        ...(job.tags || []),
+        ...(job.requiredSkills || []),
       ]
         .filter(Boolean)
         .join(' ')
@@ -67,41 +167,179 @@ function filterJobs(jobs: JobPost[], filters: JobFilters): JobPost[] {
     )
   }
 
-  if (filters.region && filters.region !== 'all') {
+  // Role filter
+  if (filters.role && filters.role !== 'all') {
+    const roleLower = filters.role.toLowerCase()
+    filtered = filtered.filter(job => {
+      const jobRole = (job.role || '').toLowerCase()
+      return jobRole.includes(roleLower) || roleLower.includes(jobRole)
+    })
+  }
+
+  // Category filter
+  if (filters.category && filters.category !== 'all' && VALID_CATEGORIES.includes(filters.category)) {
+    filtered = filtered.filter(job => job.category === filters.category)
+  }
+
+  // Country scope filter
+  if (filters.countryScope && filters.countryScope !== 'all' && VALID_COUNTRY_SCOPES.includes(filters.countryScope)) {
+    filtered = filtered.filter(job => {
+      if (filters.countryScope === 'indonesia') {
+        return job.regionType === 'indonesia' || job.regionType === 'remote'
+      }
+      return job.regionType === 'international'
+    })
+  } else if (filters.region && filters.region !== 'all') {
+    // Legacy region filter
     filtered = filtered.filter(job => job.regionType === filters.region)
   }
 
-  if (filters.employmentType && filters.employmentType !== 'all') {
-    filtered = filtered.filter(job => job.employmentType === filters.employmentType)
+  // Work mode filter
+  if (filters.workMode && filters.workMode !== 'all' && VALID_WORK_MODES.includes(filters.workMode)) {
+    filtered = filtered.filter(job => job.workMode === filters.workMode)
   }
 
-  if (filters.experienceLevel && filters.experienceLevel !== 'all') {
-    filtered = filtered.filter(job => job.experienceLevel === filters.experienceLevel)
+  // Employment type filter
+  if (filters.employmentType && filters.employmentType !== 'all' && VALID_EMPLOYMENT_TYPES.includes(filters.employmentType)) {
+    const normalizedType = filters.employmentType === 'full-time' ? 'full-time' : filters.employmentType
+    filtered = filtered.filter(job => job.employmentType === normalizedType)
   }
 
+  // Level filter
+  if (filters.experienceLevel && filters.experienceLevel !== 'all' && VALID_LEVELS.includes(filters.experienceLevel)) {
+    filtered = filtered.filter(job => {
+      const level = job.experienceLevel || 'junior'
+      return level.toLowerCase() === filters.experienceLevel!.toLowerCase()
+    })
+  }
+
+  // Tech stack filter
   if (filters.techStack && filters.techStack !== 'all') {
     const stackSkills = TECH_STACK_MAPPING[filters.techStack] || []
     filtered = filtered.filter(job =>
-      job.requiredSkills.some(skill =>
+      (job.requiredSkills || []).some(skill =>
         stackSkills.some(stack => skill.toLowerCase().includes(stack.toLowerCase()))
       ) ||
-      job.tags.some(tag =>
+      (job.tags || []).some(tag =>
         stackSkills.some(stack => tag.toLowerCase().includes(stack.toLowerCase()))
       )
     )
   }
 
-  if (filters.tags && filters.tags.length > 0) {
+  // Salary range filter
+  if (filters.salaryMin !== undefined && filters.salaryMin > 0) {
     filtered = filtered.filter(job =>
-      filters.tags!.some(tag => job.tags.includes(tag))
+      (job.salaryMin === null || job.salaryMin === undefined) ||
+      job.salaryMin >= filters.salaryMin!
     )
+  }
+  if (filters.salaryMax) {
+    const max = parseInt(filters.salaryMax)
+    if (!isNaN(max)) {
+      filtered = filtered.filter(job =>
+        (job.salaryMax === null || job.salaryMax === undefined) ||
+        job.salaryMax <= max
+      )
+    }
+  }
+
+  // Beginner friendly filter
+  if (filters.tags?.includes('beginner_friendly')) {
+    filtered = filtered.filter(job => {
+      const level = job.experienceLevel || 'beginner'
+      return (
+        job.ai_beginner_friendly === true ||
+        job.ai_fresh_graduate_friendly === true ||
+        level === 'internship' ||
+        level === 'beginner' ||
+        level === 'junior'
+      )
+    })
+  }
+
+  // Minimum AI match score filter
+  const minMatchScoreParam = filters.query?.match(/min_score:(\d+)/gi)
+  if (minMatchScoreParam) {
+    const minScore = parseInt(minMatchScoreParam[0].replace('min_score:', ''))
+    if (!isNaN(minScore)) {
+      filtered = filtered.filter(job =>
+        (job.ai_match_score !== null && job.ai_match_score !== undefined) &&
+        job.ai_match_score >= minScore
+      )
+    }
+  }
+
+  // Source filter
+  const sourceParam = filters.query?.match(/source:(\w+)/gi)
+  if (sourceParam) {
+    const sourceSlug = sourceParam[0].replace('source:', '')
+    filtered = filtered.filter(job => job.sourceSlug === sourceSlug)
   }
 
   return filtered
 }
 
+function sortJobs(jobs: JobPost[], sortBy: string): JobPost[] {
+  const sorted = [...jobs]
+
+  switch (sortBy) {
+    case 'newest':
+      return sorted.sort((a, b) => {
+        const dateA = a.publishedAt ? new Date(a.publishedAt).getTime() : 0
+        const dateB = b.publishedAt ? new Date(b.publishedAt).getTime() : 0
+        return dateB - dateA // Newest first
+      })
+
+    case 'best_match':
+      return sorted.sort((a, b) => {
+        const scoreA = a.ai_match_score ?? 50
+        const scoreB = b.ai_match_score ?? 50
+        return scoreB - scoreA
+      })
+
+    case 'highest_salary':
+      return sorted.sort((a, b) => {
+        const salaryA = a.salaryMin ?? 0
+        const salaryB = b.salaryMin ?? 0
+        return salaryB - salaryA
+      })
+
+    case 'beginner_friendly':
+      return sorted.sort((a, b) => {
+        const aBeginner = (a.ai_beginner_friendly || a.experienceLevel === 'internship') ? 1 : 0
+        const bBeginner = (b.ai_beginner_friendly || b.experienceLevel === 'internship') ? 1 : 0
+        return bBeginner - aBeginner
+      })
+
+    default:
+      return sorted
+  }
+}
+
+function paginateJobs(jobs: JobPost[], page: number, limit: number): {
+  jobs: JobPost[]
+  pagination: PaginationParams
+} {
+  const totalJobs = jobs.length
+  const totalPages = Math.ceil(totalJobs / limit)
+  const startIndex = (page - 1) * limit
+  const endIndex = startIndex + limit
+
+  return {
+    jobs: jobs.slice(startIndex, endIndex),
+    pagination: {
+      page,
+      limit,
+      totalJobs,
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1,
+    },
+  }
+}
+
 function parseFreshnessDays(value: string | null) {
-  if (value === 'all') {
+  if (value === 'all' || value === '180') {
     return 180
   }
 
@@ -157,6 +395,7 @@ async function getCuratedIndonesiaJobs() {
 }
 
 async function addCuratedIndonesiaTopUp(jobs: JobPost[]) {
+  const MIN_CURATED_JOB_COUNT = 24
   if (jobs.length >= MIN_CURATED_JOB_COUNT) {
     return jobs
   }
@@ -177,7 +416,7 @@ function toMockJob(job: Job): Job {
     validityScore: 72,
     riskLevel: 'low',
     moderationStatus: 'approved',
-    matchScore: getDeterministicMatchScore(job.id),
+    matchScore: job.matchScore ?? 75,
   }
 }
 
@@ -185,11 +424,19 @@ export async function GET(request: NextRequest) {
   try {
     const supabaseAdminConfigured = isSupabaseAdminConfigured()
     const { searchParams } = new URL(request.url)
+
+    // Pagination params
+    const page = Math.max(1, parseInt(searchParams.get('page') || String(DEFAULT_PAGE)))
+    const limit = Math.min(MAX_LIMIT, Math.max(1, parseInt(searchParams.get('limit') || String(DEFAULT_LIMIT))))
+
+    // Get job by ID (single job fetch)
     const id = searchParams.get('id')
 
     if (id) {
       const job = await getPublicJobById(id)
-      const fallbackJob = job ?? (await getCuratedIndonesiaJobs()).find((candidate) => candidate.id === id) ?? null
+      const fallbackJob = job ??
+        (await getCuratedIndonesiaJobs()).find((candidate) => candidate.id === id) ??
+        null
 
       if (!fallbackJob) {
         return NextResponse.json(
@@ -206,17 +453,30 @@ export async function GET(request: NextRequest) {
       })
     }
 
+    // Freshness filter
     const freshnessDays = parseFreshnessDays(searchParams.get('freshnessDays'))
     const includePending = searchParams.get('includePending') !== 'false'
-    const filters: JobFilters = {
-      query: searchParams.get('query') || undefined,
+
+    // Parse filters
+    const filters: ExtendedFilters = {
+      query: searchParams.get('keyword') || searchParams.get('query') || undefined,
       region: (searchParams.get('region') as JobFilters['region']) || 'all',
-      employmentType: (searchParams.get('type') as JobFilters['employmentType']) || 'all',
-      experienceLevel: (searchParams.get('experience') as JobFilters['experienceLevel']) || 'all',
-      techStack: (searchParams.get('tech') as JobFilters['techStack']) || 'all',
+      role: searchParams.get('role') || 'all',
+      category: searchParams.get('category') || 'all',
+      countryScope: searchParams.get('countryScope') || 'all',
+      workMode: (searchParams.get('workMode') as ExtendedFilters['workMode']) || (searchParams.get('countryScope') === 'remote' ? 'remote' : 'all'),
+      employmentType: (searchParams.get('type') || searchParams.get('employmentType') || 'all') as ExtendedFilters['employmentType'],
+      experienceLevel: (searchParams.get('experience') || searchParams.get('level') || 'all') as ExtendedFilters['experienceLevel'],
+      techStack: (searchParams.get('tech') as ExtendedFilters['techStack']) || 'all',
+      salaryMin: searchParams.get('salaryMin') ? parseInt(searchParams.get('salaryMin')!) : undefined,
+      salaryMax: searchParams.get('salaryMax') || undefined,
       tags: searchParams.get('tags')?.split(',').filter(Boolean) || undefined,
     }
 
+    // Sort parameter
+    const sortBy = searchParams.get('sort') || 'newest'
+
+    // Fetch jobs
     let { jobs: liveJobs, source } = await getPublicJobPosts({
       freshnessDays,
       includePending,
@@ -236,26 +496,39 @@ export async function GET(request: NextRequest) {
 
     const jobsWithTopUp = await addCuratedIndonesiaTopUp(liveJobs)
     const filteredJobs = filterJobs(jobsWithTopUp, filters)
-    let resultJobs = filteredJobs.map(toJob)
+    const sortedJobs = sortJobs(filteredJobs, sortBy)
+    const paginatedResult = paginateJobs(sortedJobs, page, limit)
+
+    let resultJobs = paginatedResult.jobs.map(j => toJob(j))
     let responseSource: 'supabase' | 'memory' | 'mock' | 'mixed' = jobsWithTopUp.length > liveJobs.length ? 'mixed' : source
 
     if (!supabaseAdminConfigured && resultJobs.length === 0 && source === 'memory') {
-      resultJobs = MOCK_JOBS.map(toMockJob)
+      resultJobs = MOCK_JOBS.slice(0, limit).map(toMockJob)
       responseSource = 'mock'
     }
 
     return NextResponse.json({
       jobs: resultJobs,
+      page: paginatedResult.pagination.page,
+      limit: paginatedResult.pagination.limit,
+      totalJobs: paginatedResult.pagination.totalJobs,
+      totalPages: paginatedResult.pagination.totalPages,
+      hasNextPage: paginatedResult.pagination.hasNextPage,
+      hasPrevPage: paginatedResult.pagination.hasPrevPage,
       meta: {
-        total: resultJobs.length,
         source: responseSource,
         freshnessDays,
         includePending,
+        sort: sortBy,
         filters: {
           query: filters.query || null,
           region: filters.region,
-          type: filters.employmentType,
-          experience: filters.experienceLevel,
+          role: filters.role,
+          category: filters.category,
+          countryScope: filters.countryScope,
+          workMode: filters.workMode,
+          employmentType: filters.employmentType,
+          experienceLevel: filters.experienceLevel,
           tech: filters.techStack,
         },
       },
@@ -264,14 +537,14 @@ export async function GET(request: NextRequest) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     const schemaMismatch = isJobsSchemaMismatchError(errorMessage)
 
-    if (IS_DEVELOPMENT) {
+    if (process.env.NODE_ENV === 'development') {
       console.error('[Jobs API] request failed:', errorMessage)
     }
 
     return NextResponse.json(
       {
         error: schemaMismatch
-          ? 'Jobs persistence schema is not ready in Supabase. Apply migrations 005_roadmap_persistence.sql and 006_learning_assessment_system.sql, then retry.'
+          ? 'Jobs persistence schema is not ready in Supabase. Apply migrations 005_roadmap_persistence.sql and 006_learning_assessment_system.sql and 007_job_radar_system.sql, then retry.'
           : 'Failed to fetch jobs',
       },
       { status: schemaMismatch ? 503 : 500 }

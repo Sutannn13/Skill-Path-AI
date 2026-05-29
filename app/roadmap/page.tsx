@@ -10,7 +10,7 @@ import { BrutalCard, BrutalButton, SkillBadge, ScoreBar, StickerBadge } from '@/
 import { CatMascot } from '@/components/illustrations/cat-mascot'
 import { PageScene } from '@/components/illustrations/page-scene'
 import { generateFallbackRoadmap } from '@/lib/ai'
-import { getCuratedResourcesForTask } from '@/lib/roadmap/resources'
+import { getCuratedResourcesForTask, isResourceLikelyRelevant } from '@/lib/roadmap/resources'
 import { calculateSkillGap } from '@/lib/scoring/skill-gap'
 import { getRequiredSkillIds, getNiceToHaveSkillIds, getRoleById, getSkillById } from '@/lib/constants'
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser'
@@ -149,7 +149,41 @@ function clampSkillLevel(value: number): SkillLevel {
   return Math.max(0, Math.min(4, Number(value))) as SkillLevel
 }
 
-function withGeneratedResources(roadmap: Roadmap): Roadmap {
+function isResourceUnavailable(resource: Pick<RoadmapResource, 'completionRule' | 'url'>) {
+  return resource.completionRule.startsWith('resource_unavailable') || resource.url.trim().length === 0
+}
+
+function getLearningResourceGate(task: RoadmapTask) {
+  const resources = task.resources ?? []
+  const validVideoResources = resources.filter(
+    (resource) => resource.resourceType === 'youtube' && !isResourceUnavailable(resource)
+  )
+  const validDocsResources = resources.filter(
+    (resource) => (resource.resourceType === 'docs' || resource.resourceType === 'article') && !isResourceUnavailable(resource)
+  )
+
+  const completedVideos = validVideoResources.filter((resource) => resource.isCompleted).length
+  const completedDocs = validDocsResources.filter((resource) => resource.isCompleted).length
+
+  const hasVideoResource = validVideoResources.length > 0
+  const hasDocsResource = validDocsResources.length > 0
+  const videoUnlocked = hasVideoResource && completedVideos >= 1
+  const docsUnlocked = hasDocsResource && completedDocs >= 1
+  const resourcesComplete = videoUnlocked && docsUnlocked
+
+  return {
+    resourcesComplete,
+    hasVideoResource,
+    hasDocsResource,
+    completedVideos,
+    completedDocs,
+    unavailableCount: resources.filter(isResourceUnavailable).length,
+  }
+}
+
+function withGeneratedResources(roadmap: Roadmap, targetRole?: TargetRole | null): Roadmap {
+  const usedUrls = new Set<string>()
+
   return {
     ...roadmap,
     weeks: roadmap.weeks.map((week) => ({
@@ -159,7 +193,7 @@ function withGeneratedResources(roadmap: Roadmap): Roadmap {
         completedAt: null,
         miniExerciseCompleted: task.miniExerciseCompleted ?? false,
         deliverableCompleted: task.deliverableCompleted ?? false,
-        resources: getCuratedResourcesForTask(task, week).map((resource, index) => ({
+        resources: getCuratedResourcesForTask(task, week, { targetRole, usedUrls }).map((resource, index) => ({
           id: `${task.id}-resource-${index + 1}`,
           title: resource.title,
           resourceType: resource.resourceType,
@@ -199,14 +233,11 @@ function createDemoRoadmap(profile?: ProfileRow | null) {
     missingSkills: roleStarterSkills[context.targetRole],
     studyTime: context.studyTime,
     durationWeeks: 6,
-  }))
+  }), context.targetRole)
 }
 
 function hasRequiredResourcesCompleted(task: RoadmapTask) {
-  const resources = task.resources ?? []
-  return resources
-    .filter((resource) => resource.isRequired)
-    .every((resource) => resource.isCompleted)
+  return getLearningResourceGate(task).resourcesComplete
 }
 
 function deriveRequirementState(task: RoadmapTask): RoadmapTaskRequirementState {
@@ -246,16 +277,75 @@ function deriveTaskStatus(task: RoadmapTask): RoadmapTask['status'] {
 }
 
 function getRequirementHint(task: RoadmapTask) {
-  const requiredResourcesComplete = hasRequiredResourcesCompleted(task)
+  const resourceGate = getLearningResourceGate(task)
+  const requiredResourcesComplete = resourceGate.resourcesComplete
   const quizRequired = task.quizRequired !== false
   const quizPassed = task.quizPassed === true
   const projectRequired = task.projectRequired === true
   const projectPassed = task.projectPassed === true
 
-  if (!requiredResourcesComplete) return 'Complete required video/resource first.'
+  if (!resourceGate.hasVideoResource || !resourceGate.hasDocsResource || resourceGate.unavailableCount > 0) {
+    return 'Resource mapping incomplete. Regenerate roadmap to get matching video and docs resources.'
+  }
+  if (!requiredResourcesComplete) {
+    return `Complete at least 1 video and 1 docs resource to unlock quiz. (Video ${resourceGate.completedVideos}/1, Docs ${resourceGate.completedDocs}/1)`
+  }
   if (quizRequired && !quizPassed) return 'Pass quiz with at least 80.'
   if (projectRequired && !projectPassed) return 'Submit project for review and pass.'
   return 'All requirements completed.'
+}
+
+function getQuizLockReason(task: RoadmapTask) {
+  const gate = getLearningResourceGate(task)
+  if (!gate.hasVideoResource || !gate.hasDocsResource || gate.unavailableCount > 0) {
+    return 'Matching learning resources are incomplete. Regenerate roadmap resources first.'
+  }
+  if (!gate.resourcesComplete) {
+    return `Complete at least 1 video and 1 docs resource to unlock quiz. (Video ${gate.completedVideos}/1, Docs ${gate.completedDocs}/1)`
+  }
+  return null
+}
+
+function getProjectLockReason(task: RoadmapTask, hasMiniProject: boolean) {
+  if (!hasMiniProject && task.projectRequired !== true) {
+    return 'This task has no mini project requirement.'
+  }
+
+  const quizLock = getQuizLockReason(task)
+  if (quizLock) {
+    return quizLock
+  }
+
+  if (task.quizRequired !== false && !task.quizPassed) {
+    return 'Pass the quiz before submitting this mini project.'
+  }
+
+  return null
+}
+
+function isBackendRoadmapMismatch(roadmap: Roadmap) {
+  const title = roadmap.title.toLowerCase()
+  if (!title.includes('backend')) {
+    return false
+  }
+
+  const source = roadmap.weeks
+    .flatMap((week) => [
+      week.title,
+      week.goal,
+      ...week.focusSkills,
+      ...week.tasks.map((task) => `${task.title} ${task.description} ${task.deliverable}`),
+    ])
+    .join(' ')
+    .toLowerCase()
+
+  const frontendHints = ['react', 'next.js', 'nextjs', 'css', 'html', 'tailwind', 'state management', 'ui component']
+  const backendHints = ['node', 'express', 'rest api', 'postgres', 'sql', 'auth', 'jwt', 'bcrypt', 'middleware', 'prisma']
+
+  const frontendHits = frontendHints.filter((hint) => source.includes(hint)).length
+  const backendHits = backendHints.filter((hint) => source.includes(hint)).length
+
+  return frontendHits >= 3 && frontendHits >= backendHits
 }
 
 function calculateWeekProgress(week: Roadmap['weeks'][0]) {
@@ -322,6 +412,8 @@ function buildRoadmapFromRows(
 
   const progressByResourceId = new Map(progressRows.map((progress) => [progress.resource_id, progress]))
   const resourcesByTaskId = new Map<string, RoadmapResource[]>()
+  const usedGeneratedResourceUrls = new Set<string>()
+  const roadmapTargetRole = roadmapRow.context?.targetRole ?? null
 
   for (const resource of resourceRows) {
     const progress = progressByResourceId.get(resource.id)
@@ -351,7 +443,10 @@ function buildRoadmapFromRows(
   for (const row of taskRows) {
     const weekNumber = row.week_number
     const existingWeek = weeks.get(weekNumber)
-    const task: RoadmapTask = {
+    const weekTitle = row.week_title ?? `Week ${weekNumber}`
+    const weekGoal = row.week_goal ?? 'Complete this week of the roadmap'
+    const focusSkills = row.focus_skills ?? row.skill_related ?? []
+    const baseTask: RoadmapTask = {
       id: row.id,
       title: row.title,
       description: row.description ?? '',
@@ -367,7 +462,48 @@ function buildRoadmapFromRows(
       projectRequired: row.project_required === true,
       projectPassed: row.project_passed === true,
       requirementState: row.requirement_state ?? 'resources_pending',
-      resources: resourcesByTaskId.get(row.id) ?? [],
+      resources: [],
+    }
+
+    const fallbackWeekContext: RoadmapWeek = {
+      week: weekNumber,
+      title: weekTitle,
+      goal: weekGoal,
+      focusSkills,
+      tasks: [],
+      miniProject: row.mini_project ?? undefined,
+    }
+
+    const loadedResources = resourcesByTaskId.get(row.id) ?? []
+    const uniqueLoadedResources = loadedResources.filter((resource, index, all) =>
+      all.findIndex((item) => item.url === resource.url && item.title === resource.title) === index
+    )
+    const relevantResources = uniqueLoadedResources.filter((resource) =>
+      isResourceLikelyRelevant(baseTask, fallbackWeekContext, resource, roadmapTargetRole)
+    )
+
+    const generatedFallbackResources = getCuratedResourcesForTask(baseTask, fallbackWeekContext, {
+      targetRole: roadmapTargetRole,
+      usedUrls: usedGeneratedResourceUrls,
+    }).map((resource, index) => ({
+      id: `${row.id}-generated-resource-${index + 1}`,
+      title: resource.title,
+      resourceType: resource.resourceType,
+      url: resource.url,
+      provider: resource.provider,
+      estimatedMinutes: resource.estimatedMinutes,
+      isRequired: resource.isRequired,
+      completionRule: resource.completionRule,
+      watchedSeconds: 0,
+      durationSeconds: null,
+      completionPercentage: 0,
+      isCompleted: false,
+      completedAt: null,
+    }))
+
+    const task: RoadmapTask = {
+      ...baseTask,
+      resources: relevantResources.length > 0 ? relevantResources : generatedFallbackResources,
     }
 
     if (existingWeek) {
@@ -377,9 +513,9 @@ function buildRoadmapFromRows(
 
     weeks.set(weekNumber, {
       week: weekNumber,
-      title: row.week_title ?? `Week ${weekNumber}`,
-      goal: row.week_goal ?? 'Complete this week of the roadmap',
-      focusSkills: row.focus_skills ?? row.skill_related ?? [],
+      title: weekTitle,
+      goal: weekGoal,
+      focusSkills,
       tasks: [task],
       miniProject: row.mini_project ?? undefined,
     })
@@ -690,7 +826,7 @@ export default function RoadmapPage() {
         })
       }
 
-      const roadmapWithResources = withGeneratedResources(generated)
+      const roadmapWithResources = withGeneratedResources(generated, targetRole)
 
       if (replaceExisting) {
         const { error: archiveError } = await supabase
@@ -773,7 +909,7 @@ export default function RoadmapPage() {
           const roadmapTaskId = taskIdByKey.get(task.id)
           if (!roadmapTaskId) return []
 
-          return getCuratedResourcesForTask(task, week).map((resource, index) => ({
+          return (task.resources ?? []).map((resource, index) => ({
             id: crypto.randomUUID(),
             roadmap_task_id: roadmapTaskId,
             title: resource.title,
@@ -864,6 +1000,15 @@ export default function RoadmapPage() {
         }
 
         if (savedRoadmap) {
+          if (isBackendRoadmapMismatch(savedRoadmap)) {
+            if (isActive) {
+              setRoadmap(null)
+              setMode('repair')
+              setStatusMessage('Detected roadmap-role mismatch for Backend Developer. Click repair to regenerate backend-aligned modules and resources.')
+            }
+            return
+          }
+
           if (isActive) {
             setRoadmap(savedRoadmap)
             setMode('supabase')
@@ -995,6 +1140,7 @@ export default function RoadmapPage() {
     const nextRoadmap = updateRoadmapTask(roadmap, taskId, (task) => {
       const nextResources = (task.resources ?? []).map((resource) => {
         if (resource.id !== resourceId) return resource
+        if (isResourceUnavailable(resource)) return resource
 
         const isCompleted = !resource.isCompleted
         return {
@@ -1120,7 +1266,7 @@ export default function RoadmapPage() {
             })
           }
 
-          const roadmapWithResources = withGeneratedResources(generatedRoadmap)
+          const roadmapWithResources = withGeneratedResources(generatedRoadmap, targetRole)
           const { error: archiveError } = await supabase
             .from('roadmaps')
             .update({
@@ -1200,7 +1346,7 @@ export default function RoadmapPage() {
               const roadmapTaskId = taskIdByKey.get(task.id)
               if (!roadmapTaskId) return []
 
-              return getCuratedResourcesForTask(task, week).map((resource, index) => ({
+              return (task.resources ?? []).map((resource, index) => ({
                 id: crypto.randomUUID(),
                 roadmap_task_id: roadmapTaskId,
                 title: resource.title,
@@ -1280,7 +1426,7 @@ export default function RoadmapPage() {
     <AppShell showBottomNav={true}>
       <GradientBackground variant="roadmap" />
 
-      <div className="flex-1">
+      <div className="flex-1 pb-28 lg:pb-0">
         <DashboardHeader
           icon={MapIcon}
           iconColor="pink"
@@ -1313,7 +1459,10 @@ export default function RoadmapPage() {
                 <div className="flex-1">
                   <h3 className="font-display font-bold text-xl mb-2">Roadmap Repair Needed</h3>
                   <p className="text-black/70 mb-4">
-                    This roadmap was created without tasks. It cannot be used for learning. Click repair to regenerate your learning path with proper tasks and resources.
+                    {statusMessage}
+                  </p>
+                  <p className="text-sm text-black/60 mb-4">
+                    Repair will archive the current roadmap and regenerate a role-aligned roadmap with validated tasks and resources.
                   </p>
                   <BrutalButton
                     color="black"
@@ -1621,8 +1770,14 @@ function TaskItem({
   }
   const canComplete = taskCanBeCompleted(task)
   const resources = task.resources ?? []
+  const resourceGate = getLearningResourceGate(task)
   const requirementHint = getRequirementHint(task)
   const requirementState = task.requirementState ?? deriveRequirementState(task)
+  const hasMiniProject = task.projectRequired === true || Boolean(week.miniProject)
+  const quizLockReason = task.quizPassed ? null : getQuizLockReason(task)
+  const projectLockReason = task.projectPassed ? null : getProjectLockReason(task, hasMiniProject)
+  const canOpenQuiz = task.quizPassed || quizLockReason === null
+  const canOpenProject = hasMiniProject && (task.projectPassed || projectLockReason === null)
 
   return (
     <div
@@ -1686,10 +1841,11 @@ function TaskItem({
           <div className="grid gap-3 md:grid-cols-2">
             {resources.map((resource) => {
               const youtubeEmbed = resource.resourceType === 'youtube' ? getYouTubeEmbedUrl(resource.url) : null
+              const unavailable = isResourceUnavailable(resource)
 
               return (
                 <div key={resource.id} className="rounded-md border-2 border-black bg-gray-50 p-3">
-                  {youtubeEmbed && (
+                  {youtubeEmbed && !unavailable && (
                     <div className="mb-3 aspect-video overflow-hidden rounded-md border-2 border-black bg-black">
                       <iframe
                         src={youtubeEmbed}
@@ -1704,37 +1860,48 @@ function TaskItem({
                     <div>
                       <p className="font-bold">{resource.title}</p>
                       <p className="text-xs text-gray-500">
-                        {resource.provider} - {resource.resourceType} - {resource.estimatedMinutes} min
+                        {resource.provider} - {resource.resourceType}
+                        {!unavailable ? ` - ${resource.estimatedMinutes} min` : ''}
                       </p>
                     </div>
                     {resource.isCompleted && <CheckCircle2 className="h-5 w-5 shrink-0 text-green" />}
                   </div>
-                  <p className="mb-3 text-xs text-gray-600">
-                    Completion is manual for this MVP. Do not mark YouTube resources complete unless you actually watched them.
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    <a href={resource.url} target="_blank" rel="noopener noreferrer">
-                      <BrutalButton variant="ghost" color="black" size="sm">
-                        <ExternalLink className="h-4 w-4" />
-                        Open
-                      </BrutalButton>
-                    </a>
-                    <BrutalButton
-                      variant={resource.isCompleted ? 'primary' : 'outline'}
-                      color={resource.isCompleted ? 'green' : 'black'}
-                      size="sm"
-                      onClick={() => onToggleResource(task.id, resource.id)}
-                    >
-                      {resource.resourceType === 'youtube' ? (
-                        <PlayCircle className="h-4 w-4" />
-                      ) : (
-                        <Check className="h-4 w-4" />
-                      )}
-                      {resource.resourceType === 'youtube'
-                        ? (resource.isCompleted ? 'Watched' : 'Mark video as watched')
-                        : (resource.isCompleted ? 'Completed' : 'Mark complete')}
-                    </BrutalButton>
-                  </div>
+                  {unavailable ? (
+                    <p className="text-xs font-medium text-red">
+                      No semantically matching {resource.resourceType === 'youtube' ? 'video' : 'docs'} resource was found for this task. Regenerate roadmap resources.
+                    </p>
+                  ) : (
+                    <>
+                      <p className="mb-3 text-xs text-gray-600">
+                        Completion is manual for this MVP. Do not mark YouTube resources complete unless you actually watched them.
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {resource.url && (
+                          <a href={resource.url} target="_blank" rel="noopener noreferrer">
+                            <BrutalButton variant="ghost" color="black" size="sm">
+                              <ExternalLink className="h-4 w-4" />
+                              Open
+                            </BrutalButton>
+                          </a>
+                        )}
+                        <BrutalButton
+                          variant={resource.isCompleted ? 'primary' : 'outline'}
+                          color={resource.isCompleted ? 'green' : 'black'}
+                          size="sm"
+                          onClick={() => onToggleResource(task.id, resource.id)}
+                        >
+                          {resource.resourceType === 'youtube' ? (
+                            <PlayCircle className="h-4 w-4" />
+                          ) : (
+                            <Check className="h-4 w-4" />
+                          )}
+                          {resource.resourceType === 'youtube'
+                            ? (resource.isCompleted ? 'Watched' : 'Mark video as watched')
+                            : (resource.isCompleted ? 'Completed' : 'Mark complete')}
+                        </BrutalButton>
+                      </div>
+                    </>
+                  )}
                 </div>
               )
             })}
@@ -1745,8 +1912,8 @@ function TaskItem({
           <p className="mb-2 text-sm font-bold">Requirement checklist</p>
           <ul className="space-y-2 text-sm">
             <li className="flex items-start gap-2">
-              {hasRequiredResourcesCompleted(task) ? <Check className="mt-0.5 h-4 w-4 text-green" /> : <Circle className="mt-0.5 h-4 w-4" />}
-              <span>Watch/complete required learning resources</span>
+              {resourceGate.resourcesComplete ? <Check className="mt-0.5 h-4 w-4 text-green" /> : <Circle className="mt-0.5 h-4 w-4" />}
+              <span>Complete at least 1 video and 1 docs resource ({resourceGate.completedVideos}/1 video, {resourceGate.completedDocs}/1 docs)</span>
             </li>
             <li className="flex items-start gap-2">
               {task.quizPassed ? <Check className="mt-0.5 h-4 w-4 text-green" /> : <Circle className="mt-0.5 h-4 w-4" />}
@@ -1761,34 +1928,52 @@ function TaskItem({
         </div>
 
         <div className="grid gap-3 md:grid-cols-2">
-          <Link href={`/roadmap/tasks/${task.id}/quiz`} className="inline-flex">
-            <BrutalButton
-              variant={task.quizPassed ? 'primary' : 'outline'}
-              color={task.quizPassed ? 'green' : 'black'}
-              size="sm"
-              className="w-full"
-            >
-              {task.quizPassed
-                ? 'Retry Quiz'
-                : requirementState === 'quiz_pending'
-                  ? 'Continue Quiz'
-                  : 'Start Quiz'}
-            </BrutalButton>
-          </Link>
-
-          {(task.projectRequired || week.miniProject) && (
-            <Link href={`/roadmap/tasks/${task.id}/project`} className="inline-flex">
+          {canOpenQuiz ? (
+            <Link href={`/roadmap/tasks/${task.id}/quiz`} className="inline-flex">
               <BrutalButton
-                variant={task.projectPassed ? 'primary' : 'outline'}
-                color={task.projectPassed ? 'green' : 'black'}
+                variant={task.quizPassed ? 'primary' : 'outline'}
+                color={task.quizPassed ? 'green' : 'black'}
                 size="sm"
                 className="w-full"
               >
-                {task.projectPassed ? 'View Mini Project Review' : 'Submit Mini Project'}
+                {task.quizPassed
+                  ? 'Retry Quiz'
+                  : requirementState === 'quiz_pending'
+                    ? 'Continue Quiz'
+                    : 'Start Quiz'}
               </BrutalButton>
             </Link>
+          ) : (
+            <BrutalButton variant="outline" color="black" size="sm" className="w-full" disabled>
+              Start Quiz
+            </BrutalButton>
+          )}
+
+          {hasMiniProject && (
+            canOpenProject ? (
+              <Link href={`/roadmap/tasks/${task.id}/project`} className="inline-flex">
+                <BrutalButton
+                  variant={task.projectPassed ? 'primary' : 'outline'}
+                  color={task.projectPassed ? 'green' : 'black'}
+                  size="sm"
+                  className="w-full"
+                >
+                  {task.projectPassed ? 'View Mini Project Review' : 'Submit Mini Project'}
+                </BrutalButton>
+              </Link>
+            ) : (
+              <BrutalButton variant="outline" color="black" size="sm" className="w-full" disabled>
+                Submit Mini Project
+              </BrutalButton>
+            )
           )}
         </div>
+        {quizLockReason && !task.quizPassed && (
+          <p className="text-xs font-medium text-orange-700">{quizLockReason}</p>
+        )}
+        {hasMiniProject && projectLockReason && projectLockReason !== quizLockReason && !task.projectPassed && (
+          <p className="text-xs font-medium text-pink-700">{projectLockReason}</p>
+        )}
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-t-2 border-black/10 pt-3">
           <p className="text-xs font-medium text-gray-600">

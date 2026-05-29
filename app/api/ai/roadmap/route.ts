@@ -58,12 +58,117 @@ const roadmapResponseSchema = z.object({
   createdAt: z.string(),
 })
 
+const ROLE_LABELS: Record<TargetRole, string> = {
+  'frontend-developer': 'Frontend Developer',
+  'backend-developer': 'Backend Developer',
+  'fullstack-developer': 'Fullstack Developer',
+  'ui-engineer': 'UI Engineer',
+  'mobile-developer': 'Mobile Developer',
+  'data-analyst': 'Data Analyst',
+}
+
+const ROLE_MISSING_SKILLS_FALLBACK: Record<TargetRole, string[]> = {
+  'frontend-developer': ['React', 'TypeScript', 'Responsive UI', 'API Integration'],
+  'backend-developer': ['Node.js', 'Express', 'PostgreSQL', 'REST API', 'Authentication', 'Testing'],
+  'fullstack-developer': ['React', 'Node.js', 'PostgreSQL', 'API Integration'],
+  'ui-engineer': ['Accessibility', 'Design Systems', 'Component State'],
+  'mobile-developer': ['React Native', 'REST API', 'State Management'],
+  'data-analyst': ['SQL', 'PostgreSQL', 'Data Visualization'],
+}
+
+const FRONTEND_HEAVY_KEYWORDS = [
+  'react',
+  'next.js',
+  'nextjs',
+  'css',
+  'html',
+  'tailwind',
+  'state management',
+  'ui component',
+  'jsx',
+  'frontend',
+]
+
+const BACKEND_CURRICULUM_CLUSTERS: string[][] = [
+  ['javascript', 'typescript', 'http', 'json', 'git'],
+  ['node.js', 'node', 'npm', 'environment variable', 'backend folder'],
+  ['express', 'routing', 'controller', 'middleware', 'crud', 'rest api', 'error handling'],
+  ['sql', 'postgresql', 'schema', 'prisma', 'migration'],
+  ['bcrypt', 'jwt', 'session', 'authentication', 'authorization', 'validation'],
+  ['postman', 'thunder client', 'jest', 'supertest', 'documentation', 'deployment'],
+]
+
+function normalizeText(input: string | null | undefined) {
+  return (input ?? '').toLowerCase()
+}
+
+function collectRoadmapText(roadmap: z.infer<typeof roadmapResponseSchema>) {
+  const weekText = roadmap.weeks
+    .map((week) => {
+      const taskText = week.tasks
+        .map((task) => `${task.title} ${task.description} ${task.deliverable}`)
+        .join(' ')
+      return `${week.title} ${week.goal} ${week.focusSkills.join(' ')} ${taskText}`
+    })
+    .join(' ')
+
+  const finalProjectText = roadmap.finalPortfolioProject
+    ? `${roadmap.finalPortfolioProject.title} ${roadmap.finalPortfolioProject.description} ${roadmap.finalPortfolioProject.features.join(' ')} ${roadmap.finalPortfolioProject.skillsCovered.join(' ')}`
+    : ''
+
+  return normalizeText(`${roadmap.title} ${roadmap.summary} ${weekText} ${finalProjectText}`)
+}
+
+function isBackendRoadmapAligned(roadmap: z.infer<typeof roadmapResponseSchema>) {
+  const fullText = collectRoadmapText(roadmap)
+  const frontendHits = FRONTEND_HEAVY_KEYWORDS.filter((keyword) => fullText.includes(keyword)).length
+  const clusterHits = BACKEND_CURRICULUM_CLUSTERS.filter((cluster) =>
+    cluster.some((keyword) => fullText.includes(keyword))
+  ).length
+  const hasEnoughWeeks = roadmap.weeks.length >= 6
+
+  const finalProjectText = normalizeText(
+    roadmap.finalPortfolioProject
+      ? `${roadmap.finalPortfolioProject.title} ${roadmap.finalPortfolioProject.description}`
+      : ''
+  )
+  const finalProjectAligned =
+    finalProjectText.includes('backend') &&
+    (finalProjectText.includes('auth') || finalProjectText.includes('authorization')) &&
+    finalProjectText.includes('postgres')
+
+  return hasEnoughWeeks && clusterHits >= BACKEND_CURRICULUM_CLUSTERS.length && frontendHits <= 3 && finalProjectAligned
+}
+
+function getRoleSpecificPrompt(role: TargetRole) {
+  if (role !== 'backend-developer') {
+    return `Role-specific constraints:
+- Keep every week aligned to ${ROLE_LABELS[role]} outcomes.
+- Keep tasks practical, implementation-focused, and portfolio-ready.
+- Avoid unrelated topic jumps across weeks.
+`
+  }
+
+  return `Backend-specific constraints (must follow):
+- Use this 6-module sequence in order:
+  1) Programming & Web Foundation
+  2) Node.js Backend Fundamentals
+  3) Express.js & REST API
+  4) Database with PostgreSQL
+  5) Authentication & Authorization
+  6) Testing, Documentation, and Deployment
+- Include mini project per module and make the final project an E-commerce Backend API.
+- Do NOT use frontend-heavy modules as core topics (React fundamentals, CSS mastery, UI components, React state management, Next.js frontend deployment).
+- Frontend can appear only as optional context, never as the main weekly objective.
+`
+}
+
 // Gemini API configuration
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent'
 
 async function generateAIRoadmap(input: {
-  targetRole: string
+  targetRole: TargetRole
   currentLevel: string
   missingSkills: string[]
   studyTime: string
@@ -74,12 +179,16 @@ async function generateAIRoadmap(input: {
   }
 
   try {
-    const prompt = `Generate a personalized learning roadmap for someone who wants to become a ${input.targetRole}.
+    const roleLabel = ROLE_LABELS[input.targetRole]
+    const fallbackMissingSkills = ROLE_MISSING_SKILLS_FALLBACK[input.targetRole]
+    const prompt = `Generate a personalized learning roadmap for someone who wants to become a ${roleLabel}.
 
 Current Level: ${input.currentLevel || 'beginner'}
-Missing Skills: ${input.missingSkills?.join(', ') || 'various frontend and backend skills'}
+Missing Skills: ${input.missingSkills?.join(', ') || fallbackMissingSkills.join(', ')}
 Available Study Time: ${input.studyTime || '1 hour'} per day
 Roadmap Duration: ${input.durationWeeks || 6} weeks
+
+${getRoleSpecificPrompt(input.targetRole)}
 
 Generate a structured JSON roadmap with the following exact format (no other text, only JSON):
 {
@@ -166,7 +275,13 @@ Requirements:
     // Parse and validate the response
     const cleanedText = generatedText.replace(/```json\n?|```\n?/g, '').trim()
     const parsed = JSON.parse(cleanedText)
-    return roadmapResponseSchema.parse(parsed)
+    const validated = roadmapResponseSchema.parse(parsed)
+
+    if (input.targetRole === 'backend-developer' && !isBackendRoadmapAligned(validated)) {
+      return null
+    }
+
+    return validated
   } catch (error) {
     console.error('Gemini generation error:', error)
     return null
@@ -174,6 +289,8 @@ Requirements:
 }
 
 export async function POST(request: NextRequest) {
+  let requestedRole: TargetRole = 'fullstack-developer'
+
   try {
     const body = await request.json()
 
@@ -187,6 +304,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { targetRole, currentLevel, missingSkills, studyTime, durationWeeks } = parseResult.data
+    requestedRole = targetRole
 
     // Try AI generation first
     const aiRoadmap = await generateAIRoadmap({
@@ -224,7 +342,7 @@ export async function POST(request: NextRequest) {
 
     // Return a basic fallback in case of error
     const basicFallback = generateFallbackRoadmap({
-      targetRole: 'frontend-developer',
+      targetRole: requestedRole,
       currentLevel: 'beginner',
       missingSkills: [],
       studyTime: '1hour',

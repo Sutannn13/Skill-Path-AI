@@ -19,21 +19,26 @@ import {
   Bookmark,
   Briefcase,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   Clock,
   ExternalLink,
   Filter,
   Globe,
   MapPin,
   Search,
+  SlidersHorizontal,
+  SortDesc,
   X,
 } from 'lucide-react'
 import { CurrentLevel, Job, TargetRole } from '@/types'
 
 type RegionFilter = 'all' | 'indonesia' | 'international' | 'remote'
 type JobTypeFilter = 'all' | 'internship' | 'full-time' | 'part-time' | 'contract' | 'freelance'
-type ExperienceFilter = 'all' | 'beginner' | 'internship' | 'fresh-graduate' | 'junior' | 'mid' | 'senior'
+type ExperienceFilter = 'all' | 'beginner' | 'internship' | 'freshgraduate' | 'junior' | 'mid' | 'senior'
 type TechStackFilter = 'all' | 'frontend' | 'backend' | 'fullstack' | 'mobile' | 'ui-ux' | 'data'
 type FreshnessFilter = '7' | '30' | '90' | 'all'
+type SortOption = 'newest' | 'best_match' | 'highest_salary' | 'beginner_friendly'
 type DataSource = 'supabase' | 'memory' | 'mock' | 'mixed' | 'curated' | 'error'
 
 interface Filters {
@@ -42,6 +47,21 @@ interface Filters {
   experience: ExperienceFilter
   techStack: TechStackFilter
   freshnessDays: FreshnessFilter
+  category: string
+  countryScope: string
+  workMode: string
+  level: ExperienceFilter
+  techStacks: string[]
+  sort: SortOption
+}
+
+interface PaginationInfo {
+  page: number
+  limit: number
+  totalJobs: number
+  totalPages: number
+  hasNextPage: boolean
+  hasPrevPage: boolean
 }
 
 interface SaveStatus {
@@ -80,7 +100,7 @@ const experienceOptions: { value: ExperienceFilter; label: string }[] = [
   { value: 'all', label: 'All Levels' },
   { value: 'beginner', label: 'Beginner' },
   { value: 'internship', label: 'Internship' },
-  { value: 'fresh-graduate', label: 'Fresh Graduate' },
+  { value: 'freshgraduate', label: 'Fresh Graduate' },
   { value: 'junior', label: 'Junior' },
   { value: 'mid', label: 'Mid-Level' },
   { value: 'senior', label: 'Senior' },
@@ -101,6 +121,36 @@ const freshnessOptions: { value: FreshnessFilter; label: string }[] = [
   { value: '30', label: 'Last 30 days' },
   { value: '90', label: 'Last 90 days' },
   { value: 'all', label: 'All active jobs' },
+]
+
+const sortOptions: { value: SortOption; label: string }[] = [
+  { value: 'newest', label: 'Newest First' },
+  { value: 'best_match', label: 'Best Match' },
+  { value: 'highest_salary', label: 'Highest Salary' },
+  { value: 'beginner_friendly', label: 'Beginner Friendly' },
+]
+
+const categories = [
+  'Software Development',
+  'Frontend Development',
+  'Backend Development',
+  'Fullstack Development',
+  'Mobile Development',
+  'Data & AI',
+  'DevOps & Cloud',
+  'Cybersecurity',
+  'QA & Testing',
+  'UI/UX Design',
+  'Product & Business',
+  'IT Support & Infrastructure',
+  'Internship & Fresh Graduate',
+]
+
+const workModeOptions = [
+  { value: 'all', label: 'All Modes' },
+  { value: 'remote', label: 'Remote' },
+  { value: 'hybrid', label: 'Hybrid' },
+  { value: 'onsite', label: 'On-site' },
 ]
 
 const techStackKeywords: Record<TechStackFilter, string[]> = {
@@ -133,23 +183,6 @@ function getJobDate(job: Job): { label: string; isUnknown: boolean } {
   return { label: 'Date unknown', isUnknown: true }
 }
 
-function getDataSourceLabel(source: DataSource) {
-  switch (source) {
-    case 'supabase':
-      return 'Supabase'
-    case 'mixed':
-      return 'Supabase + curated Indonesia'
-    case 'curated':
-      return 'Curated Indonesia'
-    case 'memory':
-      return 'Provider memory fallback'
-    case 'mock':
-      return 'Demo data'
-    default:
-      return 'Unavailable'
-  }
-}
-
 function toDataSource(value: unknown): DataSource {
   return value === 'supabase' ||
     value === 'memory' ||
@@ -157,13 +190,62 @@ function toDataSource(value: unknown): DataSource {
     value === 'mixed' ||
     value === 'curated' ||
     value === 'error'
-    ? value
+    ? value as DataSource
     : 'mock'
+}
+
+function buildApiParams(filters: Filters, page: number, limit: number): string {
+  const params = new URLSearchParams()
+  params.set('page', String(page))
+  params.set('limit', String(limit))
+  params.set('sort', filters.sort)
+
+  if (filters.freshnessDays !== '90') {
+    params.set('freshnessDays', filters.freshnessDays)
+  }
+
+  if (filters.region !== 'all') {
+    params.set('countryScope', filters.region)
+  }
+
+  if (filters.jobType !== 'all') {
+    params.set('type', filters.jobType)
+  }
+
+  if (filters.level !== 'all') {
+    params.set('level', filters.level)
+  }
+
+  if (filters.techStack !== 'all') {
+    params.set('tech', filters.techStack)
+  }
+
+  if (filters.category !== 'all') {
+    params.set('category', filters.category)
+  }
+
+  if (filters.workMode !== 'all') {
+    params.set('workMode', filters.workMode)
+  }
+
+  if (filters.techStacks.length > 0) {
+    params.set('tags', filters.techStacks.join(','))
+  }
+
+  return params.toString()
 }
 
 export default function JobsPage() {
   const supabase = useMemo(() => createSupabaseBrowserClient(), [])
   const [jobs, setJobs] = useState<Job[]>([])
+  const [pagination, setPagination] = useState<PaginationInfo>({
+    page: 1,
+    limit: 10,
+    totalJobs: 0,
+    totalPages: 1,
+    hasNextPage: false,
+    hasPrevPage: false,
+  })
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [savedJobs, setSavedJobs] = useState<string[]>([])
@@ -184,6 +266,12 @@ export default function JobsPage() {
     experience: 'all',
     techStack: 'all',
     freshnessDays: '90',
+    category: 'all',
+    countryScope: 'all',
+    workMode: 'all',
+    level: 'all',
+    techStacks: [],
+    sort: 'newest',
   })
 
   useEffect(() => {
@@ -202,9 +290,7 @@ export default function JobsPage() {
         return
       }
 
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      const { data: { user } } = await supabase.auth.getUser()
 
       if (!user) {
         if (isActive) setCareerProfile(fallbackProfile)
@@ -242,7 +328,8 @@ export default function JobsPage() {
       setLoadingError(null)
 
       try {
-        const response = await fetch(`/api/jobs?freshnessDays=${filters.freshnessDays}`)
+        const params = buildApiParams(filters, pagination.page, pagination.limit)
+        const response = await fetch(`/api/jobs?${params}`)
         const data = await response.json()
 
         if (!response.ok) {
@@ -252,6 +339,14 @@ export default function JobsPage() {
         if (!isActive) return
 
         setJobs((data.jobs ?? []) as Job[])
+        setPagination({
+          page: data.page ?? 1,
+          limit: data.limit ?? 10,
+          totalJobs: data.totalJobs ?? 0,
+          totalPages: data.totalPages ?? 1,
+          hasNextPage: data.hasNextPage ?? false,
+          hasPrevPage: data.hasPrevPage ?? false,
+        })
         setDataSource(toDataSource(data.meta?.source))
       } catch (error) {
         if (!isActive) return
@@ -270,7 +365,7 @@ export default function JobsPage() {
     return () => {
       isActive = false
     }
-  }, [filters.freshnessDays])
+  }, [filters, pagination.page, pagination.limit])
 
   useEffect(() => {
     let isActive = true
@@ -278,10 +373,7 @@ export default function JobsPage() {
     const loadSavedJobs = async () => {
       if (!supabase) return
 
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
+      const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
       const { data, error } = await supabase
@@ -306,53 +398,30 @@ export default function JobsPage() {
     }
   }, [supabase])
 
+  // Client-side search filtering (for real-time search)
+  const filteredJobs = useMemo(() => {
+    if (!searchQuery.trim()) return jobs
+
+    const normalizedSearch = searchQuery.trim().toLowerCase()
+    const searchableFields = ['title', 'company', 'location', 'tags', 'requiredSkills']
+
+    return jobs.filter(job =>
+      searchableFields.some(field => {
+        const value = job[field as keyof Job]
+        if (Array.isArray(value)) {
+          return value.some(v =>
+            String(v).toLowerCase().includes(normalizedSearch)
+          )
+        }
+        return String(value).toLowerCase().includes(normalizedSearch)
+      })
+    )
+  }, [jobs, searchQuery])
+
   const allTags = useMemo(
     () => Array.from(new Set(jobs.flatMap((job) => job.tags))).sort(),
     [jobs]
   )
-
-  const filteredJobs = useMemo(() => {
-    const filtered = jobs.filter((job) => {
-      const searchableText = getJobSearchText(job)
-      const normalizedSearch = searchQuery.trim().toLowerCase()
-      const matchesSearch = normalizedSearch === '' || searchableText.includes(normalizedSearch)
-
-      const matchesTags =
-        selectedTags.length === 0 ||
-        selectedTags.some((tag) => job.tags.includes(tag))
-
-      let matchesRegion = true
-      if (filters.region !== 'all') {
-        const locationLower = job.location.toLowerCase()
-        if (filters.region === 'remote') {
-          matchesRegion = job.workMode === 'remote' || locationLower.includes('remote') || locationLower.includes('work from home')
-        } else if (filters.region === 'indonesia') {
-          matchesRegion = locationLower.includes('jakarta') || locationLower.includes('bandung') ||
-            locationLower.includes('surabaya') || locationLower.includes('yogyakarta') ||
-            locationLower.includes('semarang') || locationLower.includes('makassar') ||
-            locationLower.includes('tangerang') || locationLower.includes('indonesia')
-        } else {
-          matchesRegion = !locationLower.includes('jakarta') && !locationLower.includes('bandung') &&
-            !locationLower.includes('surabaya') && !locationLower.includes('yogyakarta') &&
-            !locationLower.includes('semarang') && !locationLower.includes('makassar') &&
-            !locationLower.includes('tangerang') && !locationLower.includes('indonesia')
-        }
-      }
-
-      const matchesJobType = filters.jobType === 'all' || job.type === filters.jobType
-      const matchesExperience = filters.experience === 'all' || inferJobExperience(job) === filters.experience
-
-      let matchesTechStack = true
-      if (filters.techStack !== 'all') {
-        const keywords = techStackKeywords[filters.techStack] || []
-        matchesTechStack = keywords.some(kw => searchableText.includes(kw.toLowerCase()))
-      }
-
-      return matchesSearch && matchesTags && matchesRegion && matchesJobType && matchesExperience && matchesTechStack
-    })
-
-    return rankJobsForCareerProfile(filtered, careerProfile)
-  }, [careerProfile, filters, jobs, searchQuery, selectedTags])
 
   const toggleTag = (tag: string) => {
     setSelectedTags((prev) =>
@@ -370,10 +439,7 @@ export default function JobsPage() {
 
     setSavingJobId(jobId)
 
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
 
     if (userError || !user) {
       setSaveStatus({ type: 'error', message: 'Sign in before saving jobs.' })
@@ -385,14 +451,8 @@ export default function JobsPage() {
     setSavedJobs((prev) => wasSaved ? prev.filter((id) => id !== jobId) : [...prev, jobId])
 
     const { error } = wasSaved
-      ? await supabase
-        .from('saved_jobs')
-        .delete()
-        .eq('user_id', user.id)
-        .eq('job_id', jobId)
-      : await supabase
-        .from('saved_jobs')
-        .insert({ user_id: user.id, job_id: jobId })
+      ? await supabase.from('saved_jobs').delete().eq('user_id', user.id).eq('job_id', jobId)
+      : await supabase.from('saved_jobs').insert({ user_id: user.id, job_id: jobId })
 
     if (error) {
       setSavedJobs((prev) => wasSaved ? [...prev, jobId] : prev.filter((id) => id !== jobId))
@@ -409,14 +469,28 @@ export default function JobsPage() {
   }
 
   const resetFilters = () => {
-    setFilters({
+    setFilters(f => ({
+      ...f,
       region: 'all',
       jobType: 'all',
       experience: 'all',
       techStack: 'all',
       freshnessDays: '90',
-    })
+      category: 'all',
+      countryScope: 'all',
+      workMode: 'all',
+      level: 'all',
+      techStacks: [],
+      sort: 'newest',
+    }))
     setSelectedTags([])
+    setSearchQuery('')
+  }
+
+  const goToPage = (page: number) => {
+    if (page < 1 || page > pagination.totalPages) return
+    setPagination(p => ({ ...p, page }))
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const activeFilterCount = [
@@ -425,11 +499,19 @@ export default function JobsPage() {
     filters.experience !== 'all',
     filters.techStack !== 'all',
     filters.freshnessDays !== '90',
-    selectedTags.length > 0,
+    filters.category !== 'all',
+    filters.workMode !== 'all',
+    filters.level !== 'all',
+    filters.techStacks.length > 0,
   ].filter(Boolean).length
+
   const activeRoleLabel = careerProfile.targetRole
     ? getRoleById(careerProfile.targetRole)?.label ?? 'Selected role'
     : 'No role selected'
+
+  // Calculate pagination display
+  const startItem = pagination.totalJobs > 0 ? (pagination.page - 1) * pagination.limit + 1 : 0
+  const endItem = Math.min(pagination.page * pagination.limit, pagination.totalJobs)
 
   return (
     <AppShell showBottomNav={true}>
@@ -467,7 +549,7 @@ export default function JobsPage() {
                   : 'bg-white hover:bg-gray-100'
               )}
             >
-              <Filter className="w-4 h-4" />
+              <SlidersHorizontal className="w-4 h-4" />
               Filters
               {activeFilterCount > 0 && (
                 <span className="bg-yellow text-black text-xs px-1.5 py-0.5 brutal-radius font-bold">
@@ -497,7 +579,7 @@ export default function JobsPage() {
             <div className="flex flex-wrap gap-1">
               {[
                 { label: 'Magang', value: 'internship' as ExperienceFilter },
-                { label: 'Fresh Grad', value: 'fresh-graduate' as ExperienceFilter },
+                { label: 'Fresh Grad', value: 'freshgraduate' as ExperienceFilter },
                 { label: 'Junior', value: 'junior' as ExperienceFilter },
               ].map((opt) => (
                 <button
@@ -534,7 +616,7 @@ export default function JobsPage() {
               exit={{ opacity: 0, height: 0 }}
               className="mb-6 p-4 bg-white brutal-border brutal-radius"
             >
-              <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
+              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <FilterSelect
                   label="Freshness"
                   value={filters.freshnessDays}
@@ -542,16 +624,16 @@ export default function JobsPage() {
                   onChange={(value) => setFilters(f => ({ ...f, freshnessDays: value as FreshnessFilter }))}
                 />
                 <FilterSelect
-                  label="Job Type"
+                  label="Job Type\Category"
                   value={filters.jobType}
                   options={jobTypeOptions}
                   onChange={(value) => setFilters(f => ({ ...f, jobType: value as JobTypeFilter }))}
                 />
                 <FilterSelect
-                  label="Experience"
-                  value={filters.experience}
+                  label="Experience Level"
+                  value={filters.level}
                   options={experienceOptions}
-                  onChange={(value) => setFilters(f => ({ ...f, experience: value as ExperienceFilter }))}
+                  onChange={(value) => setFilters(f => ({ ...f, level: value as ExperienceFilter }))}
                 />
                 <FilterSelect
                   label="Tech Stack"
@@ -560,16 +642,35 @@ export default function JobsPage() {
                   onChange={(value) => setFilters(f => ({ ...f, techStack: value as TechStackFilter }))}
                 />
                 <FilterSelect
+                  label="Work Mode"
+                  value={filters.workMode}
+                  options={workModeOptions}
+                  onChange={(value) => setFilters(f => ({ ...f, workMode: value }))}
+                />
+                <FilterSelect
                   label="Region"
                   value={filters.region}
                   options={regionOptions}
                   onChange={(value) => setFilters(f => ({ ...f, region: value as RegionFilter }))}
                 />
+                <FilterSelect
+                  label="Category"
+                  value={filters.category}
+                  options={[{ value: 'all', label: 'All Categories' }, ...categories.map(c => ({ value: c, label: c }))]}
+                  onChange={(value) => setFilters(f => ({ ...f, category: value }))}
+                />
+                <FilterSelect
+                  label="Sort By"
+                  value={filters.sort}
+                  options={sortOptions}
+                  onChange={(value) => setFilters(f => ({ ...f, sort: value as SortOption }))}
+                />
               </div>
 
               <div className="mt-4 pt-4 border-t-2 border-gray-200">
                 <div className="flex items-center gap-2 mb-3">
-                  <span className="text-sm font-medium">Skills:</span>
+                  <Filter className="w-4 h-4" />
+                  <span className="text-sm font-medium">Skills/Technologies:</span>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {allTags.map((tag) => (
@@ -578,7 +679,7 @@ export default function JobsPage() {
                       onClick={() => toggleTag(tag)}
                       className={cn(
                         'px-3 py-1 brutal-border brutal-radius text-sm font-medium transition-all',
-                        selectedTags.includes(tag)
+                        selectedTags.includes(tag) || filters.techStacks.includes(tag)
                           ? 'bg-black text-white'
                           : 'bg-white hover:bg-gray-100'
                       )}
@@ -615,29 +716,25 @@ export default function JobsPage() {
           <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-gray-600">
-                Showing {filteredJobs.length} of {jobs.length} jobs
-                {filters.region !== 'all' && ` in ${filters.region}`}
-                {filters.jobType !== 'all' && ` (${filters.jobType})`}
+                Showing {startItem}–{endItem} of {pagination.totalJobs} jobs
               </p>
               <p className="text-xs font-medium text-black/60">
                 Ranked for {activeRoleLabel}
                 {careerProfile.currentLevel ? ` - ${careerProfile.currentLevel}` : ''}
-                {careerProfile.source === 'demo' ? ' using local profile fallback' : ' from Supabase profile'}
               </p>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <span className="brutal-border brutal-radius bg-white px-3 py-1 text-xs font-bold">
-                Source: {getDataSourceLabel(dataSource)}
-              </span>
-              <span className="brutal-border brutal-radius bg-yellow/40 px-3 py-1 text-xs font-bold">
-                Indonesia-first sample enabled
-              </span>
+            <div className="flex items-center gap-2">
+              {dataSource !== 'error' && (
+                <span className="brutal-border brutal-radius bg-white px-3 py-1 text-xs font-bold">
+                  Source: {dataSource}
+                </span>
+              )}
             </div>
           </div>
 
           {isLoading && (
             <BrutalCard color="white" className="mb-4">
-              <p className="font-bold">Loading jobs from persistent store...</p>
+              <p className="font-bold">Loading jobs...</p>
             </BrutalCard>
           )}
 
@@ -658,6 +755,47 @@ export default function JobsPage() {
               </motion.div>
             ))}
           </div>
+
+          {/* Pagination Controls */}
+          {!isLoading && pagination.totalPages > 1 && (
+            <div className="mt-8 flex items-center justify-center gap-4">
+              <BrutalButton
+                variant="outline"
+                color="black"
+                onClick={() => goToPage(pagination.page - 1)}
+                disabled={!pagination.hasPrevPage}
+                className="flex items-center gap-1"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                Previous
+              </BrutalButton>
+
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600">Page</span>
+                <select
+                  value={pagination.page}
+                  onChange={(e) => goToPage(parseInt(e.target.value))}
+                  className="px-3 py-2 brutal-border brutal-radius bg-white text-black font-medium"
+                >
+                  {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map(pageNum => (
+                    <option key={pageNum} value={pageNum}>{pageNum}</option>
+                  ))}
+                </select>
+                <span className="text-sm text-gray-600">of {pagination.totalPages}</span>
+              </div>
+
+              <BrutalButton
+                variant="outline"
+                color="black"
+                onClick={() => goToPage(pagination.page + 1)}
+                disabled={!pagination.hasNextPage}
+                className="flex items-center gap-1"
+              >
+                Next
+                <ChevronRight className="w-4 h-4" />
+              </BrutalButton>
+            </div>
+          )}
 
           {!isLoading && filteredJobs.length === 0 && (
             <BrutalCard color="white" className="text-center py-12">
@@ -762,7 +900,7 @@ function JobCard({
                   riskLevel === 'high' && 'bg-red/20 text-red'
                 )}
               >
-                {getRiskLabel(riskLevel)} - {validityScore}%
+                {getRiskLabel(riskLevel)}
               </span>
               <MatchScorePill score={matchScore} size="sm" />
             </div>

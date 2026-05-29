@@ -3,10 +3,12 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
-import { AppShell, Container, GradientBackground } from '@/components/layout'
+import { AppShell, Container } from '@/components/layout'
+import { GradientBackground } from '@/components/layout'
 import { DashboardHeader } from '@/components/layout/dashboard-header'
-import { BrutalCard, BrutalButton, BrutalCardHover, ScoreBar, SkillBadge } from '@/components/brutal'
+import { BrutalCard, BrutalButton, BrutalCardHover, ScoreBar, SkillBadge, StickerBadge } from '@/components/brutal'
 import { PageScene } from '@/components/illustrations/page-scene'
+import { CartoonBackground } from '@/components/illustrations/cartoon-background'
 import { cn } from '@/lib/utils'
 import {
   Calendar,
@@ -19,6 +21,7 @@ import {
   Save,
   ChevronLeft,
   ChevronRight,
+  ListTodo,
 } from 'lucide-react'
 import { WeeklySprint, SprintTask } from '@/types'
 
@@ -114,15 +117,16 @@ export default function SprintPage() {
 
   return (
     <AppShell showBottomNav={true}>
+      <CartoonBackground variant="sprint" intensity="normal" showDoodles animated />
       <GradientBackground />
 
       {/* Main Content */}
       <div className="flex-1">
         <DashboardHeader
-          icon={Calendar}
+          icon={ListTodo}
           iconColor="green"
-          title="Weekly Sprint"
-          subtitle="Track your weekly progress"
+          title="Weekly Quest Board"
+          subtitle="Complete your missions"
         />
 
         <Container className="py-6">

@@ -4,9 +4,9 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
-import { Target, Mail, Lock, User, AlertCircle, CheckCircle, ArrowRight, Eye, EyeOff, ArrowLeft } from 'lucide-react'
+import { Target, Mail, Lock, User, AlertCircle, CheckCircle, ArrowRight, Eye, EyeOff, ArrowLeft, Rocket, Star } from 'lucide-react'
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser'
-import { BrutalCard, BrutalButton } from '@/components/brutal'
+import { BrutalCard, BrutalButton, StickerBadge } from '@/components/brutal'
 import { cn } from '@/lib/utils'
 import { AnimatedBrutalBackground, BrutalBackgroundStyles } from '@/components/illustrations/animated-brutal-background'
 import { AnimatedCatMascot } from '@/components/illustrations/animated-cat-mascot'
@@ -125,13 +125,16 @@ export default function RegisterPage() {
       <AnimatedBrutalBackground variant="register" intensity="high" showDoodles />
 
       {/* Header */}
-      <header className="border-b-3 border-black bg-white">
-        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-yellow brutal-border brutal-radius flex items-center justify-center">
+      <header className="border-b-3 border-black bg-white/90 backdrop-blur-sm sticky top-0 z-50">
+        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-3 group">
+            <div className="w-11 h-11 bg-yellow brutal-border brutal-radius flex items-center justify-center shadow-brutal-sm group-hover:shadow-brutal transition-all">
               <Target className="w-6 h-6" />
             </div>
-            <span className="font-display font-bold text-xl">SkillPath</span>
+            <div>
+              <span className="font-display font-bold text-xl">SkillPath</span>
+              <span className="text-[10px] text-black/50 block">Career OS</span>
+            </div>
           </Link>
           <Link href="/login">
             <BrutalButton variant="ghost" color="black" size="sm">
@@ -142,27 +145,59 @@ export default function RegisterPage() {
       </header>
 
       {/* Main Content */}
-      <main className="mx-auto max-w-6xl px-4 py-12">
+      <main className="mx-auto max-w-6xl px-4 py-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
-          className="grid gap-6 lg:grid-cols-5"
+          className="grid gap-6 lg:grid-cols-5 items-start"
         >
+          {/* Welcome Panel - Create Your Hero */}
           <BrutalCard color="pink" shadow="lg" className="relative hidden p-8 lg:col-span-2 lg:block overflow-hidden">
             <div className="relative z-10">
-              <div className="mb-4">
+              <div className="mb-6">
                 <AnimatedCatMascot
                   size="xl"
                   mood="cheer"
                   animated={true}
-                  withMessage="Join us!"
+                  withMessage="Create your Hero!"
                 />
               </div>
-              <h2 className="font-display text-2xl font-bold">Create your account</h2>
-              <p className="mt-2 text-sm text-black/70">
-                Build your learning roadmap, pass quizzes, and submit portfolio projects in one place.
+              <h2 className="font-display text-2xl font-bold mb-2">Create Your Developer Hero</h2>
+              <p className="text-sm text-black/70 mb-4">
+                Build your learning roadmap, pass quiz challenges, and submit portfolio projects.
               </p>
+              {/* Benefits */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 bg-green brutal-border brutal-radius flex items-center justify-center">
+                    <CheckCircle className="w-4 h-4" />
+                  </div>
+                  <span className="text-sm">Your Personalized Roadmap</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 bg-green brutal-border brutal-radius flex items-center justify-center">
+                    <CheckCircle className="w-4 h-4" />
+                  </div>
+                  <span className="text-sm">Quiz Progress Saved</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 bg-green brutal-border brutal-radius flex items-center justify-center">
+                    <CheckCircle className="w-4 h-4" />
+                  </div>
+                  <span className="text-sm">Job Match Alerts</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 bg-green brutal-border brutal-radius flex items-center justify-center">
+                    <CheckCircle className="w-4 h-4" />
+                  </div>
+                  <span className="text-sm">Project Review Feedback</span>
+                </div>
+              </div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <StickerBadge variant="blue" label="AI Gen Roadmap" size="sm" />
+                <StickerBadge variant="green" label="Free" size="sm" />
+              </div>
             </div>
             {/* Decorative shapes */}
             <div className="absolute -top-3 -left-3 w-12 h-12 bg-yellow brutal-border brutal-radius opacity-40 animate-wiggle" />
@@ -173,29 +208,34 @@ export default function RegisterPage() {
           <div className="lg:col-span-3">
             <div className="mb-6 flex items-center justify-between">
               <div>
-                <h1 className="font-display text-3xl font-bold">Create Account</h1>
-                <p className="text-gray-600">Start your career journey with SkillPath</p>
+                <div className="flex items-center gap-2 mb-1">
+                  <Rocket className="w-6 h-6 text-pink" />
+                  <h1 className="font-display text-3xl font-black">Create Your Hero</h1>
+                </div>
+                <p className="text-gray-600">Start your adventure with SkillPath</p>
               </div>
               <Link href="/">
                 <BrutalButton variant="outline" color="black" size="sm">
                   <ArrowLeft className="mr-1 h-4 w-4" />
-                  Back to Home
+                  Home
                 </BrutalButton>
               </Link>
             </div>
 
             {success ? (
               <BrutalCard color="green" shadow="lg" className="p-8 text-center">
-                <div className="w-16 h-16 bg-green/20 brutal-border brutal-radius flex items-center justify-center mx-auto mb-4">
-                  <CheckCircle className="w-8 h-8 text-green" />
+                <div className="w-20 h-20 bg-green/20 brutal-border brutal-radius flex items-center justify-center mx-auto mb-4">
+                  <span className="text-4xl">🎉</span>
                 </div>
-                <h3 className="font-display font-bold text-xl mb-2">Check Your Email</h3>
+                <StickerBadge variant="completed" label="Email Sent!" size="lg" className="mb-4 inline-block" />
+                <h3 className="font-display font-bold text-2xl mb-2">Check Your Inbox!</h3>
                 <p className="text-gray-600 mb-6">
                   We have sent a confirmation link to <strong>{formData.email}</strong>.
-                  Click the link to activate your account.
+                  Click the link to activate your hero!
                 </p>
                 <Link href="/login">
-                  <BrutalButton variant="outline" color="black">
+                  <BrutalButton color="green">
+                    <Star className="w-4 h-4 mr-2" />
                     Back to Login
                   </BrutalButton>
                 </Link>

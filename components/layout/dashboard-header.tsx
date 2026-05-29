@@ -3,9 +3,7 @@
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import type { LucideIcon } from 'lucide-react'
-import { GraduationCap, Bell, Settings } from 'lucide-react'
-import { BrutalIconButton } from '@/components/brutal/brutal-button'
-import { LogoutButton } from '@/components/auth/logout-button'
+import { GraduationCap, Settings } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface DashboardHeaderProps {
@@ -15,7 +13,6 @@ interface DashboardHeaderProps {
   iconColor?: 'yellow' | 'blue' | 'pink' | 'green' | 'orange' | 'purple' | 'white'
   showLogo?: boolean
   showActions?: boolean
-  showLogout?: boolean
 }
 
 export function DashboardHeader({
@@ -24,11 +21,10 @@ export function DashboardHeader({
   icon: Icon,
   iconColor = 'yellow',
   showLogo = false,
-  showActions = true,
-  showLogout = true,
+  showActions = false,
 }: DashboardHeaderProps) {
   return (
-    <header className="bg-white border-b border-gray-200 px-4 py-3 sticky top-0 z-30">
+    <header className="bg-white border-b-3 border-black px-4 py-3 sticky top-0 z-30">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           {showLogo && (
@@ -69,21 +65,11 @@ export function DashboardHeader({
 
         {showActions && (
           <div className="flex items-center gap-2">
-            <BrutalIconButton aria-label="Notifications" color="white">
-              <Bell className="w-5 h-5" />
-            </BrutalIconButton>
-            <Link href="/settings" className="hidden sm:block">
-              <BrutalIconButton aria-label="Settings" color="white">
+            <Link href="/settings">
+              <div className="w-10 h-10 bg-white brutal-border brutal-radius flex items-center justify-center hover:bg-gray-100 transition-colors">
                 <Settings className="w-5 h-5" />
-              </BrutalIconButton>
+              </div>
             </Link>
-            {showLogout && (
-              <LogoutButton
-                color="red"
-                size="sm"
-                className="hidden md:flex"
-              />
-            )}
           </div>
         )}
       </div>

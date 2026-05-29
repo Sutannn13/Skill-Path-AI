@@ -3,11 +3,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
-import { AppShell, Container, GradientBackground } from '@/components/layout'
+import { AppShell, Container } from '@/components/layout'
+import { GradientBackground } from '@/components/layout'
 import { DashboardHeader } from '@/components/layout/dashboard-header'
-import { BrutalCard, BrutalButton, SkillBadge, ScoreBar } from '@/components/brutal'
+import { BrutalCard, BrutalButton, SkillBadge, ScoreBar, StickerBadge } from '@/components/brutal'
 import { CatMascot } from '@/components/illustrations/cat-mascot'
 import { PageScene } from '@/components/illustrations/page-scene'
+import { CartoonBackground } from '@/components/illustrations/cartoon-background'
 import { generateFallbackRoadmap } from '@/lib/ai'
 import { getCuratedResourcesForTask } from '@/lib/roadmap/resources'
 import { calculateSkillGap } from '@/lib/scoring/skill-gap'
@@ -31,6 +33,8 @@ import {
   Save,
   Target,
   Zap,
+  Rocket,
+  Flag,
 } from 'lucide-react'
 import {
   CurrentLevel,
@@ -1236,6 +1240,7 @@ export default function RoadmapPage() {
 
   return (
     <AppShell showBottomNav={true}>
+      <CartoonBackground variant="roadmap" intensity="normal" showDoodles animated />
       <GradientBackground />
 
       <div className="flex-1">

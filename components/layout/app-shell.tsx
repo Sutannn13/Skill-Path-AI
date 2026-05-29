@@ -1,13 +1,20 @@
 'use client'
 
 import { cn } from '@/lib/utils'
-import { DesktopSidebar, MobileBottomNav } from './mobile-bottom-nav'
+import { DesktopSidebar } from './app-sidebar'
+import { MobileBottomNav } from './mobile-bottom-nav'
 
 interface AppShellProps {
   children: React.ReactNode
   className?: string
   showBottomNav?: boolean
   showSidebar?: boolean
+  userProfile?: {
+    roleLabel?: string
+    level?: number
+    progress?: number
+    streak?: number
+  }
 }
 
 export function AppShell({
@@ -15,10 +22,11 @@ export function AppShell({
   className,
   showBottomNav = true,
   showSidebar = true,
+  userProfile,
 }: AppShellProps) {
   return (
     <div className="relative isolate min-h-screen overflow-x-hidden bg-background">
-      {showSidebar && <DesktopSidebar />}
+      {showSidebar && <DesktopSidebar userProfile={userProfile} />}
 
       <main
         className={cn(
@@ -76,14 +84,18 @@ interface SectionProps {
   className?: string
   title?: string
   subtitle?: string
+  helper?: string
 }
 
-export function Section({ children, className, title, subtitle }: SectionProps) {
+export function Section({ children, className, title, subtitle, helper }: SectionProps) {
   return (
     <section className={cn('mb-8', className)}>
       {title && (
         <div className="mb-4">
-          <h2 className="text-lg font-display font-bold">{title}</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-display font-bold">{title}</h2>
+            {helper && <span className="text-sm text-black/60">{helper}</span>}
+          </div>
           {subtitle && (
             <p className="text-sm text-gray-600">{subtitle}</p>
           )}

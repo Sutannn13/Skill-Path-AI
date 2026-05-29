@@ -4,9 +4,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
-import { Target, Mail, Lock, AlertCircle, ArrowRight, Eye, EyeOff, ArrowLeft } from 'lucide-react'
+import { Target, Mail, Lock, AlertCircle, ArrowRight, Eye, EyeOff, ArrowLeft, Rocket } from 'lucide-react'
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser'
-import { BrutalCard, BrutalButton } from '@/components/brutal'
+import { BrutalCard, BrutalButton, StickerBadge } from '@/components/brutal'
 import { cn } from '@/lib/utils'
 import { AnimatedBrutalBackground, BrutalBackgroundStyles } from '@/components/illustrations/animated-brutal-background'
 import { AnimatedCatMascot } from '@/components/illustrations/animated-cat-mascot'
@@ -70,7 +70,6 @@ export default function LoginPage() {
         return
       }
 
-      // Redirect to dashboard on success
       const nextPath = typeof window !== 'undefined'
         ? new URLSearchParams(window.location.search).get('next')
         : null
@@ -86,66 +85,85 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background relative overflow-hidden">
       <BrutalBackgroundStyles />
       <AnimatedBrutalBackground variant="login" intensity="high" showDoodles />
 
       {/* Header */}
-      <header className="border-b-3 border-black bg-white">
-        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-yellow brutal-border brutal-radius flex items-center justify-center">
+      <header className="border-b-3 border-black bg-white/90 backdrop-blur-sm sticky top-0 z-50">
+        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-3 group">
+            <div className="w-11 h-11 bg-yellow brutal-border brutal-radius flex items-center justify-center shadow-brutal-sm group-hover:shadow-brutal transition-all">
               <Target className="w-6 h-6" />
             </div>
-            <span className="font-display font-bold text-xl">SkillPath</span>
+            <div>
+              <span className="font-display font-bold text-xl">SkillPath</span>
+              <span className="text-[10px] text-black/50 block">Career OS</span>
+            </div>
           </Link>
+          <StickerBadge variant="blue" label="Welcome Back" size="sm" />
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="mx-auto max-w-6xl px-4 py-12">
+      <main className="mx-auto max-w-6xl px-4 py-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
-          className="grid gap-6 lg:grid-cols-5"
+          className="grid gap-6 lg:grid-cols-5 items-start"
         >
+          {/* Welcome Panel */}
           <BrutalCard color="yellow" shadow="lg" className="relative hidden p-8 lg:col-span-2 lg:block overflow-hidden">
             <div className="relative z-10">
-              <div className="mb-4">
+              <div className="mb-6">
                 <AnimatedCatMascot
                   size="xl"
-                  mood="focus"
+                  mood="happy"
                   animated={true}
                   withMessage="Welcome back!"
                 />
               </div>
-              <h2 className="font-display text-2xl font-bold">Welcome Back</h2>
-              <p className="mt-2 text-sm text-black/70">
-                Continue your roadmap, finish quizzes, and ship your next project milestone.
+              <h2 className="font-display text-2xl font-bold mb-2">Welcome Back, Hero!</h2>
+              <p className="text-sm text-black/70 mb-4">
+                Continue your roadmap, finish quests, and level up your developer career.
               </p>
+              <div className="flex flex-wrap gap-2">
+                <StickerBadge variant="completed" label="Roadmap" size="sm" />
+                <StickerBadge variant="in-progress" label="Quiz" size="sm" />
+                <StickerBadge variant="blue" label="Jobs" size="sm" />
+              </div>
             </div>
             {/* Decorative shapes */}
             <div className="absolute -top-3 -right-3 w-12 h-12 bg-pink brutal-border brutal-radius opacity-40 animate-wiggle" />
             <div className="absolute -bottom-4 -left-4 w-16 h-16 bg-blue brutal-border brutal-radius opacity-30 animate-float" />
             <div className="absolute top-1/2 right-2 w-6 h-6 bg-green brutal-border rounded-full opacity-30 animate-bounce" />
+            <div className="absolute bottom-4 right-4 w-8 h-8 bg-orange brutal-border brutal-radius opacity-20 animate-float-slow" />
           </BrutalCard>
 
+          {/* Login Form */}
           <div className="lg:col-span-3">
             <div className="mb-6 flex items-center justify-between">
               <div>
-                <h1 className="font-display text-3xl font-bold">Login</h1>
-                <p className="text-gray-600">Sign in to continue your career journey</p>
+                <div className="flex items-center gap-2 mb-1">
+                  <Rocket className="w-6 h-6 text-yellow" />
+                  <h1 className="font-display text-3xl font-black">Login to Your Quest</h1>
+                </div>
+                <p className="text-gray-600">Sign in to continue your developer journey</p>
               </div>
               <Link href="/">
                 <BrutalButton variant="outline" color="black" size="sm">
                   <ArrowLeft className="mr-1 h-4 w-4" />
-                  Back to Home
+                  Home
                 </BrutalButton>
               </Link>
             </div>
 
-            <BrutalCard color="white" shadow="lg" className="p-8">
+            <BrutalCard color="white" shadow="lg" className="p-8 relative overflow-hidden">
+              {/* Corner decorations */}
+              <div className="absolute top-0 right-0 w-16 h-16 bg-yellow/10 brutal-border brutal-radius" style={{ borderBottomLeftRadius: '100%' }} />
+              <div className="absolute bottom-0 left-0 w-12 h-12 bg-pink/10" style={{ borderTopRightRadius: '100%' }} />
+
               {!supabase ? (
                 <div className="text-center py-8">
                   <div className="w-16 h-16 bg-yellow/20 brutal-border brutal-radius flex items-center justify-center mx-auto mb-4">

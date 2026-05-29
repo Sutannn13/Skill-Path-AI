@@ -5,8 +5,9 @@ import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { AppShell, Container, GradientBackground } from '@/components/layout'
 import { DashboardHeader } from '@/components/layout/dashboard-header'
-import { BrutalCard, BrutalButton, SkillBadge, MatchScorePill } from '@/components/brutal'
+import { BrutalCard, BrutalButton, SkillBadge, MatchScorePill, StickerBadge } from '@/components/brutal'
 import { PageScene } from '@/components/illustrations/page-scene'
+import { CartoonBackground } from '@/components/illustrations/cartoon-background'
 import { getDeterministicMatchScore, getDeterministicValidityScore, getRiskLabel, getRiskLevel } from '@/lib/jobs/display'
 import { getJobSearchText, inferJobExperience, rankJobsForCareerProfile } from '@/lib/jobs/ranking'
 import { extractSkillsFromJob } from '@/lib/jobs/skill-extraction'
@@ -433,6 +434,7 @@ export default function JobsPage() {
 
   return (
     <AppShell showBottomNav={true}>
+      <CartoonBackground variant="jobs" intensity="normal" showDoodles animated />
       <GradientBackground />
 
       <div className="flex-1">
@@ -440,7 +442,7 @@ export default function JobsPage() {
           icon={Briefcase}
           iconColor="blue"
           title="Job Radar"
-          subtitle="Find jobs that match your skills"
+          subtitle="Find missions that match your skills"
         />
 
         <Container className="py-6">

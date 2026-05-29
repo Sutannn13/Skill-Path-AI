@@ -3,12 +3,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
-import { AppShell, Container, Section, Grid, GradientBackground } from '@/components/layout'
+import { AppShell, Container, Section, Grid } from '@/components/layout'
+import { GradientBackground } from '@/components/layout'
 import { DashboardHeader } from '@/components/layout/dashboard-header'
-import { BrutalCard, BrutalCardHover, BrutalButton, ScoreMeter, ScoreBar, SkillBadge, FloatingSticker } from '@/components/brutal'
+import { BrutalCard, BrutalCardHover, BrutalButton, ScoreMeter, ScoreBar, SkillBadge, FloatingSticker, StickerBadge } from '@/components/brutal'
 import { CatMascot } from '@/components/illustrations/cat-mascot'
 import { EmptyStateDoodle } from '@/components/illustrations/empty-state-doodle'
 import { PageScene } from '@/components/illustrations/page-scene'
+import { CartoonBackground } from '@/components/illustrations/cartoon-background'
 import {
   Briefcase,
   Zap,
@@ -19,6 +21,10 @@ import {
   ArrowRight,
   CheckCircle2,
   AlertCircle,
+  Rocket,
+  Target,
+  Trophy,
+  Star,
 } from 'lucide-react'
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser'
 import { initializeUserProfile } from '@/lib/user/profile'
@@ -293,14 +299,15 @@ export default function DashboardPage() {
 
   return (
     <AppShell showBottomNav={true}>
+      <CartoonBackground variant="dashboard" intensity="normal" showDoodles animated />
       <GradientBackground />
 
       <div className="flex-1">
         <DashboardHeader
           icon={Home}
           iconColor="yellow"
-          title="Dashboard"
-          subtitle="Your career progress at a glance"
+          title="Career Basecamp"
+          subtitle="Your quest hub awaits"
         />
 
         <Container className="py-6">
@@ -318,21 +325,22 @@ export default function DashboardPage() {
             )}
 
             {state.needsOnboarding && (
-              <BrutalCard color="yellow" shadow="sm">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <h2 className="font-display text-xl font-bold">Complete your onboarding first</h2>
-                    <p className="text-sm text-black/70">
-                      Your profile is not complete yet. Finish onboarding to unlock real score calculation and personalized recommendations.
-                    </p>
+              <BrutalCard color="yellow" shadow="lg" className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Rocket className="w-5 h-5" />
+                    <h2 className="font-display text-xl font-bold">Start Your Quest!</h2>
                   </div>
-                  <Link href="/onboarding">
-                    <BrutalButton color="black" size="sm">
-                      Go to Onboarding
-                      <ArrowRight className="h-4 w-4" />
-                    </BrutalButton>
-                  </Link>
+                  <p className="text-sm text-black/70">
+                    Complete your onboarding to unlock real score calculation and personalized recommendations.
+                  </p>
                 </div>
+                <Link href="/onboarding">
+                  <BrutalButton color="black">
+                    <Star className="h-4 w-4 mr-2" />
+                    Begin Onboarding
+                  </BrutalButton>
+                </Link>
               </BrutalCard>
             )}
 
@@ -340,36 +348,46 @@ export default function DashboardPage() {
               initial={false}
               animate={{ opacity: 1, y: 0 }}
             >
+              {/* Welcome Hero Card */}
               <BrutalCard color="yellow" shadow="lg" className="relative overflow-hidden">
-                <div className="relative z-10">
-                  <h2 className="font-display font-bold text-2xl mb-2">
-                    Welcome back, {welcomeName}!
-                  </h2>
-                  <p className="text-black/70 mb-4">
-                      {state.isDemoMode
-                        ? 'You are in demo mode. Connect Supabase to load your real progress.'
-                        : state.onboardingCompleted
-                        ? 'Your progress cards avoid demo numbers unless real data exists.'
-                        : 'Finish onboarding so we can generate your personalized roadmap and scores.'}
-                  </p>
-                  <div className="flex flex-wrap items-center gap-3">
-                    <div className="flex items-center gap-2 bg-black/10 px-3 py-1 brutal-radius">
-                      <Flame className="w-5 h-5" />
-                      <span className="font-bold">{state.streak} day streak</span>
+                {/* Decorative elements */}
+                <div className="absolute top-0 right-0 w-24 h-24 bg-pink/20" style={{ borderBottomLeftRadius: '100%' }} />
+                <div className="absolute bottom-0 left-0 w-16 h-16 bg-blue/20" style={{ borderTopRightRadius: '100%' }} />
+
+                <div className="relative z-10 flex flex-col lg:flex-row lg:items-center gap-6">
+                  {/* Mascot and greeting */}
+                  <div className="flex items-center gap-4">
+                    <div className="w-20 h-20 bg-white brutal-border brutal-radius flex items-center justify-center shadow-brutal">
+                      <span className="text-4xl">🐱</span>
                     </div>
-                    <div className="flex items-center gap-2 bg-black/10 px-3 py-1 brutal-radius">
-                      <span className="font-bold">
-                        {state.onboardingCompleted ? 'Onboarding Complete' : 'Onboarding Pending'}
-                      </span>
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <Trophy className="w-5 h-5 text-yellow" />
+                        <h2 className="font-display font-black text-2xl lg:text-3xl">
+                          Welcome Back, {welcomeName}!
+                        </h2>
+                      </div>
+                      <p className="text-black/70">
+                        {state.isDemoMode
+                          ? 'You are in demo mode. Connect Supabase to load your real progress.'
+                          : state.onboardingCompleted
+                          ? 'Your progress cards avoid demo numbers unless real data exists.'
+                          : 'Finish onboarding so we can generate your personalized roadmap and scores.'}
+                      </p>
                     </div>
-                    <div className="flex items-center gap-2 bg-black/10 px-3 py-1 brutal-radius">
-                      <span className="font-bold">{state.targetRoleLabel}</span>
-                    </div>
-                    <Link href="/sprint">
-                      <BrutalButton variant="outline" color="black" size="sm">
-                        View Sprint
-                      </BrutalButton>
-                    </Link>
+                  </div>
+
+                  {/* Stats badges */}
+                  <div className="flex flex-wrap items-center gap-3 lg:ml-auto">
+                    {state.streak > 0 && (
+                      <StickerBadge variant="orange" label={`${state.streak} Day Streak`} size="sm" />
+                    )}
+                    <StickerBadge
+                      variant={state.onboardingCompleted ? 'completed' : 'in-progress'}
+                      label={state.onboardingCompleted ? 'Onboarding Complete' : 'Onboarding Pending'}
+                      size="sm"
+                    />
+                    <StickerBadge variant="blue" label={state.targetRoleLabel} size="sm" />
                   </div>
                 </div>
 
@@ -377,65 +395,75 @@ export default function DashboardPage() {
                   icon="rocket"
                   color="orange"
                   size="md"
-                  className="absolute top-4 right-8 opacity-50"
+                  className="absolute top-4 right-8 opacity-60"
                   animate={false}
                 />
               </BrutalCard>
             </motion.div>
 
-            <Section title="Next Best Action">
+            <Section title="Next Best Action" helper="What to do next">
               <Grid cols={2}>
-                <BrutalCard color="white" className="h-full">
+                <BrutalCard color="white" className="h-full relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-16 h-16 bg-yellow/10" style={{ borderBottomLeftRadius: '100%' }} />
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <p className="text-sm font-medium text-black/70">Recommended now</p>
-                      <h3 className="font-display text-xl font-bold">{nextBestAction.label}</h3>
+                      <StickerBadge variant="green" label="Recommended" size="sm" className="mb-2" />
+                      <h3 className="font-display text-xl font-bold mb-1">{nextBestAction.label}</h3>
                       <p className="mt-1 text-sm text-black/70">{nextBestAction.hint}</p>
                       <Link href={nextBestAction.href} className="mt-4 inline-flex">
                         <BrutalButton color="black" size="sm">
-                          <nextBestAction.icon className="h-4 w-4" />
-                          Open
+                          <nextBestAction.icon className="h-4 w-4 mr-2" />
+                          Go to Quest
                         </BrutalButton>
                       </Link>
                     </div>
-                    <CatMascot className="h-20 w-20 shrink-0" mood="focus" />
+                    <div className="w-16 h-16 bg-yellow brutal-border brutal-radius flex items-center justify-center shrink-0">
+                      <span className="text-2xl">🐱</span>
+                    </div>
                   </div>
                 </BrutalCard>
 
                 <BrutalCard color="blue" className="h-full">
-                  <h3 className="mb-3 font-display text-lg font-bold">Learning Health</h3>
+                  <h3 className="mb-3 font-display text-lg font-bold flex items-center gap-2">
+                    <Zap className="w-5 h-5" />
+                    Learning Health
+                  </h3>
                   <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div className="rounded-md border-2 border-black bg-white p-2">
-                      <p className="text-black/60">Readiness</p>
+                    <div className="rounded-md border-2 border-black bg-white p-2 text-center">
+                      <p className="text-black/60">Career Power</p>
                       <p className="text-lg font-bold">{state.careerReadiness}%</p>
                     </div>
-                    <div className="rounded-md border-2 border-black bg-white p-2">
+                    <div className="rounded-md border-2 border-black bg-white p-2 text-center">
                       <p className="text-black/60">Skills</p>
                       <p className="text-lg font-bold">{state.skillsCount}</p>
                     </div>
-                    <div className="rounded-md border-2 border-black bg-white p-2">
+                    <div className="rounded-md border-2 border-black bg-white p-2 text-center">
                       <p className="text-black/60">GitHub</p>
-                      <p className="text-lg font-bold">{state.githubScore === null ? 'Not analyzed' : `${state.githubScore}/100`}</p>
+                      <p className="text-lg font-bold">{state.githubScore === null ? 'N/A' : `${state.githubScore}/100`}</p>
                     </div>
-                    <div className="rounded-md border-2 border-black bg-white p-2">
-                      <p className="text-black/60">Saved Jobs</p>
-                      <p className="text-lg font-bold">{state.isDemoMode ? savedJobsCount : 'Open Jobs'}</p>
+                    <div className="rounded-md border-2 border-black bg-white p-2 text-center">
+                      <p className="text-black/60">Jobs Saved</p>
+                      <p className="text-lg font-bold">{state.isDemoMode ? savedJobsCount : 'Open'}</p>
                     </div>
                   </div>
                 </BrutalCard>
               </Grid>
             </Section>
 
-            <Section title="Your Progress">
+            <Section title="Your Progress" helper="Track your journey">
               <Grid cols={2}>
                 <motion.div
                   initial={false}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1 }}
                 >
-                  <BrutalCard color="blue" className="text-center h-full">
-                    <ScoreMeter score={state.careerReadiness} label="Career Readiness" size="lg" />
-                    <p className="text-sm text-black/70 mt-4">
+                  <BrutalCard color="pink" className="text-center h-full relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-12 h-12 bg-yellow/20" style={{ borderBottomLeftRadius: '100%' }} />
+                    <ScoreMeter score={state.careerReadiness} label="Career Power" size="lg" />
+                    <div className="mt-4">
+                      <StickerBadge variant="completed" label="Strong!" size="sm" className="inline-block" />
+                    </div>
+                    <p className="text-sm text-black/70 mt-2">
                       {state.scoreNotice ?? 'Calculated from your saved profile and skill levels.'}
                     </p>
                   </BrutalCard>
@@ -446,9 +474,13 @@ export default function DashboardPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.2 }}
                 >
-                  <BrutalCard color="pink" className="text-center h-full">
-                    <ScoreMeter score={state.jobMatchScore ?? 0} label="Job Match Score" size="lg" />
-                    <p className="text-sm text-black/70 mt-4">
+                  <BrutalCard color="blue" className="text-center h-full relative overflow-hidden">
+                    <div className="absolute bottom-0 left-0 w-12 h-12 bg-pink/20" style={{ borderTopRightRadius: '100%' }} />
+                    <ScoreMeter score={state.jobMatchScore ?? 0} label="Job Match" size="lg" />
+                    <div className="mt-4">
+                      <StickerBadge variant="great-match" label="Great!" size="sm" className="inline-block" />
+                    </div>
+                    <p className="text-sm text-black/70 mt-2">
                       {state.jobMatchScore === null
                         ? 'Complete onboarding to calculate your score'
                         : `Best current fit for ${state.targetRoleLabel}`}
@@ -463,8 +495,11 @@ export default function DashboardPage() {
                 >
                   <BrutalCard color="green" className="h-full">
                     <div className="flex items-center justify-between mb-4">
-                      <h3 className="font-display font-bold text-lg">Weekly Sprint</h3>
-                      <Calendar className="w-6 h-6" />
+                      <h3 className="font-display font-bold text-lg flex items-center gap-2">
+                        <Calendar className="w-5 h-5" />
+                        Weekly Sprint
+                      </h3>
+                      <StickerBadge variant="in-progress" label="Active" size="sm" />
                     </div>
                     <ScoreBar
                       score={state.weeklyProgress}
@@ -476,7 +511,9 @@ export default function DashboardPage() {
                         {state.skillsCount > 0 ? `${state.skillsCount} skills tracked` : 'No skill data yet'}
                       </span>
                       <Link href="/sprint">
-                        <span className="text-sm font-bold underline">Continue</span>
+                        <span className="text-sm font-bold underline flex items-center gap-1">
+                          Continue <ArrowRight className="w-4 h-4" />
+                        </span>
                       </Link>
                     </div>
                   </BrutalCard>
@@ -489,8 +526,10 @@ export default function DashboardPage() {
                 >
                   <BrutalCard color="orange" className="h-full">
                     <div className="flex items-center justify-between mb-4">
-                      <h3 className="font-display font-bold text-lg">Next Recommended Skill</h3>
-                      <Zap className="w-6 h-6" />
+                      <h3 className="font-display font-bold text-lg flex items-center gap-2">
+                        <Zap className="w-5 h-5" />
+                        Next Power-Up
+                      </h3>
                     </div>
                     <p className="text-2xl font-bold mb-2">{state.nextRecommendedSkill ?? 'Complete onboarding first'}</p>
                     <p className="text-sm text-black/70 mb-4">
@@ -526,7 +565,8 @@ export default function DashboardPage() {
                     >
                       <Link href={`/skills?focus=${skill.toLowerCase().replace(/\s+/g, '-')}`}>
                         <BrutalCardHover color={['yellow', 'blue', 'pink'][i % 3] as 'yellow' | 'blue' | 'pink'}>
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-2">
+                            <Target className="w-4 h-4" />
                             <span className="font-bold">{skill}</span>
                             <ArrowRight className="w-4 h-4" />
                           </div>
@@ -539,21 +579,24 @@ export default function DashboardPage() {
             </Section>
 
             <Section title="Best Match Jobs">
-              <BrutalCard color="white" shadow="sm">
-                <div className="flex items-center justify-between mb-4">
+              <BrutalCard color="white" shadow="lg">
+                <div className="flex flex-col sm:flex-row gap-4 mb-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-pink brutal-border brutal-radius flex items-center justify-center">
-                      <Briefcase className="w-5 h-5" />
+                    <div className="w-12 h-12 bg-pink brutal-border brutal-radius flex items-center justify-center">
+                      <Briefcase className="w-6 h-6" />
                     </div>
                     <div>
-                      <h3 className="font-bold">Open Job Radar for {state.targetRoleLabel}</h3>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-bold">Open Job Radar for {state.targetRoleLabel}</h3>
+                        <StickerBadge variant="blue" label="Active" size="sm" />
+                      </div>
                       <p className="text-sm text-gray-600">
                         Jobs are ranked from your saved role and current level.
                       </p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <span className="text-2xl font-bold text-green">
+                  <div className="sm:ml-auto text-center">
+                    <span className="text-3xl font-bold text-green">
                       {state.jobMatchScore === null ? '--' : `${state.jobMatchScore}%`}
                     </span>
                     <p className="text-xs text-gray-500">readiness</p>
@@ -570,11 +613,13 @@ export default function DashboardPage() {
                 <div className="flex gap-3">
                   <Link href="/jobs" className="flex-1">
                     <BrutalButton color="blue" className="w-full">
+                      <Target className="w-4 h-4 mr-2" />
                       Browse Jobs
                     </BrutalButton>
                   </Link>
                   <Link href="/roadmap" className="flex-1">
                     <BrutalButton variant="outline" color="black" className="w-full">
+                      <Rocket className="w-4 h-4 mr-2" />
                       Build Roadmap
                     </BrutalButton>
                   </Link>
@@ -583,11 +628,14 @@ export default function DashboardPage() {
             </Section>
 
             <Section title="GitHub Portfolio">
-              <BrutalCard color="purple" className="flex items-center justify-between">
+              <BrutalCard color="purple" className="flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                   <GitBranch className="w-8 h-8" />
                   <div>
-                    <h3 className="font-bold text-lg">Portfolio Score</h3>
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-bold text-lg">Portfolio Score</h3>
+                      <StickerBadge variant="in-progress" label="Analyzing" size="sm" />
+                    </div>
                     <p className="text-sm text-black/70">Based on your GitHub activity</p>
                   </div>
                 </div>
@@ -620,6 +668,7 @@ export default function DashboardPage() {
                         <p className="font-medium">{activity.text}</p>
                         <p className="text-sm text-gray-500">{activity.time}</p>
                       </div>
+                      <StickerBadge variant="completed" label="Done" size="sm" />
                     </BrutalCard>
                   </motion.div>
                 ))}

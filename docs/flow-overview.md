@@ -99,6 +99,38 @@ sequenceDiagram
   DB-->>Page: Saved state
 ```
 
+## Roadmap Assessment Flow
+
+```mermaid
+sequenceDiagram
+  participant User
+  participant Map as /roadmap
+  participant QuizPage as /roadmap/tasks/[taskId]/quiz
+  participant ProjectPage as /roadmap/tasks/[taskId]/project
+  participant FinalPage as /roadmap/final-project
+  participant QuizStart as /api/roadmap/quiz/start
+  participant QuizSubmit as /api/roadmap/quiz/submit
+  participant ProjectAPI as /api/roadmap/project-review
+  participant DB as Supabase
+
+  User->>Map: Open roadmap and expand week
+  Map-->>User: Show task state + action buttons only
+  User->>QuizPage: Start/continue quiz
+  QuizPage->>QuizStart: POST task context
+  QuizStart->>DB: Validate ownership and load seeded quiz
+  DB-->>QuizPage: Questions + latest attempt summary
+  User->>QuizPage: Submit answers
+  QuizPage->>QuizSubmit: POST answers
+  QuizSubmit->>DB: Store attempt, update task quiz state
+  QuizSubmit-->>QuizPage: Score, pass/fail, feedback
+  User->>ProjectPage: Submit mini project after passing quiz
+  ProjectPage->>ProjectAPI: GET latest mini project review
+  ProjectPage->>ProjectAPI: POST mini project submission
+  ProjectAPI->>DB: Validate gating, save submission and review, update task project state
+  User->>FinalPage: Submit final portfolio project
+  FinalPage->>ProjectAPI: GET/POST final project submission and review
+```
+
 ## Saved Jobs Flow
 
 ```mermaid

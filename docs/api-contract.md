@@ -163,6 +163,7 @@ Submits mini/final project URLs and runs rule-first review with optional Gemini 
 Behavior:
 
 - Requires authenticated user and roadmap ownership.
+- For `mini_project`, requires `roadmapTaskId`, task ownership in the same roadmap, passed quiz (when required), and an actual project requirement (`project_required` or `mini_project` context).
 - Performs deterministic checks first (URL validity, repo accessibility, README/activity signals).
 - Uses Gemini only after rule checks and within a daily guard.
 - Falls back to rule-only review if AI is unavailable.
@@ -180,7 +181,10 @@ Loads the latest mini or final project submission + review summary for the curre
 | `/dashboard` | `user` | User learning dashboard. Admin sessions redirect to `/admin`. |
 | `/admin` | `admin` | Admin operations dashboard. Non-admin users see an admin-only state. |
 | `/onboarding` | `user` or demo | Career setup flow. Middleware redirects logged-out users to `/login` when Supabase is configured. |
-| `/roadmap` | `user` or demo | Loads latest active Supabase roadmap, creates one when missing, persists task/resource progress, and asks before regeneration. |
+| `/roadmap` | `user` or demo | Loads latest active Supabase roadmap, creates one when missing, persists task/resource progress, and asks before regeneration. Task cards show learning map states and navigation actions only (no inline quiz or inline project submission form). |
+| `/roadmap/tasks/[taskId]/quiz` | `user` | Focused quiz workflow per task. Reads ownership/resource gates, starts quiz from `/api/roadmap/quiz/start`, submits answers to `/api/roadmap/quiz/submit`, and surfaces feedback. |
+| `/roadmap/tasks/[taskId]/project` | `user` | Focused mini project submission/review workflow. Reads latest review with `/api/roadmap/project-review` `GET` and submits with `POST`. |
+| `/roadmap/final-project` | `user` | Focused final portfolio submission/review workflow backed by `/api/roadmap/project-review` with `projectType=final_project`. |
 | `/jobs` | `user` or demo | Lists fresh jobs from Supabase plus curated Indonesia top-up data, ranks jobs with the saved career profile, and lets users persist `saved_jobs`. |
 | `/github` | `user` or demo | Calls `/api/github/analyze` and renders only the requested username's result unless demo is explicitly chosen. |
 | `/skills`, `/sprint`, `/settings`, `/projects` | `user` or demo | Protected app surfaces when Supabase is configured; demo mode remains available when Supabase env vars are missing. |

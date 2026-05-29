@@ -126,16 +126,51 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'roadmapTaskId is required for mini project submissions.' }, { status: 400 })
   }
 
+  let taskGuard: {
+    id: string
+    roadmap_id: string
+    quiz_required: boolean | null
+    quiz_passed: boolean | null
+    project_required: boolean | null
+    mini_project: Record<string, unknown> | null
+  } | null = null
+
   if (input.roadmapTaskId) {
     const { data: taskOwned, error: taskError } = await supabase
       .from('roadmap_tasks')
-      .select('id, roadmap_id')
+      .select('id, roadmap_id, quiz_required, quiz_passed, project_required, mini_project')
       .eq('id', input.roadmapTaskId)
       .eq('roadmap_id', input.roadmapId)
       .maybeSingle()
 
     if (taskError || !taskOwned) {
       return NextResponse.json({ error: 'Roadmap task not found for this roadmap.' }, { status: 404 })
+    }
+
+    taskGuard = taskOwned as {
+      id: string
+      roadmap_id: string
+      quiz_required: boolean | null
+      quiz_passed: boolean | null
+      project_required: boolean | null
+      mini_project: Record<string, unknown> | null
+    }
+  }
+
+  if (input.projectType === 'mini_project' && taskGuard) {
+    if (taskGuard.quiz_required !== false && taskGuard.quiz_passed !== true) {
+      return NextResponse.json(
+        { error: 'Pass the quiz before submitting this mini project.' },
+        { status: 403 }
+      )
+    }
+
+    const hasProjectRequirement = taskGuard.project_required === true || Boolean(taskGuard.mini_project)
+    if (!hasProjectRequirement) {
+      return NextResponse.json(
+        { error: 'This task does not require a mini project submission.' },
+        { status: 422 }
+      )
     }
   }
 

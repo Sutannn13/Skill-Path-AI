@@ -26,6 +26,7 @@ Phase 0 and Phase 1 establish the security and auth foundation:
 - Middleware keeps app surfaces inside the authenticated flow when Supabase is configured.
 - `/github` calls the real GitHub analysis route and keeps mock data behind an explicit demo action.
 - `/roadmap` persists active roadmaps, task gates, learning resources, and resource progress in Supabase.
+- `/roadmap/tasks/[taskId]/quiz`, `/roadmap/tasks/[taskId]/project`, and `/roadmap/final-project` handle focused assessment and submission flows outside the roadmap map screen.
 - `/jobs` reads durable `job_posts`, adds explicit Indonesia curated top-up data when the result set is short, ranks jobs by the user's career profile, logs cron runs, applies freshness rules, and persists `saved_jobs`.
 
 ## Setup

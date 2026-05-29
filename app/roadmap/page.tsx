@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { AppShell, Container, GradientBackground } from '@/components/layout'
@@ -23,9 +23,7 @@ import {
   ChevronUp,
   Circle,
   Clock,
-  ClipboardCheck,
   ExternalLink,
-  FileCode2,
   Map as MapIcon,
   PlayCircle,
   RefreshCw,
@@ -36,10 +34,7 @@ import {
 import {
   CurrentLevel,
   Roadmap,
-  RoadmapProjectReview,
   RoadmapProjectReviewStatus,
-  RoadmapQuiz,
-  RoadmapQuizQuestion,
   RoadmapResource,
   RoadmapTask,
   RoadmapTaskRequirementState,
@@ -64,6 +59,7 @@ interface RoadmapRow {
   summary: string | null
   duration_weeks: number | null
   source: 'ai' | 'fallback'
+  final_project_status: RoadmapProjectReviewStatus | null
   context: {
     targetRole?: TargetRole | null
     currentLevel?: CurrentLevel | null
@@ -123,14 +119,6 @@ interface RoadmapProgressRow {
   completed_at: string | null
 }
 
-interface RoadmapTaskQuizRow {
-  id: string
-  roadmap_task_id: string
-  title: string
-  passing_score: number
-  question_count: number
-}
-
 interface ProfileRow {
   target_role: TargetRole | null
   current_level: CurrentLevel | null
@@ -140,39 +128,6 @@ interface ProfileRow {
 interface UserSkillRow {
   skill_slug: string
   level: number
-}
-
-interface QuizFeedbackItem {
-  questionId: string
-  questionText: string
-  selectedAnswer: string
-  correctAnswer: string
-  isCorrect: boolean
-  explanation: string
-}
-
-interface QuizAttemptResult {
-  passed: boolean
-  score: number
-  passingScore: number
-  correctCount: number
-  totalQuestions: number
-  requirementState: RoadmapTaskRequirementState
-  feedback: QuizFeedbackItem[]
-}
-
-interface ProjectSubmissionState {
-  repoUrl: string
-  liveUrl: string
-  notes: string
-  status: RoadmapProjectReviewStatus | null
-  summary: string | null
-  strengths: string[]
-  issues: string[]
-  requiredFixes: string[]
-  suggestions: string[]
-  isSubmitting: boolean
-  error: string | null
 }
 
 const DEFAULT_TARGET_ROLE: TargetRole = 'fullstack-developer'
@@ -329,22 +284,6 @@ function updateRoadmapTask(
       ...week,
       tasks: week.tasks.map((task) => task.id === taskId ? updater(task) : task),
     })),
-  }
-}
-
-function getDefaultProjectState(): ProjectSubmissionState {
-  return {
-    repoUrl: '',
-    liveUrl: '',
-    notes: '',
-    status: null,
-    summary: null,
-    strengths: [],
-    issues: [],
-    requiredFixes: [],
-    suggestions: [],
-    isSubmitting: false,
-    error: null,
   }
 }
 
@@ -543,14 +482,6 @@ export default function RoadmapPage() {
   const [assessmentPersistenceAvailable, setAssessmentPersistenceAvailable] = useState(true)
   const [isGenerating, setIsGenerating] = useState(false)
   const [finalProjectStatus, setFinalProjectStatus] = useState<RoadmapProjectReviewStatus | null>(null)
-  const [activeQuizTaskId, setActiveQuizTaskId] = useState<string | null>(null)
-  const [activeQuiz, setActiveQuiz] = useState<RoadmapQuiz | null>(null)
-  const [quizAnswers, setQuizAnswers] = useState<Record<string, string>>({})
-  const [quizResult, setQuizResult] = useState<QuizAttemptResult | null>(null)
-  const [quizLoading, setQuizLoading] = useState(false)
-  const [quizSubmitting, setQuizSubmitting] = useState(false)
-  const [quizError, setQuizError] = useState<string | null>(null)
-  const [projectStates, setProjectStates] = useState<Record<string, ProjectSubmissionState>>({})
 
   const seedRoadmapAssessments = async (roadmapId: string, taskRows: Array<{
     id: string
@@ -592,7 +523,7 @@ export default function RoadmapPage() {
 
       const { data: roadmapRow, error: roadmapError } = await supabase
         .from('roadmaps')
-        .select('id, title, summary, duration_weeks, source, context, created_at')
+        .select('id, title, summary, duration_weeks, source, context, final_project_status, created_at')
         .eq('user_id', userId)
         .eq('is_active', true)
         .order('created_at', { ascending: false })
@@ -612,7 +543,7 @@ export default function RoadmapPage() {
 
       const typedRoadmap = roadmapRow as RoadmapRow
       if (isActive) {
-        setFinalProjectStatus(null)
+        setFinalProjectStatus(typedRoadmap.final_project_status ?? 'pending')
       }
       const { data: taskRows, error: taskError } = await supabase
         .from('roadmap_tasks')
@@ -779,7 +710,7 @@ export default function RoadmapPage() {
             finalPortfolioProject: roadmapWithResources.finalPortfolioProject ?? null,
           },
         })
-        .select('id, title, summary, duration_weeks, source, context, created_at')
+        .select('id, title, summary, duration_weeks, source, context, final_project_status, created_at')
         .single()
 
       if (insertRoadmapError || !insertedRoadmap) {
@@ -1082,300 +1013,6 @@ export default function RoadmapPage() {
     await saveUpdatedTask(nextRoadmap, taskId)
   }
 
-  const setProjectState = useCallback((key: string, updater: (state: ProjectSubmissionState) => ProjectSubmissionState) => {
-    setProjectStates((previous) => {
-      const current = previous[key] ?? getDefaultProjectState()
-      return {
-        ...previous,
-        [key]: updater(current),
-      }
-    })
-  }, [])
-
-  const loadProjectReview = useCallback(async (roadmapTaskId: string | null, projectType: 'mini_project' | 'final_project') => {
-    if (!roadmap?.id) return
-    const key = roadmapTaskId ?? 'final_project'
-
-    try {
-      const params = new URLSearchParams({
-        roadmapId: roadmap.id,
-        projectType,
-      })
-      if (roadmapTaskId) {
-        params.set('roadmapTaskId', roadmapTaskId)
-      }
-
-      const response = await fetch(`/api/roadmap/project-review?${params.toString()}`)
-      const data = await response.json().catch(() => null)
-      if (!response.ok) {
-        throw new Error(data?.error || 'Failed to load project review.')
-      }
-
-      if (!data?.submission) {
-        return
-      }
-
-      if (projectType === 'final_project') {
-        setFinalProjectStatus(data.submission.status ?? data.review?.status ?? null)
-      }
-
-      setProjectState(key, (state) => ({
-        ...state,
-        repoUrl: data.submission.repoUrl ?? '',
-        liveUrl: data.submission.liveUrl ?? '',
-        notes: data.submission.notes ?? '',
-        status: data.submission.status ?? null,
-        summary: data.review?.summary ?? null,
-        strengths: data.review?.strengths ?? [],
-        issues: data.review?.issues ?? [],
-        requiredFixes: data.review?.requiredFixes ?? [],
-        suggestions: data.review?.suggestions ?? [],
-        error: null,
-      }))
-    } catch (error) {
-      setProjectState(key, (state) => ({
-        ...state,
-        error: error instanceof Error ? error.message : 'Failed to load project review.',
-      }))
-    }
-  }, [roadmap?.id, setProjectState])
-
-  const submitProjectReview = async (input: {
-    roadmapTaskId: string | null
-    projectType: 'mini_project' | 'final_project'
-    taskContext: string
-  }) => {
-    if (!roadmap) return
-
-    const key = input.roadmapTaskId ?? 'final_project'
-    const current = projectStates[key] ?? getDefaultProjectState()
-    if (mode !== 'supabase') {
-      setProjectState(key, (state) => ({
-        ...state,
-        error: 'Project review requires a saved Supabase roadmap. Apply the roadmap assessment migration and regenerate after signing in.',
-      }))
-      return
-    }
-
-    if (!current.repoUrl.trim()) {
-      setProjectState(key, (state) => ({
-        ...state,
-        error: 'GitHub repository URL is required.',
-      }))
-      return
-    }
-
-    setProjectState(key, (state) => ({
-      ...state,
-      isSubmitting: true,
-      error: null,
-    }))
-
-    try {
-      const response = await fetch('/api/roadmap/project-review', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          roadmapId: roadmap.id,
-          roadmapTaskId: input.roadmapTaskId,
-          projectType: input.projectType,
-          repoUrl: current.repoUrl.trim(),
-          liveUrl: current.liveUrl.trim() || null,
-          notes: current.notes.trim() || null,
-          taskContext: input.taskContext,
-        }),
-      })
-
-      const data = await response.json().catch(() => null)
-      if (!response.ok) {
-        throw new Error(data?.error || 'Failed to submit project review.')
-      }
-
-      setProjectState(key, (state) => ({
-        ...state,
-        isSubmitting: false,
-        status: data.status ?? null,
-        summary: data.summary ?? null,
-        strengths: data.strengths ?? [],
-        issues: data.issues ?? [],
-        requiredFixes: data.requiredFixes ?? [],
-        suggestions: data.suggestions ?? [],
-        error: null,
-      }))
-
-      if (input.projectType === 'final_project') {
-        setFinalProjectStatus(data.status ?? null)
-      }
-
-      if (input.roadmapTaskId && roadmap) {
-        const now = new Date().toISOString()
-        const nextRoadmap = updateRoadmapTask(roadmap, input.roadmapTaskId, (task) => {
-          const nextTask: RoadmapTask = {
-            ...task,
-            projectRequired: true,
-            projectPassed: data.status === 'passed',
-          }
-          const requirementState = deriveRequirementState(nextTask)
-          const nextStatus = requirementState === 'completed' ? 'completed' : 'todo'
-          return {
-            ...nextTask,
-            requirementState,
-            status: nextStatus,
-            completedAt: nextStatus === 'completed' ? now : null,
-          }
-        })
-
-        setRoadmap(nextRoadmap)
-        await saveUpdatedTask(nextRoadmap, input.roadmapTaskId)
-      }
-    } catch (error) {
-      setProjectState(key, (state) => ({
-        ...state,
-        isSubmitting: false,
-        error: error instanceof Error ? error.message : 'Failed to submit project review.',
-      }))
-    }
-  }
-
-  const updateProjectField = (
-    roadmapTaskId: string | null,
-    field: 'repoUrl' | 'liveUrl' | 'notes',
-    value: string
-  ) => {
-    const key = roadmapTaskId ?? 'final_project'
-    setProjectState(key, (state) => ({
-      ...state,
-      [field]: value,
-      error: null,
-    }))
-  }
-
-  const startQuiz = async (task: RoadmapTask) => {
-    setActiveQuizTaskId(task.id)
-    setActiveQuiz(null)
-    setQuizAnswers({})
-    setQuizResult(null)
-    setQuizLoading(true)
-    setQuizError(null)
-
-    try {
-      const parentWeek = roadmap?.weeks.find((week) => week.tasks.some((item) => item.id === task.id))
-      const response = await fetch('/api/roadmap/quiz/start', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          taskId: task.id,
-          title: task.title,
-          description: task.description,
-          focusSkills: parentWeek?.focusSkills ?? [],
-        }),
-      })
-
-      const data = await response.json().catch(() => null)
-      if (!response.ok) {
-        throw new Error(data?.error || 'Failed to start quiz.')
-      }
-
-      const questions = (data?.quiz?.questions ?? []) as RoadmapQuizQuestion[]
-      setActiveQuiz({
-        id: data.quiz.id,
-        roadmapTaskId: data.quiz.roadmapTaskId,
-        title: data.quiz.title,
-        passingScore: data.quiz.passingScore,
-        questionCount: data.quiz.questionCount,
-        questions,
-      })
-    } catch (error) {
-      setQuizError(error instanceof Error ? error.message : 'Failed to start quiz.')
-    } finally {
-      setQuizLoading(false)
-    }
-  }
-
-  const submitQuiz = async (taskId: string) => {
-    if (!activeQuiz || !roadmap) return
-
-    setQuizSubmitting(true)
-    setQuizError(null)
-
-    try {
-      const currentTask = findTask(roadmap, taskId)
-      const response = await fetch('/api/roadmap/quiz/submit', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          quizId: activeQuiz.id,
-          answers: quizAnswers,
-          resourcesComplete: hasRequiredResourcesCompleted(currentTask ?? {
-            id: taskId,
-            title: '',
-            description: '',
-            estimatedTime: '',
-            difficulty: 'easy',
-            deliverable: '',
-            status: 'todo',
-            resources: [],
-          }),
-          projectRequired: currentTask?.projectRequired === true,
-          projectPassed: currentTask?.projectPassed === true,
-        }),
-      })
-
-      const data = await response.json().catch(() => null)
-      if (!response.ok) {
-        throw new Error(data?.error || 'Failed to submit quiz.')
-      }
-
-      setQuizResult(data as QuizAttemptResult)
-      const now = new Date().toISOString()
-      const nextRoadmap = updateRoadmapTask(roadmap, taskId, (task) => {
-        const nextTask: RoadmapTask = {
-          ...task,
-          quizRequired: true,
-          quizPassed: data.passed === true,
-          requirementState: data.requirementState ?? deriveRequirementState(task),
-        }
-        const nextStatus = nextTask.requirementState === 'completed' ? 'completed' : 'todo'
-        return {
-          ...nextTask,
-          status: nextStatus,
-          completedAt: nextStatus === 'completed' ? now : null,
-        }
-      })
-
-      setRoadmap(nextRoadmap)
-      await saveUpdatedTask(nextRoadmap, taskId)
-    } catch (error) {
-      setQuizError(error instanceof Error ? error.message : 'Failed to submit quiz.')
-    } finally {
-      setQuizSubmitting(false)
-    }
-  }
-
-  useEffect(() => {
-    if (!roadmap || mode !== 'supabase') return
-
-    const projectTasks = roadmap.weeks.flatMap((week) =>
-      week.tasks
-        .filter((task) => task.projectRequired === true || Boolean(week.miniProject))
-        .map((task) => ({ taskId: task.id }))
-    )
-
-    for (const task of projectTasks) {
-      void loadProjectReview(task.taskId, 'mini_project')
-    }
-
-    if (roadmap.finalPortfolioProject) {
-      void loadProjectReview(null, 'final_project')
-    }
-  }, [loadProjectReview, mode, roadmap])
-
   const regenerateRoadmap = async () => {
     if (!supabase || !currentUserId) {
       setRoadmap(createDemoRoadmap())
@@ -1472,7 +1109,7 @@ export default function RoadmapPage() {
                 finalPortfolioProject: roadmapWithResources.finalPortfolioProject ?? null,
               },
             })
-            .select('id, title, summary, duration_weeks, source, context, created_at')
+            .select('id, title, summary, duration_weeks, source, context, final_project_status, created_at')
             .single()
 
           if (insertRoadmapError || !insertedRoadmap) {
@@ -1595,7 +1232,6 @@ export default function RoadmapPage() {
   }
 
   const progress = roadmap ? calculateOverallProgress(roadmap) : 0
-  const finalProjectState = projectStates.final_project ?? getDefaultProjectState()
 
   return (
     <AppShell showBottomNav={true}>
@@ -1691,103 +1327,6 @@ export default function RoadmapPage() {
                 </div>
               </BrutalCard>
 
-              {activeQuizTaskId && (
-                <BrutalCard color="purple" className="mb-6">
-                  <div className="mb-4 flex items-center justify-between gap-3">
-                    <div>
-                      <h3 className="font-display text-lg font-bold">Task Quiz</h3>
-                      <p className="text-sm text-black/70">
-                        Pass score must be at least {activeQuiz?.passingScore ?? 80}%.
-                      </p>
-                    </div>
-                    <BrutalButton
-                      variant="outline"
-                      color="black"
-                      size="sm"
-                      onClick={() => {
-                        setActiveQuizTaskId(null)
-                        setActiveQuiz(null)
-                        setQuizAnswers({})
-                        setQuizResult(null)
-                        setQuizError(null)
-                      }}
-                    >
-                      Close
-                    </BrutalButton>
-                  </div>
-
-                  {quizLoading && <p className="font-medium">Loading quiz...</p>}
-                  {quizError && (
-                    <p className="rounded-md border-2 border-black bg-red/10 px-3 py-2 text-sm font-medium text-red">{quizError}</p>
-                  )}
-
-                  {activeQuiz && (
-                    <div className="space-y-4">
-                      {activeQuiz.questions.map((question, index) => (
-                        <div key={question.id} className="rounded-md border-2 border-black bg-white p-3">
-                          <p className="mb-2 font-bold">Question {index + 1}/{activeQuiz.questions.length}</p>
-                          <p className="mb-3 text-sm">{question.questionText}</p>
-                          <div className="space-y-2">
-                            {question.options.map((option) => (
-                              <label key={option} className="flex cursor-pointer items-start gap-2 text-sm">
-                                <input
-                                  type="radio"
-                                  name={`quiz-${question.id}`}
-                                  value={option}
-                                  checked={quizAnswers[question.id] === option}
-                                  onChange={(event) => {
-                                    const value = event.target.value
-                                    setQuizAnswers((previous) => ({
-                                      ...previous,
-                                      [question.id]: value,
-                                    }))
-                                  }}
-                                />
-                                <span>{option}</span>
-                              </label>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-
-                      <BrutalButton
-                        color="black"
-                        loading={quizSubmitting}
-                        disabled={quizSubmitting}
-                        onClick={() => submitQuiz(activeQuizTaskId)}
-                      >
-                        Submit Quiz
-                      </BrutalButton>
-                    </div>
-                  )}
-
-                  {quizResult && (
-                    <div className="mt-4 rounded-md border-2 border-black bg-white p-4">
-                      <p className="font-display text-lg font-bold">
-                        Score {quizResult.score}% ({quizResult.correctCount}/{quizResult.totalQuestions})
-                      </p>
-                      <p className={cn('mt-1 font-medium', quizResult.passed ? 'text-green' : 'text-red')}>
-                        {quizResult.passed ? 'Quiz passed' : 'Quiz failed. Retry is allowed.'}
-                      </p>
-                      {!quizResult.passed && (
-                        <div className="mt-3 space-y-2">
-                          {quizResult.feedback
-                            .filter((item) => !item.isCorrect)
-                            .map((item) => (
-                              <div key={item.questionId} className="rounded-md border-2 border-black bg-red/5 p-2 text-sm">
-                                <p className="font-bold">{item.questionText}</p>
-                                <p>Selected: {item.selectedAnswer || 'No answer'}</p>
-                                <p>Correct: {item.correctAnswer}</p>
-                                <p className="text-gray-700">{item.explanation}</p>
-                              </div>
-                            ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </BrutalCard>
-              )}
-
               <div className="space-y-4">
                 {roadmap.weeks.map((week, weekIndex) => {
                   const weekProgress = calculateWeekProgress(week)
@@ -1862,14 +1401,6 @@ export default function RoadmapPage() {
                                       week={week}
                                       onToggleResource={toggleResource}
                                       onReopen={reopenTask}
-                                      onStartQuiz={() => startQuiz(task)}
-                                      projectState={projectStates[task.id] ?? getDefaultProjectState()}
-                                      onProjectFieldChange={(field, value) => updateProjectField(task.id, field, value)}
-                                      onSubmitProject={() => submitProjectReview({
-                                        roadmapTaskId: task.id,
-                                        projectType: 'mini_project',
-                                        taskContext: `${week.title} ${task.title} ${task.description} ${task.deliverable}`,
-                                      })}
                                     />
                                   ))}
                                 </div>
@@ -1923,49 +1454,14 @@ export default function RoadmapPage() {
                         Roadmap completion is only fully validated when the final project review passes.
                       </p>
                     </div>
-                    <div className="grid gap-2 md:grid-cols-3">
-                      <input
-                        value={finalProjectState.repoUrl}
-                        onChange={(event) => updateProjectField(null, 'repoUrl', event.target.value)}
-                        placeholder="GitHub repo URL"
-                        className="rounded-md border-2 border-black bg-white px-3 py-2 text-sm text-black placeholder-gray-500"
-                      />
-                      <input
-                        value={finalProjectState.liveUrl}
-                        onChange={(event) => updateProjectField(null, 'liveUrl', event.target.value)}
-                        placeholder="Live demo URL (optional)"
-                        className="rounded-md border-2 border-black bg-white px-3 py-2 text-sm text-black placeholder-gray-500"
-                      />
-                      <input
-                        value={finalProjectState.notes}
-                        onChange={(event) => updateProjectField(null, 'notes', event.target.value)}
-                        placeholder="Notes for reviewer"
-                        className="rounded-md border-2 border-black bg-white px-3 py-2 text-sm text-black placeholder-gray-500"
-                      />
-                    </div>
-                    {finalProjectState.error && (
-                      <p className="mt-2 text-sm font-medium text-red">{finalProjectState.error}</p>
-                    )}
-                    {finalProjectState.summary && (
-                      <div className="mt-3 rounded-md border-2 border-black bg-white p-3 text-sm">
-                        <p className="font-bold">{finalProjectState.status}</p>
-                        <p>{finalProjectState.summary}</p>
-                      </div>
-                    )}
                     <div className="mt-4 flex flex-wrap gap-3">
-                      <BrutalButton
-                        color="black"
-                        loading={finalProjectState.isSubmitting}
-                        disabled={finalProjectState.isSubmitting}
-                        onClick={() => submitProjectReview({
-                          roadmapTaskId: null,
-                          projectType: 'final_project',
-                          taskContext: `${roadmap.title} final portfolio project ${roadmap.finalPortfolioProject?.description ?? ''}`,
-                        })}
-                      >
-                        <FileCode2 className="mr-2 h-4 w-4" />
-                        Submit for Review
-                      </BrutalButton>
+                      <Link href="/roadmap/final-project">
+                        <BrutalButton color="black">
+                          {finalProjectStatus && finalProjectStatus !== 'pending'
+                            ? 'View Final Project Review'
+                            : 'Submit Final Project'}
+                        </BrutalButton>
+                      </Link>
                       <Link href="/projects">
                         <BrutalButton variant="outline" color="black">
                           View Project Ideas
@@ -2033,24 +1529,25 @@ function TaskItem({
   week,
   onToggleResource,
   onReopen,
-  onStartQuiz,
-  projectState,
-  onProjectFieldChange,
-  onSubmitProject,
 }: {
   task: RoadmapTask
   week: RoadmapWeek
   onToggleResource: (taskId: string, resourceId: string) => void
   onReopen: (taskId: string) => void
-  onStartQuiz: () => void
-  projectState: ProjectSubmissionState
-  onProjectFieldChange: (field: 'repoUrl' | 'liveUrl' | 'notes', value: string) => void
-  onSubmitProject: () => void
 }) {
   const difficultyColors = {
     easy: 'text-green',
     medium: 'text-yellow',
     hard: 'text-red',
+  }
+  const requirementBadgeStyles: Record<RoadmapTaskRequirementState, string> = {
+    resources_pending: 'bg-yellow/20 text-black',
+    resources_completed: 'bg-blue/20 text-black',
+    quiz_pending: 'bg-orange/20 text-black',
+    quiz_passed: 'bg-green/20 text-black',
+    project_pending: 'bg-pink/20 text-black',
+    project_passed: 'bg-green/20 text-black',
+    completed: 'bg-green text-black',
   }
   const canComplete = taskCanBeCompleted(task)
   const resources = task.resources ?? []
@@ -2082,12 +1579,22 @@ function TaskItem({
             )}>
               {task.title}
             </h5>
-            <span className={cn(
-              'text-xs font-bold uppercase',
-              difficultyColors[task.difficulty]
-            )}>
-              {task.difficulty}
-            </span>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={cn(
+                'text-xs font-bold uppercase',
+                difficultyColors[task.difficulty]
+              )}>
+                {task.difficulty}
+              </span>
+              <span
+                className={cn(
+                  'rounded-full border-2 border-black px-2 py-0.5 text-[11px] font-bold uppercase',
+                  requirementBadgeStyles[requirementState]
+                )}
+              >
+                {requirementState}
+              </span>
+            </div>
           </div>
           <p className="text-sm text-gray-600 mt-1">{task.description}</p>
           <div className="flex flex-wrap items-center gap-4 mt-2 text-xs text-gray-500">
@@ -2184,66 +1691,34 @@ function TaskItem({
         </div>
 
         <div className="grid gap-3 md:grid-cols-2">
-          <BrutalButton
-            variant={task.quizPassed ? 'primary' : 'outline'}
-            color={task.quizPassed ? 'green' : 'black'}
-            size="sm"
-            onClick={onStartQuiz}
-            disabled={!hasRequiredResourcesCompleted(task) && !task.quizPassed}
-          >
-            <ClipboardCheck className="h-4 w-4" />
-            {task.quizPassed ? 'Quiz passed' : 'Start quiz'}
-          </BrutalButton>
+          <Link href={`/roadmap/tasks/${task.id}/quiz`} className="inline-flex">
+            <BrutalButton
+              variant={task.quizPassed ? 'primary' : 'outline'}
+              color={task.quizPassed ? 'green' : 'black'}
+              size="sm"
+              className="w-full"
+            >
+              {task.quizPassed
+                ? 'Retry Quiz'
+                : requirementState === 'quiz_pending'
+                  ? 'Continue Quiz'
+                  : 'Start Quiz'}
+            </BrutalButton>
+          </Link>
 
           {(task.projectRequired || week.miniProject) && (
-            <BrutalButton
-              variant={task.projectPassed ? 'primary' : 'outline'}
-              color={task.projectPassed ? 'green' : 'black'}
-              size="sm"
-              onClick={onSubmitProject}
-              loading={projectState.isSubmitting}
-              disabled={projectState.isSubmitting}
-            >
-              <FileCode2 className="h-4 w-4" />
-              {task.projectPassed ? 'Project passed' : 'Submit mini project'}
-            </BrutalButton>
+            <Link href={`/roadmap/tasks/${task.id}/project`} className="inline-flex">
+              <BrutalButton
+                variant={task.projectPassed ? 'primary' : 'outline'}
+                color={task.projectPassed ? 'green' : 'black'}
+                size="sm"
+                className="w-full"
+              >
+                {task.projectPassed ? 'View Mini Project Review' : 'Submit Mini Project'}
+              </BrutalButton>
+            </Link>
           )}
         </div>
-
-        {(task.projectRequired || week.miniProject) && (
-          <div className="rounded-md border-2 border-black bg-white p-3">
-            <p className="mb-2 text-sm font-bold">Mini project submission</p>
-            <div className="grid gap-2 md:grid-cols-3">
-              <input
-                value={projectState.repoUrl}
-                onChange={(event) => onProjectFieldChange('repoUrl', event.target.value)}
-                placeholder="GitHub repo URL"
-                className="rounded-md border-2 border-black bg-white px-2 py-1 text-sm text-black placeholder-gray-500"
-              />
-              <input
-                value={projectState.liveUrl}
-                onChange={(event) => onProjectFieldChange('liveUrl', event.target.value)}
-                placeholder="Live demo URL (optional)"
-                className="rounded-md border-2 border-black bg-white px-2 py-1 text-sm text-black placeholder-gray-500"
-              />
-              <input
-                value={projectState.notes}
-                onChange={(event) => onProjectFieldChange('notes', event.target.value)}
-                placeholder="Reviewer notes"
-                className="rounded-md border-2 border-black bg-white px-2 py-1 text-sm text-black placeholder-gray-500"
-              />
-            </div>
-            {projectState.error && (
-              <p className="mt-2 text-xs font-medium text-red">{projectState.error}</p>
-            )}
-            {projectState.summary && (
-              <div className="mt-2 rounded-md border-2 border-black bg-gray-50 p-2 text-xs">
-                <p className="font-bold">{projectState.status}</p>
-                <p>{projectState.summary}</p>
-              </div>
-            )}
-          </div>
-        )}
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-t-2 border-black/10 pt-3">
           <p className="text-xs font-medium text-gray-600">

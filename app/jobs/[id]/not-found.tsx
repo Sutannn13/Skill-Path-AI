@@ -1,3 +1,5 @@
+'use client'
+
 import Link from 'next/link'
 import { AppShell, Container, GradientBackground } from '@/components/layout'
 import { DashboardHeader } from '@/components/layout/dashboard-header'

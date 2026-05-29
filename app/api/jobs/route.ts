@@ -98,6 +98,8 @@ interface ExtendedFilters extends JobFilters {
   salaryMin?: number
   salaryMax?: string
   sortBy?: 'newest' | 'best_match' | 'highest_salary' | 'beginner_friendly'
+  beginnerFriendly?: boolean
+  minMatchScore?: number
 }
 
 function toJob(job: JobPost): Job {
@@ -199,7 +201,7 @@ function filterJobs(jobs: JobPost[], filters: ExtendedFilters): JobPost[] {
     filtered = filtered.filter(job => job.workMode === filters.workMode)
   }
 
-  // Employment type filter
+  // Employment type filter (supports both 'type' and 'employmentType' params)
   if (filters.employmentType && filters.employmentType !== 'all' && VALID_EMPLOYMENT_TYPES.includes(filters.employmentType)) {
     const normalizedType = filters.employmentType === 'full-time' ? 'full-time' : filters.employmentType
     filtered = filtered.filter(job => job.employmentType === normalizedType)
@@ -244,9 +246,9 @@ function filterJobs(jobs: JobPost[], filters: ExtendedFilters): JobPost[] {
   }
 
   // Beginner friendly filter
-  if (filters.tags?.includes('beginner_friendly')) {
+  if (filters.beginnerFriendly === true) {
     filtered = filtered.filter(job => {
-      const level = job.experienceLevel || 'beginner'
+      const level = job.experienceLevel || 'junior'
       return (
         job.ai_beginner_friendly === true ||
         job.ai_fresh_graduate_friendly === true ||
@@ -258,15 +260,11 @@ function filterJobs(jobs: JobPost[], filters: ExtendedFilters): JobPost[] {
   }
 
   // Minimum AI match score filter
-  const minMatchScoreParam = filters.query?.match(/min_score:(\d+)/gi)
-  if (minMatchScoreParam) {
-    const minScore = parseInt(minMatchScoreParam[0].replace('min_score:', ''))
-    if (!isNaN(minScore)) {
-      filtered = filtered.filter(job =>
-        (job.ai_match_score !== null && job.ai_match_score !== undefined) &&
-        job.ai_match_score >= minScore
-      )
-    }
+  if (filters.minMatchScore !== undefined && filters.minMatchScore > 0) {
+    filtered = filtered.filter(job => {
+      const score = job.ai_match_score ?? 0
+      return score >= filters.minMatchScore!
+    })
   }
 
   // Source filter
@@ -471,6 +469,8 @@ export async function GET(request: NextRequest) {
       salaryMin: searchParams.get('salaryMin') ? parseInt(searchParams.get('salaryMin')!) : undefined,
       salaryMax: searchParams.get('salaryMax') || undefined,
       tags: searchParams.get('tags')?.split(',').filter(Boolean) || undefined,
+      beginnerFriendly: searchParams.get('beginnerFriendly') === 'true' ? true : undefined,
+      minMatchScore: searchParams.get('minMatchScore') ? parseInt(searchParams.get('minMatchScore')!) : undefined,
     }
 
     // Sort parameter

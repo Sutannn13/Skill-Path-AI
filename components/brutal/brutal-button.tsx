@@ -1,6 +1,6 @@
 'use client'
 
-import { motion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
 
@@ -58,6 +58,7 @@ export function BrutalButton({
   type = 'button',
   fullWidth = false,
 }: BrutalButtonProps) {
+  const prefersReducedMotion = useReducedMotion()
   const isPrimary = variant === 'primary'
   const bgClass = isPrimary ? colorClasses[color] : variantClasses[variant]
 
@@ -66,8 +67,8 @@ export function BrutalButton({
       type={type}
       onClick={onClick}
       disabled={disabled || loading}
-      whileHover={!disabled ? { x: -2, y: -2 } : undefined}
-      whileTap={!disabled ? { x: 0, y: 0 } : undefined}
+      whileHover={!disabled && !prefersReducedMotion ? { x: -2, y: -2 } : undefined}
+      whileTap={!disabled && !prefersReducedMotion ? { x: 0, y: 0 } : undefined}
       className={cn(
         'brutal-border brutal-radius font-bold transition-all duration-150 flex items-center justify-center gap-2',
         bgClass,
@@ -101,6 +102,7 @@ export function BrutalIconButton({
   disabled?: boolean
   'aria-label': string
 }) {
+  const prefersReducedMotion = useReducedMotion()
   const sizeClasses = {
     sm: 'w-8 h-8',
     md: 'w-10 h-10',
@@ -112,8 +114,8 @@ export function BrutalIconButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      whileHover={!disabled ? { x: -2, y: -2 } : undefined}
-      whileTap={!disabled ? { x: 0, y: 0 } : undefined}
+      whileHover={!disabled && !prefersReducedMotion ? { x: -2, y: -2 } : undefined}
+      whileTap={!disabled && !prefersReducedMotion ? { x: 0, y: 0 } : undefined}
       aria-label={ariaLabel}
       className={cn(
         'brutal-border brutal-radius flex items-center justify-center transition-all duration-150',

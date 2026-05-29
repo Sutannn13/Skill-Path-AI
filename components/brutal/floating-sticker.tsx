@@ -1,6 +1,6 @@
 'use client'
 
-import { motion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { GraduationCap, Laptop, BookOpen, Code, Award } from 'lucide-react'
 
@@ -50,6 +50,7 @@ export function FloatingSticker({
   className,
   animate = true,
 }: FloatingStickerProps) {
+  const prefersReducedMotion = useReducedMotion()
   const IconComponent = iconMap[icon]
 
   const sticker = (
@@ -65,7 +66,7 @@ export function FloatingSticker({
     </div>
   )
 
-  if (animate) {
+  if (animate && !prefersReducedMotion) {
     const getAnimation = () => {
       switch (icon) {
         case 'laptop':
@@ -110,14 +111,15 @@ interface StickerGroupProps {
 }
 
 export function StickerGroup({ stickers, className }: StickerGroupProps) {
+  const prefersReducedMotion = useReducedMotion()
   return (
     <div className={cn('flex gap-4 flex-wrap', className)}>
       {stickers.map((sticker, i) => (
         <motion.div
           key={i}
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: i * 0.1 }}
+          initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.8 }}
+          animate={prefersReducedMotion ? undefined : { opacity: 1, scale: 1 }}
+          transition={prefersReducedMotion ? undefined : { delay: i * 0.1 }}
         >
           <FloatingSticker {...sticker} />
         </motion.div>

@@ -6,6 +6,7 @@ import { AppShell, Container, GradientBackground } from '@/components/layout'
 import { DashboardHeader } from '@/components/layout/dashboard-header'
 import { BrutalCard, BrutalButton } from '@/components/brutal'
 import { LogoutButton } from '@/components/auth/logout-button'
+import { PageScene } from '@/components/illustrations/page-scene'
 import { cn } from '@/lib/utils'
 import { resetOnboarding as resetLocalOnboarding, initializeUserProfile, saveUserProfile } from '@/lib/user/profile'
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser'
@@ -268,6 +269,8 @@ export default function SettingsPage() {
         />
 
         <Container className="py-6">
+          <PageScene variant="settings" className="mb-6" />
+
           <div className="grid lg:grid-cols-4 gap-6">
             <div className="lg:col-span-1">
               <BrutalCard color="white" className="sticky top-24">

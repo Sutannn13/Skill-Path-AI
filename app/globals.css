@@ -119,6 +119,103 @@ body {
   animation: wiggle 2s ease-in-out infinite;
 }
 
+/* Cartoon Career OS background and micro-interactions */
+.cartoon-paper-grid {
+  opacity: 0.22;
+  background-image:
+    radial-gradient(var(--color-black) 1px, transparent 1px),
+    linear-gradient(var(--color-black) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-black) 1px, transparent 1px);
+  background-position: 0 0, 0 0, 0 0;
+  background-size: 26px 26px, 104px 104px, 104px 104px;
+}
+
+.cartoon-paper-noise {
+  opacity: 0.08;
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      rgba(17, 17, 17, 0.08) 0,
+      rgba(17, 17, 17, 0.08) 1px,
+      transparent 1px,
+      transparent 6px
+    );
+  mix-blend-mode: multiply;
+}
+
+@keyframes cartoonFloatSlow {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) rotate(var(--tw-rotate));
+  }
+  50% {
+    transform: translate3d(0, -18px, 0) rotate(calc(var(--tw-rotate) + 3deg));
+  }
+}
+
+@keyframes cartoonFloatReverse {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) rotate(var(--tw-rotate));
+  }
+  50% {
+    transform: translate3d(0, 16px, 0) rotate(calc(var(--tw-rotate) - 3deg));
+  }
+}
+
+@keyframes cartoonBob {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) rotate(var(--tw-rotate));
+  }
+  50% {
+    transform: translate3d(8px, -10px, 0) rotate(calc(var(--tw-rotate) + 2deg));
+  }
+}
+
+@keyframes cartoonDrift {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) rotate(var(--tw-rotate));
+  }
+  50% {
+    transform: translate3d(-12px, 8px, 0) rotate(calc(var(--tw-rotate) - 2deg));
+  }
+}
+
+@keyframes cartoonWiggleSoft {
+  0%, 100% {
+    transform: rotate(var(--tw-rotate));
+  }
+  50% {
+    transform: rotate(calc(var(--tw-rotate) + 5deg));
+  }
+}
+
+.cartoon-float-slow {
+  animation: cartoonFloatSlow 14s ease-in-out infinite;
+}
+
+.cartoon-float-reverse {
+  animation: cartoonFloatReverse 16s ease-in-out infinite;
+}
+
+.cartoon-bob {
+  animation: cartoonBob 12s ease-in-out infinite;
+}
+
+.cartoon-drift {
+  animation: cartoonDrift 18s ease-in-out infinite;
+}
+
+.cartoon-wiggle-soft {
+  animation: cartoonWiggleSoft 9s ease-in-out infinite;
+}
+
+.cartoon-sticker-motion {
+  will-change: transform;
+}
+
+.cartoon-confused {
+  animation: cartoonWiggleSoft 1.2s ease-in-out 2;
+}
+
 /* Hide scrollbar but allow scrolling */
 .hide-scrollbar::-webkit-scrollbar {
   display: none;
@@ -132,7 +229,19 @@ body {
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   .animate-float,
-  .animate-wiggle {
+  .animate-wiggle,
+  .cartoon-float-slow,
+  .cartoon-float-reverse,
+  .cartoon-bob,
+  .cartoon-drift,
+  .cartoon-wiggle-soft,
+  .cartoon-confused {
     animation: none;
+  }
+
+  .cartoon-sticker-motion,
+  .brutal-button,
+  .brutal-card {
+    transition-duration: 0.01ms;
   }
 }

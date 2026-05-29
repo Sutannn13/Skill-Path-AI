@@ -17,7 +17,7 @@ export function AppShell({
   showSidebar = true,
 }: AppShellProps) {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="relative isolate min-h-screen overflow-x-hidden bg-background">
       {showSidebar && <DesktopSidebar />}
 
       <main

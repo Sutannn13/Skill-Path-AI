@@ -2,6 +2,7 @@
 
 import { cn } from '@/lib/utils'
 import { useEffect, useState } from 'react'
+import { motion, useReducedMotion } from 'framer-motion'
 
 export type CatMascotMood = 'happy' | 'focus' | 'cheer' | 'sleepy' | 'excited'
 
@@ -26,6 +27,8 @@ export function AnimatedCatMascot({
   size = 'md',
   animated = true,
 }: CatMascotProps) {
+  const prefersReducedMotion = useReducedMotion()
+  const shouldAnimate = animated && !prefersReducedMotion
   const [currentMood, setCurrentMood] = useState(mood)
   const [isBlinking, setIsBlinking] = useState(false)
   const [isWaving, setIsWaving] = useState(false)
@@ -38,7 +41,7 @@ export function AnimatedCatMascot({
 
   // Cycle moods if animated
   useEffect(() => {
-    if (!animated) return
+    if (!shouldAnimate) return
 
     const moods: CatMascotMood[] = ['happy', 'focus', 'cheer', 'sleepy']
     let index = moods.indexOf(currentMood)
@@ -67,7 +70,7 @@ export function AnimatedCatMascot({
       clearInterval(blinkInterval)
       clearInterval(waveInterval)
     }
-  }, [animated, currentMood])
+  }, [shouldAnimate, currentMood])
 
   const sizeMap = {
     sm: 60,
@@ -131,7 +134,7 @@ export function AnimatedCatMascot({
       <div
         className={cn(
           'relative',
-          animated && 'animate-float'
+          shouldAnimate && 'animate-float'
         )}
         style={{
           animationDuration: `${floatDuration}s`,
@@ -144,10 +147,10 @@ export function AnimatedCatMascot({
           height={svgSize}
           className={cn(
             'drop-shadow-lg',
-            animated && currentMood === 'cheer' && 'animate-wiggle'
+            shouldAnimate && currentMood === 'cheer' && 'animate-wiggle'
           )}
           style={{
-            animationDuration: animated && currentMood === 'cheer' ? `${wiggleDuration}s` : undefined,
+            animationDuration: shouldAnimate && currentMood === 'cheer' ? `${wiggleDuration}s` : undefined,
           }}
         >
           {/* Background blur circle */}
@@ -303,7 +306,7 @@ export function AnimatedCatMascot({
         </svg>
 
         {/* Mood indicator dots */}
-        {animated && (
+        {shouldAnimate && (
           <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
             {['happy', 'focus', 'cheer', 'sleepy'].map((m, i) => (
               <div
@@ -321,15 +324,15 @@ export function AnimatedCatMascot({
       {withMessage && (
         <motion.div
           className="absolute -top-6 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md border-2 border-black bg-white px-3 py-1 text-xs font-bold shadow-brutal-sm"
-          animate={{
+          animate={shouldAnimate ? {
             y: [0, -4, 0],
             scale: [1, 1.05, 1],
-          }}
-          transition={{
+          } : undefined}
+          transition={shouldAnimate ? {
             duration: 2,
             repeat: Infinity,
             ease: 'easeInOut',
-          }}
+          } : undefined}
         >
           {withMessage}
           {/* Speech bubble tail */}
@@ -339,6 +342,3 @@ export function AnimatedCatMascot({
     </div>
   )
 }
-
-// Separate animation CSS import
-import { motion } from 'framer-motion'

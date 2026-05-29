@@ -1,6 +1,6 @@
 'use client'
 
-import { motion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 
 export type CardColor = 'white' | 'yellow' | 'blue' | 'pink' | 'green' | 'orange' | 'purple' | 'black' | 'gray' | 'red'
@@ -39,6 +39,7 @@ export function BrutalCard({
   shadow = 'md',
   animate = false,
 }: BrutalCardProps) {
+  const prefersReducedMotion = useReducedMotion()
   const baseClasses = cn(
     'brutal-border brutal-radius border-3 p-6',
     colorClasses[color],
@@ -49,9 +50,9 @@ export function BrutalCard({
   if (animate) {
     return (
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: 'easeOut' }}
+        initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
+        animate={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
+        transition={prefersReducedMotion ? undefined : { duration: 0.4, ease: 'easeOut' }}
         className={baseClasses}
       >
         {children}
@@ -73,10 +74,11 @@ export function BrutalCardHover({
   color?: CardColor
   onClick?: () => void
 }) {
+  const prefersReducedMotion = useReducedMotion()
   return (
     <motion.div
-      whileHover={{ x: -4, y: -4 }}
-      whileTap={{ x: 0, y: 0 }}
+      whileHover={prefersReducedMotion ? undefined : { x: -4, y: -4 }}
+      whileTap={prefersReducedMotion ? undefined : { x: 0, y: 0 }}
       transition={{ type: 'spring', stiffness: 400, damping: 17 }}
       onClick={onClick}
       className={cn(

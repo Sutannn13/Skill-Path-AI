@@ -1,7 +1,7 @@
 {
   "_gate": {
-    "phase": "scaffold-only",
-    "instruction": "DO NOT fill conceptualAnchor, derivedTokenLogic, or any token values until research-design.md Sections 3, 4, and 5 are complete. Do not simplify or rewrite this scaffold. Fill fields in-place after research.",
+    "phase": "active-cartoon-neobrutalism-pass",
+    "instruction": "SkillPath has a project-specific cartoon neobrutalism contract from the current user brief and repo evidence. Preserve the 70/20/10 split: neobrutalist structure, cartoon personality, subtle motion.",
     "blockedFields": [
       "conceptualAnchor.anchorReference",
       "conceptualAnchor.categoryCodes.candidateEntries",
@@ -12,7 +12,7 @@
     ]
   },
   "mode": "dynamic",
-  "status": "seed-needs-design-synthesis",
+  "status": "active",
   "seedPolicy": {
     "mode": "structure-first-scaffold",
     "requiresProjectSpecificRefinement": true,
@@ -20,20 +20,22 @@
     "repoEvidenceShouldOverrideSeedTaste": true
   },
   "project": {
-    "name": "project gabut",
-    "context": "Project brief unresolved. The AI agent must ask for or infer product context before implementation.",
-    "domain": "Fullstack product",
-    "runtimeConstraint": "agent-recommendation-required",
-    "architectureConstraint": "agent-recommendation-required"
+    "name": "SkillPath",
+    "context": "Career OS for developers with onboarding, role-based roadmap, learning resources, quiz/project assessment, weekly sprint planning, jobs, and GitHub/project progress.",
+    "domain": "Developer learning and productivity product",
+    "runtimeConstraint": "Existing Next.js App Router and Supabase architecture must be preserved.",
+    "architectureConstraint": "Additive UI system only; do not rewrite data, auth, API, or roadmap logic for visual changes."
   },
-  "designPhilosophy": "Synthesize design for project gabut from the active brief and any repo evidence available at synthesis time. Choose visual language, libraries, color, type, spacing, and interaction from the product context \"Project brief unresolved. The AI agent must ask for or infer product context before implementation.\"; verify technology claims with official docs.",
+  "designPhilosophy": "SkillPath uses a cartoon career planner layer on top of existing neobrutalist product UI. The app should feel alive and memorable while staying readable, professional, and useful for developer learning workflows.",
   "visualDirection": {
     "seedMode": "scaffold-only",
     "requiresProjectSpecificSynthesis": true,
     "selectionAuthority": "agent-llm-after-current-context-repo-evidence-and-live-official-docs",
     "trendStance": "current-context-first-not-offline-preset-first",
     "distinctiveMoves": [
-      "Choose one product-specific move from task, audience, content, repo evidence, and docs."
+      "Use cream paper workspace backgrounds with deterministic developer doodles per route.",
+      "Use the cat mentor as a compact companion for dashboard, roadmap, sprint, jobs, quiz, project, settings, onboarding, and auth surfaces.",
+      "Keep thick black borders, hard shadows, solid cards, and clear form hierarchy as the dominant structure."
     ],
     "copiedReferenceAllowed": false
   },
@@ -406,21 +408,21 @@
     }
   },
   "derivedTokenLogic": {
-    "anchorReference": "agent-defined-anchor-reference",
-    "colorDerivationSource": "Explain semantic color roles from anchorReference; reject generic palettes without anchor evidence.",
-    "spacingDerivationSource": "Explain spacing rhythm, density, and exceptions from anchorReference. Spacing grids are layout math, not decorative background lines.",
-    "typographyDerivationSource": "Explain display, body, metadata, and data roles from anchorReference.",
-    "motionDerivationSource": "Explain duration, easing, choreography, and reduced-motion from anchorReference.",
+    "anchorReference": "Developer career planner with bright sticky tabs, roadmap checkpoints, project stickers, and stamped progress states.",
+    "colorDerivationSource": "Retain existing SkillPath primitives: cream paper base, black ink borders, yellow priority/action, blue technology/job surfaces, pink roadmap energy, green completion, orange project/deploy energy, purple quiz/settings accents.",
+    "spacingDerivationSource": "Planner surfaces use generous card padding and predictable gaps. Background doodles remain fixed and low opacity; they do not affect layout or reading density.",
+    "typographyDerivationSource": "Display headings stay on Space Grotesk for bold sticker-like labels. Body and operational copy stay on Inter for readability in forms, filters, resources, and review feedback.",
+    "motionDerivationSource": "Use slow floating doodles, pressed button/card feedback, and mascot idle motion. Disable all decorative movement through prefers-reduced-motion.",
     "colorSpace": "Prefer OKLCH for newly generated CSS tokens when supported; preserve existing design-system token formats and document fallback color space.",
     "spatialBaseUnit": "Name the base spacing unit, major multiples, density exceptions, and optical exceptions before writing spacing values.",
     "typeScaleMethod": "Prefer fluid clamp() type scales when supported; name ratio, role contrast, balance/wrap behavior, and numeric typography needs.",
     "motionBudget": "Name micro, layout, entrance, easing, stagger, and reduced-motion budgets; prefer transform/opacity for high-frequency motion.",
     "validationRule": "Every semantic token role must trace to anchorReference; keep exact primitive values flexible unless locked by repo evidence, accessibility validation, implementation constraints, or explicit user approval.",
     "tokenContinuityClassification": {
-      "typography": "pending-research",
-      "palette": "pending-research",
-      "motion": "pending-research",
-      "spacing": "pending-research",
+      "typography": "continuity-retained",
+      "palette": "continuity-retained",
+      "motion": "anchor-derived",
+      "spacing": "continuity-retained",
       "validValues": [
         "anchor-derived",
         "continuity-retained",
@@ -431,8 +433,8 @@
     }
   },
   "motionPaletteDecision": {
-    "productCategorySignal": "agent-inferred-starting-heuristic",
-    "densityDecisionSource": "Choose motion density from task, content, brand, device, performance, and accessibility. Categories are heuristics.",
+    "productCategorySignal": "Cartoon Career OS for Developers plus Neo-brutalist Learning Game.",
+    "densityDecisionSource": "Use low decorative motion because SkillPath is a productivity and learning app with text-heavy forms, cards, roadmaps, jobs, and submissions.",
     "requiredInteractionStates": [
       "default",
       "hover",
@@ -457,21 +459,21 @@
       "soft-glow-ai-template-default",
       "cyber-neon-terminal-default"
     ],
-    "spatialDecision": "State 3D/canvas/WebGL fit. If omitted, name product-fit reason and replacement interaction quality."
+    "spatialDecision": "No new 3D/canvas layer for this pass. Existing CSS/SVG/lucide/framer-motion assets provide the required personality with lower hydration and performance risk."
   },
   "aiSafeUiAudit": {
-    "status": "agent-must-complete-before-ui-implementation",
+    "status": "active-cartoon-neobrutalism-reviewed",
     "failureDefinition": "AI-safe UI uses template cards, generic marks, decorative grid or line wallpaper, calibration-mark wallpaper, test/demo/placeholder copy, terminal-only user paths, safe palettes, glow backgrounds, or copied scaffold composition.",
     "interchangeabilityTest": "If this UI can be renamed from project gabut to another product category without changing composition, palette, iconography, and motion, revise it.",
     "requiredProductSpecificSignals": [
-      "agent-defined-product-specific-data-treatment",
-      "agent-defined-product-specific-motion-or-state-behavior",
-      "agent-defined-product-specific-morphology-iconography-or-spatial-structure"
+      "Route-specific doodles map to real SkillPath workflows: roadmap maps, sprint notes, job radar, quiz question marks, project deploy stickers, settings tools.",
+      "Motion is limited to slow background float, mascot idle movement, and pressed button/card feedback.",
+      "The mascot accessory system gives each learning/productivity area a recognizable companion state."
     ],
     "paletteExplorationRule": "Use a visually exploratory product-derived palette with WCAG contrast and status clarity.",
     "backgroundPatternRule": "Lines, grids, scanlines, noise, glows, blobs, logos, calibration marks, and geometry must serve a named product function; never use grid, line, or calibration-mark backgrounds as first-output filler. Measurement and inspection marks belong to task overlays or controls, not page wallpaper.",
     "aiColorAudit": {
-      "status": "agent-must-complete-before-ui-implementation",
+      "status": "active-continuity-palette-reviewed",
       "failureDefinition": "AI color drift uses safe defaults before deriving roles from the product anchor.",
       "autopilotRisks": [
         "cream-editorial-default",
@@ -489,7 +491,7 @@
       "reviewQuestion": "Why does this palette belong to this product?"
     },
     "motionSpatialCourageAudit": {
-      "status": "agent-must-complete-before-ui-implementation",
+      "status": "active-css-svg-motion-selected",
       "defaultStance": "Treat motion, scroll choreography, canvas, WebGL, and 3D as first-class options.",
       "requiredDecisionFields": [
         "signature-motion-or-interaction",
@@ -499,7 +501,7 @@
       "rejectionRule": "State a product reason and replacement interaction quality before omitting 3D/canvas. Package count or vague performance fear is not enough.",
       "reviewQuestion": "Is the interaction as expressive as the product can responsibly support?"
     },
-    "reviewQuestion": "What visible evidence proves this is product-specific?",
+    "reviewQuestion": "Does each route show a SkillPath-specific learning, career, job, quiz, project, or profile signal without hiding content?",
     "blockingByDefault": true
   },
   "productionContentPolicy": {
@@ -515,18 +517,18 @@
     "reviewQuestion": "Can this UI be shipped to real users without removing test/demo copy or terminal-only workflow dependencies?",
     "blockingByDefault": true
   },
-  "libraryResearchStatus": "pending-verification",
+  "libraryResearchStatus": "existing-dependencies-only-no-new-library",
   "libraryDecisions": [
     {
-      "library": "agent-defined-or-none",
-      "purpose": "Select UI-related libraries dynamically from product fit, accessibility, interaction quality, maintenance, and current official docs before imports.",
-      "verifiedAt": null,
-      "sourceUrl": null,
-      "stableVersion": null,
-      "fallbackIfUnavailable": "Use native CSS, browser APIs, or existing dependencies.",
-      "selectionPolicy": "Do not default to shadcn, native-only, Tailwind-only, or dependency avoidance by habit; do not avoid them out of guardrail fear when they fit.",
-      "officialScaffolderPolicy": "For fresh projects, prefer official setup commands when they create the supported project shape; manual assembly requires a documented repo, learning, prototype, or architecture reason.",
-      "frameworkNeutralityPolicy": "Next.js, Vite, Astro, React Router, SvelteKit, Laravel, and plain HTML are candidates, not defaults or forbidden choices. Compare at least one plausible alternative when no framework is user-constrained, then choose the technology that removes bottlenecks for this project."
+      "library": "Tailwind CSS, lucide-react, framer-motion",
+      "purpose": "Reuse existing styling, icon, and micro-interaction dependencies already present in the repository. Do not add a new animation or illustration package for this pass.",
+      "verifiedAt": "2026-05-29",
+      "sourceUrl": "repo-package-json",
+      "stableVersion": "repo-locked",
+      "fallbackIfUnavailable": "Use static SVG/CSS shapes and existing brutal components.",
+      "selectionPolicy": "Existing dependencies are sufficient for subtle transform-only motion, stickers, icons, and mascot scenes.",
+      "officialScaffolderPolicy": "Not applicable; this is an additive UI pass in an existing Next.js project.",
+      "frameworkNeutralityPolicy": "Existing Next.js App Router architecture remains the source of truth."
     }
   ],
   "mathSystems": {

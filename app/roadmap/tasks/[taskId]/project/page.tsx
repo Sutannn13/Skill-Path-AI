@@ -16,6 +16,7 @@ import {
 import { AppShell, Container, GradientBackground } from '@/components/layout'
 import { DashboardHeader } from '@/components/layout/dashboard-header'
 import { BrutalButton, BrutalCard, SkillBadge } from '@/components/brutal'
+import { PageScene } from '@/components/illustrations/page-scene'
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser'
 import { loadRoadmapTaskLearningContext, RoadmapTaskLearningContext } from '@/lib/roadmap/navigation-context'
 import { RoadmapProjectReviewStatus } from '@/types'
@@ -251,6 +252,8 @@ export default function RoadmapTaskProjectPage() {
         />
 
         <Container className="py-6">
+          <PageScene variant="project" compact className="mb-4" />
+
           <div className="mb-4">
             <Link href="/roadmap">
               <BrutalButton variant="outline" color="black" size="sm">

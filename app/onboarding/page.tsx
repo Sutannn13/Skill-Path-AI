@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { AppShell, Container, GradientBackground } from '@/components/layout'
 import { BrutalCard, BrutalButton, BrutalCardHover } from '@/components/brutal'
+import { PageScene } from '@/components/illustrations/page-scene'
 import {
   ArrowRight,
   ArrowLeft,
@@ -600,6 +601,10 @@ export default function OnboardingPage() {
       </header>
 
       <Container className="py-8">
+        <div className="mx-auto mb-6 max-w-2xl">
+          <PageScene variant="onboarding" compact />
+        </div>
+
         {statusMessage && (
           <div className="mx-auto mb-6 max-w-2xl">
             <BrutalCard color={statusMessage.type === 'success' ? 'green' : 'red'}>

@@ -7,6 +7,7 @@ import { AppShell, Container, GradientBackground } from '@/components/layout'
 import { DashboardHeader } from '@/components/layout/dashboard-header'
 import { BrutalCard, BrutalButton, SkillBadge, ScoreBar } from '@/components/brutal'
 import { CatMascot } from '@/components/illustrations/cat-mascot'
+import { PageScene } from '@/components/illustrations/page-scene'
 import { generateFallbackRoadmap } from '@/lib/ai'
 import { getCuratedResourcesForTask } from '@/lib/roadmap/resources'
 import { calculateSkillGap } from '@/lib/scoring/skill-gap'
@@ -1246,6 +1247,8 @@ export default function RoadmapPage() {
         />
 
         <Container className="py-6">
+          <PageScene variant="roadmap" className="mb-6" />
+
           {mode === 'loading' && (
             <BrutalCard color="white" className="mb-6">
               <p className="font-bold">{statusMessage}</p>

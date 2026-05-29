@@ -8,6 +8,7 @@ import { DashboardHeader } from '@/components/layout/dashboard-header'
 import { BrutalCard, BrutalCardHover, BrutalButton, ScoreMeter, ScoreBar, SkillBadge, FloatingSticker } from '@/components/brutal'
 import { CatMascot } from '@/components/illustrations/cat-mascot'
 import { EmptyStateDoodle } from '@/components/illustrations/empty-state-doodle'
+import { PageScene } from '@/components/illustrations/page-scene'
 import {
   Briefcase,
   Zap,
@@ -304,6 +305,8 @@ export default function DashboardPage() {
 
         <Container className="py-6">
           <div className="space-y-8">
+            <PageScene variant="dashboard" />
+
             {state.error && (
               <BrutalCard color="red" className="flex items-start gap-3">
                 <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />

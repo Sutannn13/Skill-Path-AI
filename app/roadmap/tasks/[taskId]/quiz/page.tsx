@@ -7,6 +7,7 @@ import { AlertCircle, ArrowLeft, CheckCircle2, ClipboardCheck, Lock } from 'luci
 import { AppShell, Container, GradientBackground } from '@/components/layout'
 import { DashboardHeader } from '@/components/layout/dashboard-header'
 import { BrutalButton, BrutalCard, SkillBadge } from '@/components/brutal'
+import { PageScene } from '@/components/illustrations/page-scene'
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser'
 import { loadRoadmapTaskLearningContext, RoadmapTaskLearningContext } from '@/lib/roadmap/navigation-context'
 import { cn } from '@/lib/utils'
@@ -233,6 +234,8 @@ export default function RoadmapTaskQuizPage() {
         />
 
         <Container className="py-6">
+          <PageScene variant="quiz" compact className="mb-4" />
+
           <div className="mb-4">
             <Link href="/roadmap">
               <BrutalButton variant="outline" color="black" size="sm">

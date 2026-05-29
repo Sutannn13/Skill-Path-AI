@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { AppShell, Container, GradientBackground } from '@/components/layout'
 import { DashboardHeader } from '@/components/layout/dashboard-header'
 import { BrutalCard, BrutalButton, BrutalCardHover, ScoreBar, SkillBadge } from '@/components/brutal'
+import { PageScene } from '@/components/illustrations/page-scene'
 import { cn } from '@/lib/utils'
 import {
   Calendar,
@@ -125,6 +126,8 @@ export default function SprintPage() {
         />
 
         <Container className="py-6">
+          <PageScene variant="sprint" className="mb-6" />
+
           {/* Streak and Week Info */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
             <BrutalCard color="orange" className="text-center">

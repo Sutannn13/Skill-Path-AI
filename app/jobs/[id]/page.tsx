@@ -7,6 +7,7 @@ import { motion } from 'framer-motion'
 import { AppShell, Container, GradientBackground } from '@/components/layout'
 import { DashboardHeader } from '@/components/layout/dashboard-header'
 import { BrutalCard, BrutalButton, SkillBadge, MatchScorePill } from '@/components/brutal'
+import { PageScene } from '@/components/illustrations/page-scene'
 import { getDeterministicMatchScore, getDeterministicValidityScore, getRiskLabel, getRiskLevel } from '@/lib/jobs/display'
 import { extractSkillsFromJob } from '@/lib/jobs/skill-extraction'
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser'
@@ -246,6 +247,8 @@ export default function JobDetailPage() {
         />
 
         <Container className="py-6">
+          <PageScene variant="jobs" compact className="mb-6" />
+
           <Link href="/jobs" className="mb-6 inline-flex">
             <BrutalButton variant="ghost" color="black" size="sm">
               <ArrowLeft className="w-4 h-4 mr-2" />

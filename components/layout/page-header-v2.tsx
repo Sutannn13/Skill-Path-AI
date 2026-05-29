@@ -1,9 +1,9 @@
 'use client'
 
-import { motion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 import { cn } from '@/lib/utils'
-import { GraduationCap } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { CartoonMascot } from '@/components/illustrations/cartoon-mascot'
 
 // ============================================
 // PAGE HEADER v2 - Comic Panel Style
@@ -31,14 +31,6 @@ const iconColorClasses = {
   purple: 'bg-purple',
 }
 
-const mascotEmojis = {
-  happy: '🐱',
-  focused: '😺',
-  celebrating: '🎉',
-  thinking: '🤔',
-  sleepy: '😴',
-}
-
 const variantStyles = {
   default: 'py-6',
   hero: 'py-10 border-b-0',
@@ -57,11 +49,13 @@ export function PageHeaderV2({
   className,
   variant = 'default',
 }: PageHeaderV2Props) {
+  const prefersReducedMotion = useReducedMotion()
+
   return (
     <motion.header
-      initial={{ opacity: 0, y: -10 }}
+      initial={prefersReducedMotion ? false : { opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
+      transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.3 }}
       className={cn(
         'relative bg-white border-b-3 border-black',
         variantStyles[variant],
@@ -77,9 +71,9 @@ export function PageHeaderV2({
           {/* Icon Badge */}
           {Icon && (
             <motion.div
-              initial={{ scale: 0.8 }}
+              initial={prefersReducedMotion ? false : { scale: 0.8 }}
               animate={{ scale: 1 }}
-              transition={{ delay: 0.1, type: 'spring', stiffness: 400 }}
+              transition={prefersReducedMotion ? { duration: 0 } : { delay: 0.1, type: 'spring', stiffness: 400 }}
               className={cn(
                 'w-14 h-14 brutal-border brutal-radius flex items-center justify-center shrink-0',
                 iconColorClasses[iconColor]
@@ -114,14 +108,12 @@ export function PageHeaderV2({
         {/* Mascot Speech Bubble - Optional */}
         {variant === 'hero' && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
+            initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.3 }}
+            transition={prefersReducedMotion ? { duration: 0 } : { delay: 0.3 }}
             className="mt-4 flex items-center gap-3"
           >
-            <div className="w-10 h-10 bg-yellow brutal-border brutal-radius flex items-center justify-center">
-              <span className="text-xl">{mascotEmojis[mascotMood]}</span>
-            </div>
+            <CartoonMascot mood={mascotMood} size="sm" animated={!prefersReducedMotion} />
             <div className="relative rounded-brutal border-3 border-black bg-white px-4 py-2 shadow-brutal-sm">
               <div className="absolute -left-2 top-4 h-3 w-3 rotate-45 border-b-3 border-l-3 border-black bg-white" />
               <p className="font-display text-sm font-bold">

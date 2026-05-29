@@ -7,7 +7,6 @@ import { AppShell, Container, GradientBackground } from '@/components/layout'
 import { DashboardHeader } from '@/components/layout/dashboard-header'
 import { BrutalCard, BrutalButton, SkillBadge, MatchScorePill, StickerBadge } from '@/components/brutal'
 import { PageScene } from '@/components/illustrations/page-scene'
-import { CartoonBackground } from '@/components/illustrations/cartoon-background'
 import { getDeterministicMatchScore, getDeterministicValidityScore, getRiskLabel, getRiskLevel } from '@/lib/jobs/display'
 import { getJobSearchText, inferJobExperience, rankJobsForCareerProfile } from '@/lib/jobs/ranking'
 import { extractSkillsFromJob } from '@/lib/jobs/skill-extraction'
@@ -434,8 +433,7 @@ export default function JobsPage() {
 
   return (
     <AppShell showBottomNav={true}>
-      <CartoonBackground variant="jobs" intensity="normal" showDoodles animated />
-      <GradientBackground />
+      <GradientBackground variant="jobs" />
 
       <div className="flex-1">
         <DashboardHeader

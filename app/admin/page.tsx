@@ -99,8 +99,6 @@ function AdminShell({
     <AppShell showBottomNav={false}>
       <GradientBackground />
       <DashboardHeader
-        icon={ShieldCheck}
-        iconColor="yellow"
         title="Admin Dashboard"
         subtitle="Operational view for SkillPath maintainers"
       />
@@ -184,8 +182,6 @@ export default async function AdminPage() {
     <AppShell showBottomNav={false}>
       <GradientBackground />
       <DashboardHeader
-        icon={ShieldCheck}
-        iconColor="yellow"
         title="Admin Dashboard"
         subtitle="User access, jobs, roadmaps, and sync health"
       />

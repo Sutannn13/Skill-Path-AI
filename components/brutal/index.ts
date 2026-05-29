@@ -8,6 +8,7 @@ export { FloatingSticker, StickerGroup } from './floating-sticker'
 // Brutal UI v2 components
 export {
   StickerBadge,
+  StatusStamp,
   QuestCard,
   ProgressStamp,
   SectionHeader,

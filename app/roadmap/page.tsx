@@ -9,7 +9,6 @@ import { DashboardHeader } from '@/components/layout/dashboard-header'
 import { BrutalCard, BrutalButton, SkillBadge, ScoreBar, StickerBadge } from '@/components/brutal'
 import { CatMascot } from '@/components/illustrations/cat-mascot'
 import { PageScene } from '@/components/illustrations/page-scene'
-import { CartoonBackground } from '@/components/illustrations/cartoon-background'
 import { generateFallbackRoadmap } from '@/lib/ai'
 import { getCuratedResourcesForTask } from '@/lib/roadmap/resources'
 import { calculateSkillGap } from '@/lib/scoring/skill-gap'
@@ -50,7 +49,7 @@ import {
   UserSkill,
 } from '@/types'
 
-type RoadmapMode = 'loading' | 'supabase' | 'demo' | 'error'
+type RoadmapMode = 'loading' | 'supabase' | 'demo' | 'error' | 'repair'
 type SaveState = 'idle' | 'saving' | 'saved' | 'error'
 const IS_DEVELOPMENT = process.env.NODE_ENV === 'development'
 
@@ -315,7 +314,12 @@ function buildRoadmapFromRows(
   taskRows: RoadmapTaskRow[],
   resourceRows: RoadmapResourceRow[],
   progressRows: RoadmapProgressRow[]
-): Roadmap {
+): Roadmap | null {
+  // Return null if no tasks (empty roadmap)
+  if (taskRows.length === 0) {
+    return null
+  }
+
   const progressByResourceId = new Map(progressRows.map((progress) => [progress.resource_id, progress]))
   const resourcesByTaskId = new Map<string, RoadmapResource[]>()
 
@@ -487,6 +491,12 @@ export default function RoadmapPage() {
   const [assessmentPersistenceAvailable, setAssessmentPersistenceAvailable] = useState(true)
   const [isGenerating, setIsGenerating] = useState(false)
   const [finalProjectStatus, setFinalProjectStatus] = useState<RoadmapProjectReviewStatus | null>(null)
+
+  // Repair callback for empty-task roadmaps
+  const repairEmptyRoadmap = async () => {
+    if (!supabase || !currentUserId) return
+    await regenerateRoadmap()
+  }
 
   const seedRoadmapAssessments = async (roadmapId: string, taskRows: Array<{
     id: string
@@ -845,6 +855,14 @@ export default function RoadmapPage() {
         setCurrentUserId(user.id)
         const savedRoadmap = await loadLatestRoadmap(user.id)
 
+        // Handle empty roadmap (0 tasks) - trigger repair
+        if (savedRoadmap === null && isActive) {
+          setRoadmap(null)
+          setMode('repair')
+          setStatusMessage('This roadmap was created without tasks. Click repair to regenerate your learning path.')
+          return
+        }
+
         if (savedRoadmap) {
           if (isActive) {
             setRoadmap(savedRoadmap)
@@ -1032,6 +1050,26 @@ export default function RoadmapPage() {
     setIsGenerating(true)
     setSaveState('saving')
     setSaveMessage('Generating new roadmap...')
+
+    // Archive current active roadmap before regenerating
+    try {
+      const { error: archiveError } = await supabase
+        .from('roadmaps')
+        .update({
+          is_active: false,
+          archived_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', currentUserId)
+        .eq('is_active', true)
+
+      if (archiveError) {
+        // Non-fatal - continue with generation
+        console.warn('[Roadmap] Failed to archive old roadmap:', archiveError.message)
+      }
+    } catch (archiveWarning) {
+      console.warn('[Roadmap] Archive warning:', archiveWarning instanceof Error ? archiveWarning.message : archiveWarning)
+    }
 
     try {
       const generated = await (async () => {
@@ -1240,8 +1278,7 @@ export default function RoadmapPage() {
 
   return (
     <AppShell showBottomNav={true}>
-      <CartoonBackground variant="roadmap" intensity="normal" showDoodles animated />
-      <GradientBackground />
+      <GradientBackground variant="roadmap" />
 
       <div className="flex-1">
         <DashboardHeader
@@ -1264,6 +1301,31 @@ export default function RoadmapPage() {
             <BrutalCard color={mode === 'error' ? 'red' : 'yellow'} className="mb-6 flex items-start gap-3">
               <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
               <p className="font-medium">{statusMessage}</p>
+            </BrutalCard>
+          )}
+
+          {mode === 'repair' && (
+            <BrutalCard color="orange" className="mb-6">
+              <div className="flex items-start gap-4">
+                <div className="w-16 h-16 bg-yellow/20 brutal-border brutal-radius flex items-center justify-center shrink-0">
+                  <span className="text-3xl">🔧</span>
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-display font-bold text-xl mb-2">Roadmap Repair Needed</h3>
+                  <p className="text-black/70 mb-4">
+                    This roadmap was created without tasks. It cannot be used for learning. Click repair to regenerate your learning path with proper tasks and resources.
+                  </p>
+                  <BrutalButton
+                    color="black"
+                    onClick={repairEmptyRoadmap}
+                    loading={isGenerating}
+                    disabled={isGenerating}
+                  >
+                    <Rocket className="w-4 h-4 mr-2" />
+                    {isGenerating ? 'Generating new roadmap...' : 'Repair Roadmap'}
+                  </BrutalButton>
+                </div>
+              </div>
             </BrutalCard>
           )}
 

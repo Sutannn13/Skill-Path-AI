@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { AppShell, Container, GradientBackground } from '@/components/layout'
 import { DashboardHeader } from '@/components/layout/dashboard-header'
 import { BrutalButton, BrutalCard } from '@/components/brutal'
+import { PageScene } from '@/components/illustrations/page-scene'
 import { ArrowLeft, AlertTriangle, Briefcase } from 'lucide-react'
 
 export default function JobNotFound() {
@@ -18,6 +19,8 @@ export default function JobNotFound() {
       />
 
       <Container className="py-6">
+        <PageScene variant="jobs" compact className="mb-6" />
+
         <BrutalCard color="white" className="max-w-2xl">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
             <div className="w-16 h-16 bg-yellow/20 brutal-border brutal-radius flex items-center justify-center">

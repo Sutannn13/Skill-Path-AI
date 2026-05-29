@@ -2,6 +2,17 @@
 
 import { motion, useReducedMotion } from 'framer-motion'
 import { cn } from '@/lib/utils'
+import {
+  AlertTriangle,
+  CheckCircle2,
+  HelpCircle,
+  Lock,
+  PartyPopper,
+  Search,
+  TrendingDown,
+  TrendingUp,
+  X,
+} from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
 // ============================================
@@ -71,6 +82,15 @@ const iconSizes = {
   sm: 'w-3 h-3',
   md: 'w-4 h-4',
   lg: 'w-5 h-5',
+}
+
+const iconColorClasses = {
+  yellow: 'bg-yellow',
+  blue: 'bg-blue',
+  pink: 'bg-pink',
+  green: 'bg-green',
+  orange: 'bg-orange',
+  purple: 'bg-purple',
 }
 
 export function StickerBadge({ variant, label, icon: Icon, size = 'md', className }: StickerBadgeProps) {
@@ -147,7 +167,7 @@ export function QuestCard({
         {Icon && (
           <div className={cn(
             'w-10 h-10 brutal-border brutal-radius flex items-center justify-center shrink-0',
-            `bg-${iconColor}`
+            iconColorClasses[iconColor]
           )}>
             <Icon className="w-5 h-5" />
           </div>
@@ -176,6 +196,44 @@ export function QuestCard({
         </div>
       </div>
     </motion.div>
+  )
+}
+
+// --- StatusStamp Component ---
+type TaskStatus =
+  | 'resources_pending'
+  | 'quiz_pending'
+  | 'project_pending'
+  | 'completed'
+  | 'locked'
+  | 'in_progress'
+
+interface StatusStampProps {
+  status: TaskStatus
+  label?: string
+  className?: string
+}
+
+const statusStampConfig: Record<TaskStatus, { variant: StickerBadgeVariant; label: string; icon: LucideIcon }> = {
+  resources_pending: { variant: 'yellow', label: 'Resources Pending', icon: Search },
+  quiz_pending: { variant: 'in-progress', label: 'Quiz Pending', icon: HelpCircle },
+  project_pending: { variant: 'needs-review', label: 'Project Pending', icon: PartyPopper },
+  completed: { variant: 'completed', label: 'Completed', icon: CheckCircle2 },
+  locked: { variant: 'locked', label: 'Locked', icon: Lock },
+  in_progress: { variant: 'in-progress', label: 'In Progress', icon: TrendingUp },
+}
+
+export function StatusStamp({ status, label, className }: StatusStampProps) {
+  const config = statusStampConfig[status]
+
+  return (
+    <StickerBadge
+      variant={config.variant}
+      label={label ?? config.label}
+      icon={config.icon}
+      size="sm"
+      className={className}
+    />
   )
 }
 
@@ -253,24 +311,21 @@ interface EmptyStateProps {
 }
 
 export function EmptyState({ icon: Icon, title, description, action, variant = 'default', className }: EmptyStateProps) {
-  const iconMap = {
-    default: 'Search',
-    locked: 'Lock',
-    search: 'Search',
+  const defaultIconMap: Record<NonNullable<EmptyStateProps['variant']>, LucideIcon> = {
+    default: Search,
+    locked: Lock,
+    search: HelpCircle,
   }
-
-  const emojiMap = {
-    default: '🔍',
-    locked: '🔒',
-    search: '❓',
-  }
+  const DisplayIcon = Icon ?? defaultIconMap[variant]
 
   return (
     <div className={cn(
       'brutal-border brutal-radius p-8 text-center bg-white/50',
       className
     )}>
-      <div className="text-4xl mb-4">{emojiMap[variant]}</div>
+      <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center brutal-border brutal-radius bg-yellow">
+        <DisplayIcon className="h-7 w-7" aria-hidden="true" />
+      </div>
       <h3 className="font-display font-bold text-lg mb-2">{title}</h3>
       {description && <p className="text-sm text-black/60 mb-4">{description}</p>}
       {action}
@@ -297,7 +352,9 @@ export function ErrorState({
       'brutal-border brutal-radius p-6 text-center bg-red/10 border-red',
       className
     )}>
-      <div className="text-4xl mb-4">⚠️</div>
+      <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center brutal-border brutal-radius bg-red/10">
+        <AlertTriangle className="h-7 w-7 text-red" aria-hidden="true" />
+      </div>
       <h3 className="font-display font-bold text-lg mb-2">{title}</h3>
       <p className="text-sm text-black/70 mb-4">{description}</p>
       {action}
@@ -326,7 +383,13 @@ export function SuccessState({
       'brutal-border brutal-radius p-6 text-center bg-green/10 border-green',
       className
     )}>
-      <div className="text-4xl mb-4">🎉</div>
+      <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center brutal-border brutal-radius bg-green/20">
+        {Icon ? (
+          <Icon className="h-7 w-7" aria-hidden="true" />
+        ) : (
+          <PartyPopper className="h-7 w-7" aria-hidden="true" />
+        )}
+      </div>
       <h3 className="font-display font-bold text-lg mb-2">{title}</h3>
       {description && <p className="text-sm text-black/70 mb-4">{description}</p>}
       {action}
@@ -415,7 +478,7 @@ export function StatCard({
   label, value, icon: Icon, iconColor = 'yellow',
   trend, trendValue, className
 }: StatCardProps) {
-  const iconBg = `bg-${iconColor}`
+  const iconBg = iconColorClasses[iconColor]
 
   return (
     <div className={cn(
@@ -438,13 +501,13 @@ export function StatCard({
       </div>
       {trend && trendValue && (
         <div className={cn(
-          'text-xs font-medium',
+          'flex items-center gap-1 text-xs font-medium',
           trend === 'up' && 'text-green',
           trend === 'down' && 'text-red',
           trend === 'neutral' && 'text-black/60'
         )}>
-          {trend === 'up' && '↑ '}
-          {trend === 'down' && '↓ '}
+          {trend === 'up' && <TrendingUp className="h-3 w-3" aria-hidden="true" />}
+          {trend === 'down' && <TrendingDown className="h-3 w-3" aria-hidden="true" />}
           {trendValue}
         </div>
       )}
@@ -490,7 +553,7 @@ export function TagBadge({
           className="ml-1 hover:bg-black/10 rounded-full p-0.5"
           aria-label={`Remove ${label}`}
         >
-          ×
+          <X className="h-3 w-3" aria-hidden="true" />
         </button>
       )}
     </span>

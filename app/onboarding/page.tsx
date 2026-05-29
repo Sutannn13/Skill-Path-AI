@@ -19,7 +19,14 @@ import {
   RefreshCw,
   Edit3,
   User,
+  Server,
+  Monitor,
+  Layers,
+  Smartphone,
+  BarChart3,
+  Palette,
 } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { TARGET_ROLES, CURRENT_LEVELS, GOALS, STUDY_TIMES, SKILLS, getSkillById } from '@/lib/constants'
 import { SkillLevel, TargetRole, CurrentLevel, GoalType, StudyTime } from '@/types'
 import { cn } from '@/lib/utils'
@@ -27,6 +34,24 @@ import { initializeUserProfile, completeOnboarding as completeLocalOnboarding, r
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser'
 
 const TOTAL_STEPS = 6
+
+const roleVisuals: Record<TargetRole, { icon: LucideIcon; color: 'blue' | 'green' | 'pink' | 'orange' | 'purple' | 'yellow' }> = {
+  'frontend-developer': { icon: Monitor, color: 'blue' },
+  'backend-developer': { icon: Server, color: 'green' },
+  'fullstack-developer': { icon: Layers, color: 'pink' },
+  'ui-engineer': { icon: Palette, color: 'purple' },
+  'mobile-developer': { icon: Smartphone, color: 'orange' },
+  'data-analyst': { icon: BarChart3, color: 'yellow' },
+}
+
+const roleIconColorClasses: Record<(typeof roleVisuals)[TargetRole]['color'], string> = {
+  blue: 'bg-blue/20',
+  green: 'bg-green/20',
+  pink: 'bg-pink/20',
+  orange: 'bg-orange/20',
+  purple: 'bg-purple/20',
+  yellow: 'bg-yellow/30',
+}
 
 interface FormData {
   targetRole: TargetRole | ''
@@ -194,7 +219,7 @@ export default function OnboardingPage() {
     }
   }, [supabase])
 
-  const updateFormData = (field: string, value: any) => {
+  const updateFormData = <K extends keyof FormData>(field: K, value: FormData[K]) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
@@ -637,20 +662,31 @@ export default function OnboardingPage() {
                 </div>
 
                 <div className="grid sm:grid-cols-2 gap-4">
-                  {TARGET_ROLES.map((role) => (
-                    <BrutalCardHover
-                      key={role.id}
-                      color={formData.targetRole === role.id ? 'yellow' : 'white'}
-                      className={cn(
-                        'cursor-pointer transition-all',
-                        formData.targetRole === role.id && 'ring-4 ring-yellow ring-offset-2'
-                      )}
-                      onClick={() => updateFormData('targetRole', role.id)}
-                    >
-                      <h3 className="font-display font-bold text-lg mb-2">{role.label}</h3>
-                      <p className="text-sm text-gray-600">{role.description}</p>
-                    </BrutalCardHover>
-                  ))}
+                  {TARGET_ROLES.map((role) => {
+                    const roleVisual = roleVisuals[role.id]
+                    const RoleIcon = roleVisual.icon
+
+                    return (
+                      <BrutalCardHover
+                        key={role.id}
+                        color={formData.targetRole === role.id ? 'yellow' : 'white'}
+                        className={cn(
+                          'cursor-pointer transition-all',
+                          formData.targetRole === role.id && 'ring-4 ring-yellow ring-offset-2'
+                        )}
+                        onClick={() => updateFormData('targetRole', role.id)}
+                      >
+                        <div className={cn(
+                          'mb-3 flex h-12 w-12 items-center justify-center brutal-border brutal-radius',
+                          roleIconColorClasses[roleVisual.color]
+                        )}>
+                          <RoleIcon className="h-6 w-6" aria-hidden="true" />
+                        </div>
+                        <h3 className="font-display font-bold text-lg mb-2">{role.label}</h3>
+                        <p className="text-sm text-gray-600">{role.description}</p>
+                      </BrutalCardHover>
+                    )
+                  })}
                 </div>
               </div>
             )}

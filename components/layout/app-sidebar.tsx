@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { LogoutButton } from '@/components/auth/logout-button'
 import {
@@ -16,9 +16,7 @@ import {
   GitBranch,
   Target,
   Flame,
-  ChevronRight,
 } from 'lucide-react'
-import { useState } from 'react'
 
 // ============================================
 // SIDEBAR v2 - Command Center Design
@@ -32,6 +30,7 @@ interface SidebarProgressWidgetProps {
 }
 
 function SidebarProgressWidget({ roleLabel = 'Developer', level = 1, progress = 0, streak = 0 }: SidebarProgressWidgetProps) {
+  const prefersReducedMotion = useReducedMotion()
   const levelNames = ['Newbie', 'Apprentice', 'Developer', 'Expert', 'Master']
   const currentLevelName = levelNames[Math.min(level, levelNames.length - 1)]
 
@@ -40,7 +39,7 @@ function SidebarProgressWidget({ roleLabel = 'Developer', level = 1, progress = 
       {/* Level Header */}
       <div className="flex items-center gap-3 mb-2">
         <div className="w-12 h-12 bg-yellow brutal-border brutal-radius flex items-center justify-center">
-          <span className="text-2xl">🐱</span>
+          <GraduationCap className="h-6 w-6" aria-hidden="true" />
         </div>
         <div className="flex-1">
           <p className="font-display font-bold text-sm">{currentLevelName}</p>
@@ -63,9 +62,9 @@ function SidebarProgressWidget({ roleLabel = 'Developer', level = 1, progress = 
         <div className="h-2 bg-black/10 brutal-radius border border-black/20 overflow-hidden">
           <motion.div
             className="h-full bg-black"
-            initial={{ width: 0 }}
+            initial={prefersReducedMotion ? false : { width: 0 }}
             animate={{ width: `${progress}%` }}
-            transition={{ duration: 0.8, ease: 'easeOut' }}
+            transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.8, ease: 'easeOut' }}
           />
         </div>
       </div>
@@ -164,7 +163,6 @@ interface DesktopSidebarProps {
 }
 
 export function DesktopSidebar({ className, userProfile }: DesktopSidebarProps) {
-  const [isHovered, setIsHovered] = useState(false)
   const isCollapsed = false // Keep expanded by default for v2
 
   const mainNavItems = [
@@ -188,8 +186,6 @@ export function DesktopSidebar({ className, userProfile }: DesktopSidebarProps) 
         'fixed inset-y-0 left-0 z-40 hidden w-[280px] flex-col overflow-hidden border-r-3 border-black bg-white lg:flex',
         className
       )}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
     >
       {/* Header with Logo */}
       <div className="p-5 border-b-3 border-black">
@@ -254,11 +250,11 @@ export function DesktopSidebar({ className, userProfile }: DesktopSidebarProps) 
         {/* User Profile Mini */}
         <div className="flex items-center gap-3 mb-3 p-2 bg-white brutal-border brutal-radius">
           <div className="w-10 h-10 bg-blue brutal-border brutal-radius flex items-center justify-center">
-            <span className="text-lg">👤</span>
+            <User className="h-5 w-5" aria-hidden="true" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-medium text-sm truncate">Sutan Arlie</p>
-            <p className="text-xs text-black/60 truncate">Free Plan</p>
+            <p className="font-medium text-sm truncate">Career profile</p>
+            <p className="text-xs text-black/60 truncate">{userProfile?.roleLabel ?? 'Developer'}</p>
           </div>
         </div>
 
@@ -267,7 +263,7 @@ export function DesktopSidebar({ className, userProfile }: DesktopSidebarProps) 
 
         {/* Powered by */}
         <p className="mt-3 text-[10px] text-center text-black/40">
-          Powered by Remotive API
+          SkillPath Career OS
         </p>
       </div>
     </aside>

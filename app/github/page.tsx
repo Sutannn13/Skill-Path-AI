@@ -5,7 +5,8 @@ import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { AppShell, Container, GradientBackground } from '@/components/layout'
 import { DashboardHeader } from '@/components/layout/dashboard-header'
-import { BrutalCard, BrutalButton, BrutalCardHover, ScoreMeter } from '@/components/brutal'
+import { BrutalCard, BrutalButton, BrutalCardHover, ScoreMeter, StickerBadge } from '@/components/brutal'
+import { PageScene } from '@/components/illustrations/page-scene'
 import { Github, Search, ExternalLink, AlertCircle, CheckCircle2, XCircle, Loader2 } from 'lucide-react'
 import { GitHubAnalysis } from '@/types'
 
@@ -147,6 +148,8 @@ export default function GitHubPage() {
         />
 
         <Container className="py-6">
+          <PageScene variant="github" className="mb-6" />
+
           {/* Search Section */}
           <BrutalCard color="black" className="mb-6">
             <div className="flex flex-col sm:flex-row gap-4">
@@ -210,7 +213,12 @@ export default function GitHubPage() {
             <div className="space-y-6">
               <BrutalCard color="black" className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-sm font-bold text-white/70">Analyzed GitHub profile</p>
+                  <div className="mb-2 flex flex-wrap items-center gap-2">
+                    <p className="text-sm font-bold text-white/70">Analyzed GitHub profile</p>
+                    {analysis === mockAnalysis && (
+                      <StickerBadge variant="yellow" label="Demo Analysis" size="sm" />
+                    )}
+                  </div>
                   <h2 className="font-display text-2xl font-bold">@{analysis.username}</h2>
                 </div>
                 {analyzedUsername && analyzedUsername !== analysis.username && (

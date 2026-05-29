@@ -7,10 +7,8 @@ import { AppShell, Container, Section, Grid } from '@/components/layout'
 import { GradientBackground } from '@/components/layout'
 import { DashboardHeader } from '@/components/layout/dashboard-header'
 import { BrutalCard, BrutalCardHover, BrutalButton, ScoreMeter, ScoreBar, SkillBadge, FloatingSticker, StickerBadge } from '@/components/brutal'
-import { CatMascot } from '@/components/illustrations/cat-mascot'
 import { EmptyStateDoodle } from '@/components/illustrations/empty-state-doodle'
 import { PageScene } from '@/components/illustrations/page-scene'
-import { CartoonBackground } from '@/components/illustrations/cartoon-background'
 import {
   Briefcase,
   Zap,
@@ -299,8 +297,7 @@ export default function DashboardPage() {
 
   return (
     <AppShell showBottomNav={true}>
-      <CartoonBackground variant="dashboard" intensity="normal" showDoodles animated />
-      <GradientBackground />
+      <GradientBackground variant="dashboard" />
 
       <div className="flex-1">
         <DashboardHeader

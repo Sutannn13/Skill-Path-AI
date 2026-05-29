@@ -2,12 +2,14 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
+import Link from 'next/link'
 import { AppShell, Container, GradientBackground } from '@/components/layout'
 import { DashboardHeader } from '@/components/layout/dashboard-header'
-import { BrutalCard, BrutalButton, BrutalCardHover, SkillBadge } from '@/components/brutal'
+import { BrutalCard, BrutalButton, BrutalCardHover, SkillBadge, StickerBadge } from '@/components/brutal'
+import { PageScene } from '@/components/illustrations/page-scene'
 import { ProjectRecommendation } from '@/types'
 import { cn } from '@/lib/utils'
-import { Code, Clock, CheckCircle2, ExternalLink, Search } from 'lucide-react'
+import { Code, Clock, CheckCircle2, Search, Trophy } from 'lucide-react'
 
 // Mock project recommendations based on skills
 const mockProjects: ProjectRecommendation[] = [
@@ -119,12 +121,6 @@ const mockProjects: ProjectRecommendation[] = [
   },
 ]
 
-const diffiultyColors = {
-  beginner: 'green',
-  intermediate: 'yellow',
-  advanced: 'red',
-} as const
-
 export default function ProjectsPage() {
   const [selectedDifficulty, setSelectedDifficulty] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
@@ -147,11 +143,32 @@ export default function ProjectsPage() {
         <DashboardHeader
           icon={Code}
           iconColor="orange"
-          title="Project Ideas"
-          subtitle="Build projects to fill your skill gaps"
+          title="Portfolio Workshop"
+          subtitle="Pick project ideas and move toward your final challenge"
         />
 
         <Container className="py-6">
+          <PageScene variant="project" className="mb-6" />
+
+          <BrutalCard color="orange" className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="mb-2 flex flex-wrap items-center gap-2">
+                <StickerBadge variant="boss-fight" label="Portfolio Challenge" size="sm" />
+                <StickerBadge variant="green" label="Review Ready" size="sm" />
+              </div>
+              <h2 className="font-display text-xl font-bold">Final project submission lives in Roadmap.</h2>
+              <p className="mt-1 text-sm text-black/70">
+                Use these ideas for practice, then submit your final portfolio challenge when your roadmap unlocks it.
+              </p>
+            </div>
+            <Link href="/roadmap/final-project">
+              <BrutalButton color="black" className="w-full sm:w-auto">
+                <Trophy className="h-4 w-4 mr-2" />
+                Open Final Project
+              </BrutalButton>
+            </Link>
+          </BrutalCard>
+
           {/* Search and Filter */}
           <div className="flex flex-col sm:flex-row gap-4 mb-6">
             <div className="relative flex-1">

@@ -92,6 +92,7 @@ export interface Job {
   title: string
   company: string
   location: string
+  workMode?: 'remote' | 'hybrid' | 'onsite'
   type: 'full-time' | 'part-time' | 'contract' | 'freelance' | 'internship'
   tags: string[]
   url: string

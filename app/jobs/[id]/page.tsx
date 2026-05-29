@@ -20,6 +20,7 @@ import {
   Clock,
   ExternalLink,
   FileText,
+  Globe,
   Lightbulb,
   MapPin,
 } from 'lucide-react'
@@ -178,7 +179,12 @@ export default function JobDetailPage() {
     return (
       <AppShell showBottomNav={true}>
         <GradientBackground />
-        <DashboardHeader title="Job Details" subtitle="Loading job post" />
+        <DashboardHeader
+          icon={Briefcase}
+          iconColor="blue"
+          title="Job Details"
+          subtitle="Loading job post"
+        />
         <Container className="py-6">
           <BrutalCard color="white">
             <p className="font-bold">Loading job details...</p>
@@ -192,7 +198,12 @@ export default function JobDetailPage() {
     return (
       <AppShell showBottomNav={true}>
         <GradientBackground />
-        <DashboardHeader title="Job Not Found" subtitle="This posting is not available" />
+        <DashboardHeader
+          icon={Briefcase}
+          iconColor="blue"
+          title="Job Not Found"
+          subtitle="This posting is not available"
+        />
         <Container className="py-6">
           <BrutalCard color="white" className="max-w-2xl">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
@@ -228,7 +239,11 @@ export default function JobDetailPage() {
       <GradientBackground />
 
       <div className="min-h-screen">
-        <DashboardHeader title="Job Details" />
+        <DashboardHeader
+          icon={Briefcase}
+          iconColor="blue"
+          title="Job Details"
+        />
 
         <Container className="py-6">
           <Link href="/jobs" className="mb-6 inline-flex">
@@ -299,6 +314,12 @@ export default function JobDetailPage() {
                       <Briefcase className="w-5 h-5" />
                       {job.type}
                     </div>
+                    {job.workMode && (
+                      <div className="flex items-center gap-2 text-gray-600 capitalize">
+                        <Globe className="w-5 h-5" />
+                        {job.workMode}
+                      </div>
+                    )}
                     <div className="flex items-center gap-2 text-gray-600">
                       <Clock className="w-5 h-5" />
                       {getJobDate(job)}

@@ -3,6 +3,7 @@ import { Job } from '@/types'
 import { MOCK_JOBS } from '@/lib/data/mock-jobs'
 import { getDeterministicMatchScore } from '@/lib/jobs/display'
 import { fetchJobsFromAllSources, deduplicateJobs, getAdapterBySlug } from '@/lib/jobs/sources'
+import { indonesiaSampleAdapter } from '@/lib/jobs/adapters/indonesia-sample'
 import { getPublicJobById, getPublicJobPosts, upsertJobPosts } from '@/lib/jobs/store'
 import { assessJobValidity } from '@/lib/jobs/validity'
 import { JobFilters, JobPost, TECH_STACK_MAPPING } from '@/lib/jobs/types'
@@ -10,6 +11,7 @@ import { isSupabaseAdminConfigured } from '@/lib/supabase/admin'
 
 export const dynamic = 'force-dynamic'
 const IS_DEVELOPMENT = process.env.NODE_ENV === 'development'
+const MIN_CURATED_JOB_COUNT = 24
 
 function toJob(job: JobPost): Job {
   const adapter = getAdapterBySlug(job.sourceSlug)
@@ -19,6 +21,7 @@ function toJob(job: JobPost): Job {
     title: job.title,
     company: job.company,
     location: job.location,
+    workMode: job.workMode,
     type: job.employmentType,
     tags: job.tags,
     url: job.applyUrl,
@@ -43,9 +46,24 @@ function filterJobs(jobs: JobPost[], filters: JobFilters): JobPost[] {
   if (filters.query) {
     const query = filters.query.toLowerCase()
     filtered = filtered.filter(job =>
-      job.title.toLowerCase().includes(query) ||
-      job.company.toLowerCase().includes(query) ||
-      job.description.toLowerCase().includes(query)
+      [
+        job.title,
+        job.company,
+        job.location,
+        job.country,
+        job.regionType,
+        job.workMode,
+        job.employmentType,
+        job.experienceLevel,
+        job.description,
+        job.sourceSlug,
+        ...job.tags,
+        ...job.requiredSkills,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+        .includes(query)
     )
   }
 
@@ -123,6 +141,33 @@ async function loadDemoJobsIntoMemory() {
   await upsertJobPosts(jobsWithValidity)
 }
 
+async function getCuratedIndonesiaJobs() {
+  const jobs = await indonesiaSampleAdapter.fetch()
+
+  return deduplicateJobs(jobs).map((job) => {
+    const validity = assessJobValidity(job)
+    return {
+      ...job,
+      validityScore: validity.validityScore,
+      riskLevel: validity.riskLevel,
+      moderationStatus: validity.status,
+      moderationReasons: validity.reasons,
+    } as JobPost
+  })
+}
+
+async function addCuratedIndonesiaTopUp(jobs: JobPost[]) {
+  if (jobs.length >= MIN_CURATED_JOB_COUNT) {
+    return jobs
+  }
+
+  const existingIds = new Set(jobs.map((job) => job.id))
+  const curatedJobs = await getCuratedIndonesiaJobs()
+  const missingCuratedJobs = curatedJobs.filter((job) => !existingIds.has(job.id))
+
+  return [...jobs, ...missingCuratedJobs]
+}
+
 function toMockJob(job: Job): Job {
   return {
     ...job,
@@ -144,8 +189,9 @@ export async function GET(request: NextRequest) {
 
     if (id) {
       const job = await getPublicJobById(id)
+      const fallbackJob = job ?? (await getCuratedIndonesiaJobs()).find((candidate) => candidate.id === id) ?? null
 
-      if (!job) {
+      if (!fallbackJob) {
         return NextResponse.json(
           { error: 'Job not found', job: null },
           { status: 404 }
@@ -153,9 +199,9 @@ export async function GET(request: NextRequest) {
       }
 
       return NextResponse.json({
-        job: toJob(job),
+        job: toJob(fallbackJob),
         meta: {
-          source: 'supabase',
+          source: job ? 'supabase' : 'curated',
         },
       })
     }
@@ -188,9 +234,10 @@ export async function GET(request: NextRequest) {
       source = reloaded.source
     }
 
-    const filteredJobs = filterJobs(liveJobs, filters)
+    const jobsWithTopUp = await addCuratedIndonesiaTopUp(liveJobs)
+    const filteredJobs = filterJobs(jobsWithTopUp, filters)
     let resultJobs = filteredJobs.map(toJob)
-    let responseSource: 'supabase' | 'memory' | 'mock' = source
+    let responseSource: 'supabase' | 'memory' | 'mock' | 'mixed' = jobsWithTopUp.length > liveJobs.length ? 'mixed' : source
 
     if (!supabaseAdminConfigured && resultJobs.length === 0 && source === 'memory') {
       resultJobs = MOCK_JOBS.map(toMockJob)

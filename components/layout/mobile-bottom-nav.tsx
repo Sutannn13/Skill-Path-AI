@@ -92,7 +92,7 @@ export function DesktopSidebar({ className }: DesktopSidebarProps) {
     >
       {/* Logo */}
       <div className="p-6 border-b-3 border-black">
-        <Link href="/" className="flex items-center gap-3">
+        <Link href="/dashboard" className="flex items-center gap-3">
           <div className="w-10 h-10 bg-yellow brutal-border brutal-radius flex items-center justify-center">
             <GraduationCap className="w-6 h-6" />
           </div>

@@ -11,7 +11,7 @@ import { resetOnboarding as resetLocalOnboarding, initializeUserProfile, saveUse
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser'
 import { CURRENT_LEVELS, STUDY_TIMES, TARGET_ROLES } from '@/lib/constants'
 import { CurrentLevel, StudyTime, TargetRole } from '@/types'
-import { User, Bell, Shield, Palette, Save, Github, ExternalLink, RefreshCw, AlertCircle } from 'lucide-react'
+import { User, Bell, Shield, Palette, Save, Github, ExternalLink, RefreshCw, AlertCircle, Settings } from 'lucide-react'
 
 const settingsSections = [
   { id: 'profile', label: 'Profile', icon: User },
@@ -260,7 +260,12 @@ export default function SettingsPage() {
       <GradientBackground />
 
       <div className="flex-1">
-        <DashboardHeader title="Settings" subtitle="Customize your SkillPath experience" />
+        <DashboardHeader
+          icon={Settings}
+          iconColor="white"
+          title="Settings"
+          subtitle="Manage your account and preferences"
+        />
 
         <Container className="py-6">
           <div className="grid lg:grid-cols-4 gap-6">

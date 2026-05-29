@@ -144,7 +144,12 @@ export default function ProjectsPage() {
 
       {/* Main Content */}
       <div className="flex-1">
-        <DashboardHeader title="Project Ideas" subtitle="Build projects to fill your skill gaps" />
+        <DashboardHeader
+          icon={Code}
+          iconColor="orange"
+          title="Project Ideas"
+          subtitle="Build projects to fill your skill gaps"
+        />
 
         <Container className="py-6">
           {/* Search and Filter */}

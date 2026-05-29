@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
@@ -23,7 +23,29 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
 
-  const supabase = createSupabaseBrowserClient()
+  const supabase = useMemo(() => createSupabaseBrowserClient(), [])
+
+  useEffect(() => {
+    let isActive = true
+
+    const redirectAuthenticatedUser = async () => {
+      if (!supabase) return
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
+      if (isActive && user) {
+        router.replace('/dashboard')
+      }
+    }
+
+    redirectAuthenticatedUser()
+
+    return () => {
+      isActive = false
+    }
+  }, [router, supabase])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -49,7 +71,13 @@ export default function LoginPage() {
       }
 
       // Redirect to dashboard on success
-      router.push('/dashboard')
+      const nextPath = typeof window !== 'undefined'
+        ? new URLSearchParams(window.location.search).get('next')
+        : null
+      const redirectTo = nextPath?.startsWith('/') && !nextPath.startsWith('//')
+        ? nextPath
+        : '/dashboard'
+      router.push(redirectTo)
       router.refresh()
     } catch (err) {
       setError('Something went wrong. Please try again.')
@@ -70,11 +98,6 @@ export default function LoginPage() {
               <Target className="w-6 h-6" />
             </div>
             <span className="font-display font-bold text-xl">SkillPath</span>
-          </Link>
-          <Link href="/register">
-            <BrutalButton variant="ghost" color="black" size="sm">
-              Create Account
-            </BrutalButton>
           </Link>
         </div>
       </header>

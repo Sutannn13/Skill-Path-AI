@@ -13,6 +13,7 @@ import {
   Zap,
   GitBranch,
   Calendar,
+  Home,
   Flame,
   ArrowRight,
   CheckCircle2,
@@ -215,7 +216,8 @@ export default function DashboardPage() {
               careerReadiness: Math.round(skillGap.weightedMatchScore),
               jobMatchScore: Math.round(skillGap.matchScore),
               weeklyProgress: Math.min(100, Math.round(skillGap.weightedMatchScore * 0.7)),
-              streak: onboardingCompleted ? 3 : 0,
+              streak: 0,
+              githubScore: null,
               nextRecommendedSkill: skillGap.recommendedNextSkills[0] ?? null,
               recommendedSkills:
                 skillGap.recommendedNextSkills.length > 0
@@ -265,9 +267,7 @@ export default function DashboardPage() {
         ? { label: 'Analyze GitHub', href: '/github', icon: GitBranch, hint: 'Improve portfolio quality signals.' }
         : { label: 'Save a job', href: '/jobs', icon: Briefcase, hint: 'Track a role that fits your current skills.' }
 
-  const quizAverage = Math.max(0, Math.min(100, Math.round((state.weeklyProgress + (state.githubScore ?? 60)) / 2)))
-  const projectsPassed = state.weeklyProgress >= 70 ? 1 : 0
-  const savedJobsCount = state.jobMatchScore ? Math.max(0, Math.round(state.jobMatchScore / 20)) : 0
+  const savedJobsCount = state.isDemoMode && state.jobMatchScore ? Math.max(0, Math.round(state.jobMatchScore / 20)) : 0
 
   if (state.isLoading) {
     return (
@@ -275,6 +275,8 @@ export default function DashboardPage() {
         <GradientBackground />
         <div className="flex-1">
           <DashboardHeader
+            icon={Home}
+            iconColor="yellow"
             title="Dashboard"
             subtitle="Your career progress at a glance"
           />
@@ -294,6 +296,8 @@ export default function DashboardPage() {
 
       <div className="flex-1">
         <DashboardHeader
+          icon={Home}
+          iconColor="yellow"
           title="Dashboard"
           subtitle="Your career progress at a glance"
         />
@@ -339,10 +343,10 @@ export default function DashboardPage() {
                     Welcome back, {welcomeName}!
                   </h2>
                   <p className="text-black/70 mb-4">
-                    {state.isDemoMode
-                      ? 'You are in demo mode. Connect Supabase to load your real progress.'
-                      : state.onboardingCompleted
-                        ? 'Your progress cards are using your real Supabase profile data.'
+                      {state.isDemoMode
+                        ? 'You are in demo mode. Connect Supabase to load your real progress.'
+                        : state.onboardingCompleted
+                        ? 'Your progress cards avoid demo numbers unless real data exists.'
                         : 'Finish onboarding so we can generate your personalized roadmap and scores.'}
                   </p>
                   <div className="flex flex-wrap items-center gap-3">
@@ -399,20 +403,20 @@ export default function DashboardPage() {
                   <h3 className="mb-3 font-display text-lg font-bold">Learning Health</h3>
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div className="rounded-md border-2 border-black bg-white p-2">
-                      <p className="text-black/60">Roadmap</p>
-                      <p className="text-lg font-bold">{state.weeklyProgress}%</p>
+                      <p className="text-black/60">Readiness</p>
+                      <p className="text-lg font-bold">{state.careerReadiness}%</p>
                     </div>
                     <div className="rounded-md border-2 border-black bg-white p-2">
-                      <p className="text-black/60">Quiz Avg</p>
-                      <p className="text-lg font-bold">{quizAverage}%</p>
+                      <p className="text-black/60">Skills</p>
+                      <p className="text-lg font-bold">{state.skillsCount}</p>
                     </div>
                     <div className="rounded-md border-2 border-black bg-white p-2">
-                      <p className="text-black/60">Projects Passed</p>
-                      <p className="text-lg font-bold">{projectsPassed}</p>
+                      <p className="text-black/60">GitHub</p>
+                      <p className="text-lg font-bold">{state.githubScore === null ? 'Not analyzed' : `${state.githubScore}/100`}</p>
                     </div>
                     <div className="rounded-md border-2 border-black bg-white p-2">
                       <p className="text-black/60">Saved Jobs</p>
-                      <p className="text-lg font-bold">{savedJobsCount}</p>
+                      <p className="text-lg font-bold">{state.isDemoMode ? savedJobsCount : 'Open Jobs'}</p>
                     </div>
                   </div>
                 </BrutalCard>
@@ -539,24 +543,31 @@ export default function DashboardPage() {
                       <Briefcase className="w-5 h-5" />
                     </div>
                     <div>
-                      <h3 className="font-bold">Frontend Developer Intern</h3>
-                      <p className="text-sm text-gray-600">TechStart Studio - Remote</p>
+                      <h3 className="font-bold">Open Job Radar for {state.targetRoleLabel}</h3>
+                      <p className="text-sm text-gray-600">
+                        Jobs are ranked from your saved role and current level.
+                      </p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <span className="text-2xl font-bold text-green">{state.jobMatchScore ?? 0}%</span>
-                    <p className="text-xs text-gray-500">match</p>
+                    <span className="text-2xl font-bold text-green">
+                      {state.jobMatchScore === null ? '--' : `${state.jobMatchScore}%`}
+                    </span>
+                    <p className="text-xs text-gray-500">readiness</p>
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2 mb-4">
-                  {['React', 'TypeScript', 'CSS'].map((tag) => (
+                  {(state.recommendedSkills.length > 0
+                    ? state.recommendedSkills
+                    : [state.targetRoleLabel, 'Junior', 'Internship']
+                  ).map((tag) => (
                     <SkillBadge key={tag} name={tag} size="sm" />
                   ))}
                 </div>
                 <div className="flex gap-3">
-                  <Link href="/jobs/1" className="flex-1">
+                  <Link href="/jobs" className="flex-1">
                     <BrutalButton color="blue" className="w-full">
-                      View Details
+                      Browse Jobs
                     </BrutalButton>
                   </Link>
                   <Link href="/roadmap" className="flex-1">

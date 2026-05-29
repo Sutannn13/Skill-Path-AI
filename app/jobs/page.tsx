@@ -7,8 +7,11 @@ import { AppShell, Container, GradientBackground } from '@/components/layout'
 import { DashboardHeader } from '@/components/layout/dashboard-header'
 import { BrutalCard, BrutalButton, SkillBadge, MatchScorePill } from '@/components/brutal'
 import { getDeterministicMatchScore, getDeterministicValidityScore, getRiskLabel, getRiskLevel } from '@/lib/jobs/display'
+import { getJobSearchText, inferJobExperience, rankJobsForCareerProfile } from '@/lib/jobs/ranking'
 import { extractSkillsFromJob } from '@/lib/jobs/skill-extraction'
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser'
+import { initializeUserProfile } from '@/lib/user/profile'
+import { getRoleById } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 import {
   AlertCircle,
@@ -23,13 +26,14 @@ import {
   Search,
   X,
 } from 'lucide-react'
-import { Job } from '@/types'
+import { CurrentLevel, Job, TargetRole } from '@/types'
 
 type RegionFilter = 'all' | 'indonesia' | 'international' | 'remote'
 type JobTypeFilter = 'all' | 'internship' | 'full-time' | 'part-time' | 'contract' | 'freelance'
-type ExperienceFilter = 'all' | 'beginner' | 'internship' | 'junior' | 'mid' | 'senior'
+type ExperienceFilter = 'all' | 'beginner' | 'internship' | 'fresh-graduate' | 'junior' | 'mid' | 'senior'
 type TechStackFilter = 'all' | 'frontend' | 'backend' | 'fullstack' | 'mobile' | 'ui-ux' | 'data'
 type FreshnessFilter = '7' | '30' | '90' | 'all'
+type DataSource = 'supabase' | 'memory' | 'mock' | 'mixed' | 'curated' | 'error'
 
 interface Filters {
   region: RegionFilter
@@ -42,6 +46,17 @@ interface Filters {
 interface SaveStatus {
   type: 'success' | 'error'
   message: string
+}
+
+interface CareerProfile {
+  targetRole: TargetRole | null
+  currentLevel: CurrentLevel | null
+  source: 'supabase' | 'demo'
+}
+
+interface ProfileRow {
+  target_role: TargetRole | null
+  current_level: CurrentLevel | null
 }
 
 const regionOptions: { value: RegionFilter; label: string }[] = [
@@ -64,6 +79,7 @@ const experienceOptions: { value: ExperienceFilter; label: string }[] = [
   { value: 'all', label: 'All Levels' },
   { value: 'beginner', label: 'Beginner' },
   { value: 'internship', label: 'Internship' },
+  { value: 'fresh-graduate', label: 'Fresh Graduate' },
   { value: 'junior', label: 'Junior' },
   { value: 'mid', label: 'Mid-Level' },
   { value: 'senior', label: 'Senior' },
@@ -116,13 +132,32 @@ function getJobDate(job: Job): { label: string; isUnknown: boolean } {
   return { label: 'Date unknown', isUnknown: true }
 }
 
-function inferExperience(job: Job): ExperienceFilter {
-  const text = `${job.title} ${job.description} ${job.tags.join(' ')}`.toLowerCase()
-  if (text.includes('intern')) return 'internship'
-  if (text.includes('junior') || text.includes('entry')) return 'junior'
-  if (text.includes('senior')) return 'senior'
-  if (text.includes('mid')) return 'mid'
-  return 'beginner'
+function getDataSourceLabel(source: DataSource) {
+  switch (source) {
+    case 'supabase':
+      return 'Supabase'
+    case 'mixed':
+      return 'Supabase + curated Indonesia'
+    case 'curated':
+      return 'Curated Indonesia'
+    case 'memory':
+      return 'Provider memory fallback'
+    case 'mock':
+      return 'Demo data'
+    default:
+      return 'Unavailable'
+  }
+}
+
+function toDataSource(value: unknown): DataSource {
+  return value === 'supabase' ||
+    value === 'memory' ||
+    value === 'mock' ||
+    value === 'mixed' ||
+    value === 'curated' ||
+    value === 'error'
+    ? value
+    : 'mock'
 }
 
 export default function JobsPage() {
@@ -136,7 +171,12 @@ export default function JobsPage() {
   const [loadingError, setLoadingError] = useState<string | null>(null)
   const [saveStatus, setSaveStatus] = useState<SaveStatus | null>(null)
   const [savingJobId, setSavingJobId] = useState<string | null>(null)
-  const [dataSource, setDataSource] = useState<'supabase' | 'memory' | 'mock' | 'error'>('mock')
+  const [dataSource, setDataSource] = useState<DataSource>('mock')
+  const [careerProfile, setCareerProfile] = useState<CareerProfile>({
+    targetRole: null,
+    currentLevel: 'beginner',
+    source: 'demo',
+  })
   const [filters, setFilters] = useState<Filters>({
     region: 'all',
     jobType: 'all',
@@ -144,6 +184,54 @@ export default function JobsPage() {
     techStack: 'all',
     freshnessDays: '90',
   })
+
+  useEffect(() => {
+    let isActive = true
+
+    const loadCareerProfile = async () => {
+      const localProfile = initializeUserProfile()
+      const fallbackProfile: CareerProfile = {
+        targetRole: localProfile.targetRole,
+        currentLevel: localProfile.currentLevel ?? 'beginner',
+        source: 'demo',
+      }
+
+      if (!supabase) {
+        if (isActive) setCareerProfile(fallbackProfile)
+        return
+      }
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
+      if (!user) {
+        if (isActive) setCareerProfile(fallbackProfile)
+        return
+      }
+
+      const { data } = await supabase
+        .from('profiles')
+        .select('target_role, current_level')
+        .eq('id', user.id)
+        .maybeSingle()
+
+      if (!isActive) return
+
+      const profile = data as ProfileRow | null
+      setCareerProfile({
+        targetRole: profile?.target_role ?? fallbackProfile.targetRole,
+        currentLevel: profile?.current_level ?? fallbackProfile.currentLevel,
+        source: profile ? 'supabase' : fallbackProfile.source,
+      })
+    }
+
+    loadCareerProfile()
+
+    return () => {
+      isActive = false
+    }
+  }, [supabase])
 
   useEffect(() => {
     let isActive = true
@@ -163,7 +251,7 @@ export default function JobsPage() {
         if (!isActive) return
 
         setJobs((data.jobs ?? []) as Job[])
-        setDataSource(data.meta?.source ?? 'mock')
+        setDataSource(toDataSource(data.meta?.source))
       } catch (error) {
         if (!isActive) return
         setLoadingError(error instanceof Error ? error.message : 'Failed to load jobs.')
@@ -223,11 +311,10 @@ export default function JobsPage() {
   )
 
   const filteredJobs = useMemo(() => {
-    return jobs.filter((job) => {
-      const matchesSearch =
-        searchQuery === '' ||
-        job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        job.company.toLowerCase().includes(searchQuery.toLowerCase())
+    const filtered = jobs.filter((job) => {
+      const searchableText = getJobSearchText(job)
+      const normalizedSearch = searchQuery.trim().toLowerCase()
+      const matchesSearch = normalizedSearch === '' || searchableText.includes(normalizedSearch)
 
       const matchesTags =
         selectedTags.length === 0 ||
@@ -237,29 +324,34 @@ export default function JobsPage() {
       if (filters.region !== 'all') {
         const locationLower = job.location.toLowerCase()
         if (filters.region === 'remote') {
-          matchesRegion = locationLower.includes('remote') || locationLower.includes('work from home')
+          matchesRegion = job.workMode === 'remote' || locationLower.includes('remote') || locationLower.includes('work from home')
         } else if (filters.region === 'indonesia') {
           matchesRegion = locationLower.includes('jakarta') || locationLower.includes('bandung') ||
-            locationLower.includes('surabaya') || locationLower.includes('indonesia')
+            locationLower.includes('surabaya') || locationLower.includes('yogyakarta') ||
+            locationLower.includes('semarang') || locationLower.includes('makassar') ||
+            locationLower.includes('tangerang') || locationLower.includes('indonesia')
         } else {
           matchesRegion = !locationLower.includes('jakarta') && !locationLower.includes('bandung') &&
-            !locationLower.includes('surabaya') && !locationLower.includes('indonesia')
+            !locationLower.includes('surabaya') && !locationLower.includes('yogyakarta') &&
+            !locationLower.includes('semarang') && !locationLower.includes('makassar') &&
+            !locationLower.includes('tangerang') && !locationLower.includes('indonesia')
         }
       }
 
       const matchesJobType = filters.jobType === 'all' || job.type === filters.jobType
-      const matchesExperience = filters.experience === 'all' || inferExperience(job) === filters.experience
+      const matchesExperience = filters.experience === 'all' || inferJobExperience(job) === filters.experience
 
       let matchesTechStack = true
       if (filters.techStack !== 'all') {
         const keywords = techStackKeywords[filters.techStack] || []
-        const jobText = `${job.title} ${job.description} ${job.tags.join(' ')}`.toLowerCase()
-        matchesTechStack = keywords.some(kw => jobText.includes(kw))
+        matchesTechStack = keywords.some(kw => searchableText.includes(kw.toLowerCase()))
       }
 
       return matchesSearch && matchesTags && matchesRegion && matchesJobType && matchesExperience && matchesTechStack
     })
-  }, [filters, jobs, searchQuery, selectedTags])
+
+    return rankJobsForCareerProfile(filtered, careerProfile)
+  }, [careerProfile, filters, jobs, searchQuery, selectedTags])
 
   const toggleTag = (tag: string) => {
     setSelectedTags((prev) =>
@@ -334,20 +426,28 @@ export default function JobsPage() {
     filters.freshnessDays !== '90',
     selectedTags.length > 0,
   ].filter(Boolean).length
+  const activeRoleLabel = careerProfile.targetRole
+    ? getRoleById(careerProfile.targetRole)?.label ?? 'Selected role'
+    : 'No role selected'
 
   return (
     <AppShell showBottomNav={true}>
       <GradientBackground />
 
       <div className="flex-1">
-        <DashboardHeader title="Job Radar" subtitle="Find jobs that match your skills" />
+        <DashboardHeader
+          icon={Briefcase}
+          iconColor="blue"
+          title="Job Radar"
+          subtitle="Find jobs that match your skills"
+        />
 
         <Container className="py-6">
           <div className="relative mb-4">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="text"
-              placeholder="Search jobs by title or company..."
+              placeholder="Search title, company, skill, location, magang, fresh graduate..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-12 pr-4 py-4 brutal-border brutal-radius bg-white text-lg text-black placeholder-gray-500 caret-black focus:outline-none focus:ring-2 focus:ring-yellow"
@@ -386,6 +486,28 @@ export default function JobsPage() {
                   )}
                 >
                   <Globe className="w-3.5 h-3.5" />
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex flex-wrap gap-1">
+              {[
+                { label: 'Magang', value: 'internship' as ExperienceFilter },
+                { label: 'Fresh Grad', value: 'fresh-graduate' as ExperienceFilter },
+                { label: 'Junior', value: 'junior' as ExperienceFilter },
+              ].map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => setFilters(f => ({ ...f, experience: filters.experience === opt.value ? 'all' : opt.value }))}
+                  className={cn(
+                    'flex items-center gap-1.5 px-3 py-1.5 text-sm brutal-radius transition-all',
+                    filters.experience === opt.value
+                      ? 'bg-green/20 border-2 border-green text-green font-medium'
+                      : 'bg-white border-2 border-transparent hover:bg-gray-50'
+                  )}
+                >
+                  <Briefcase className="w-3.5 h-3.5" />
                   {opt.label}
                 </button>
               ))}
@@ -488,20 +610,26 @@ export default function JobsPage() {
           )}
 
           <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-gray-600">
-              Showing {filteredJobs.length} of {jobs.length} jobs
-              {filters.region !== 'all' && ` in ${filters.region}`}
-              {filters.jobType !== 'all' && ` (${filters.jobType})`}
-            </p>
-            <span className="brutal-border brutal-radius bg-white px-3 py-1 text-xs font-bold">
-              Source: {dataSource === 'supabase'
-                ? 'Supabase'
-                : dataSource === 'memory'
-                  ? 'Demo memory fallback'
-                  : dataSource === 'mock'
-                    ? 'Demo data'
-                    : 'Unavailable'}
-            </span>
+            <div>
+              <p className="text-gray-600">
+                Showing {filteredJobs.length} of {jobs.length} jobs
+                {filters.region !== 'all' && ` in ${filters.region}`}
+                {filters.jobType !== 'all' && ` (${filters.jobType})`}
+              </p>
+              <p className="text-xs font-medium text-black/60">
+                Ranked for {activeRoleLabel}
+                {careerProfile.currentLevel ? ` - ${careerProfile.currentLevel}` : ''}
+                {careerProfile.source === 'demo' ? ' using local profile fallback' : ' from Supabase profile'}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <span className="brutal-border brutal-radius bg-white px-3 py-1 text-xs font-bold">
+                Source: {getDataSourceLabel(dataSource)}
+              </span>
+              <span className="brutal-border brutal-radius bg-yellow/40 px-3 py-1 text-xs font-bold">
+                Indonesia-first sample enabled
+              </span>
+            </div>
           </div>
 
           {isLoading && (
@@ -646,6 +774,12 @@ function JobCard({
               <Briefcase className="w-4 h-4" />
               {job.type}
             </span>
+            {job.workMode && (
+              <span className="flex items-center gap-1 capitalize">
+                <Globe className="w-4 h-4" />
+                {job.workMode}
+              </span>
+            )}
             <span className="flex items-center gap-1">
               <Clock className="w-4 h-4" />
               {dateInfo.label}

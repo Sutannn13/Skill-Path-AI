@@ -13,6 +13,8 @@ function DashboardAccessRequired({ message }: { message: string }) {
     <AppShell showBottomNav={false}>
       <GradientBackground />
       <DashboardHeader
+        icon={Lock}
+        iconColor="yellow"
         title="User Dashboard"
         subtitle="Sign in before opening your personal progress workspace"
       />

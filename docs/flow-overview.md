@@ -7,11 +7,28 @@ flowchart TD
   A[Visitor opens SkillPath] --> B{Supabase configured?}
   B -- No --> C[Demo mode surfaces render]
   B -- Yes --> D{Verified session?}
-  D -- No --> E[Protected dashboard state]
+  D -- No --> E[Public home and auth pages only]
   D -- Yes --> F[Load profiles row]
   F --> G{profiles.role}
   G -- user --> H[/dashboard user progress view]
   G -- admin --> I[/admin operations view]
+```
+
+## Protected Route Flow
+
+```mermaid
+flowchart TD
+  A[Request app route] --> B{Supabase configured?}
+  B -- No --> C[Allow demo route]
+  B -- Yes --> D{Route is protected app surface?}
+  D -- No --> E{Route is login or register?}
+  E -- Yes --> F{Verified session?}
+  F -- Yes --> G[Redirect to /dashboard]
+  F -- No --> H[Render auth page]
+  E -- No --> I[Allow public route]
+  D -- Yes --> J{Verified session?}
+  J -- No --> K[Redirect to /login with next path]
+  J -- Yes --> L[Allow protected page]
 ```
 
 ## User Dashboard Flow
@@ -91,11 +108,13 @@ sequenceDiagram
   participant API as /api/jobs
   participant DB as Supabase
 
-  User->>Page: Open jobs
+  User->>Page: Open /jobs after middleware session check
   Page->>API: Load fresh jobs
   API->>DB: Read visible job_posts
   DB-->>API: Approved and pending-review jobs
+  API->>API: Add curated Indonesia top-up when result set is short
   API-->>Page: Job cards with source, date, validity, risk
+  Page->>Page: Rank jobs by saved career profile and level
   User->>Page: Save job
   Page->>DB: Insert or delete saved_jobs through RLS
   DB-->>Page: Saved state persists

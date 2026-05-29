@@ -2,13 +2,17 @@
 
 import Link from 'next/link'
 import { motion } from 'framer-motion'
+import type { LucideIcon } from 'lucide-react'
 import { GraduationCap, Bell, Settings } from 'lucide-react'
 import { BrutalIconButton } from '@/components/brutal/brutal-button'
 import { LogoutButton } from '@/components/auth/logout-button'
+import { cn } from '@/lib/utils'
 
 interface DashboardHeaderProps {
   title?: string
   subtitle?: string
+  icon?: LucideIcon
+  iconColor?: 'yellow' | 'blue' | 'pink' | 'green' | 'orange' | 'purple' | 'white'
   showLogo?: boolean
   showActions?: boolean
   showLogout?: boolean
@@ -17,7 +21,9 @@ interface DashboardHeaderProps {
 export function DashboardHeader({
   title,
   subtitle,
-  showLogo = true,
+  icon: Icon,
+  iconColor = 'yellow',
+  showLogo = false,
   showActions = true,
   showLogout = true,
 }: DashboardHeaderProps) {
@@ -26,7 +32,7 @@ export function DashboardHeader({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           {showLogo && (
-            <Link href="/" className="flex items-center gap-3">
+            <Link href="/dashboard" className="flex items-center gap-3">
               <motion.div
                 whileHover={{ rotate: -5 }}
                 className="w-10 h-10 bg-yellow brutal-border brutal-radius flex items-center justify-center"
@@ -35,6 +41,23 @@ export function DashboardHeader({
               </motion.div>
               <span className="font-display font-bold text-xl hidden sm:block">SkillPath</span>
             </Link>
+          )}
+          {!showLogo && Icon && (
+            <div
+              className={cn(
+                'flex h-10 w-10 shrink-0 items-center justify-center brutal-border brutal-radius',
+                iconColor === 'yellow' && 'bg-yellow',
+                iconColor === 'blue' && 'bg-blue',
+                iconColor === 'pink' && 'bg-pink',
+                iconColor === 'green' && 'bg-green',
+                iconColor === 'orange' && 'bg-orange',
+                iconColor === 'purple' && 'bg-purple',
+                iconColor === 'white' && 'bg-white'
+              )}
+              aria-hidden="true"
+            >
+              <Icon className="h-5 w-5" />
+            </div>
           )}
           {(title || subtitle) && (
             <div className="min-w-0">

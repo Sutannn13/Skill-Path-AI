@@ -28,7 +28,9 @@ Behavior:
 - Hides jobs older than the freshness window.
 - Supports `freshnessDays=7|30|90|all` (`all` maps to active jobs within 180 days).
 - Supports `id=<job_id>` for detail-page reads.
-- Returns source attribution, posted or fetched dates, validity score, risk level, and match score.
+- Search filters match title, company, description, location, employment type, work mode, source, tags, and required skills.
+- Returns source attribution, posted or fetched dates, work mode, validity score, risk level, and match score.
+- Tops up short result sets with the explicit Indonesia curated sample provider so beginner, internship, magang, fresh graduate, junior, backend, frontend, and fullstack examples remain available before a live Indonesian API is connected.
 - Uses in-memory/live fallback only when Supabase persistence is not configured.
 
 Freshness rule:
@@ -177,9 +179,11 @@ Loads the latest mini or final project submission + review summary for the curre
 | --- | --- | --- |
 | `/dashboard` | `user` | User learning dashboard. Admin sessions redirect to `/admin`. |
 | `/admin` | `admin` | Admin operations dashboard. Non-admin users see an admin-only state. |
-| `/onboarding` | Public/demo | Career setup flow. Complete auth UI is still a later phase. |
+| `/onboarding` | `user` or demo | Career setup flow. Middleware redirects logged-out users to `/login` when Supabase is configured. |
 | `/roadmap` | `user` or demo | Loads latest active Supabase roadmap, creates one when missing, persists task/resource progress, and asks before regeneration. |
-| `/jobs` | Public with optional session | Lists fresh jobs from Supabase and lets authenticated users persist `saved_jobs`. |
-| `/github` | Public | Calls `/api/github/analyze` and renders only the requested username's result unless demo is explicitly chosen. |
+| `/jobs` | `user` or demo | Lists fresh jobs from Supabase plus curated Indonesia top-up data, ranks jobs with the saved career profile, and lets users persist `saved_jobs`. |
+| `/github` | `user` or demo | Calls `/api/github/analyze` and renders only the requested username's result unless demo is explicitly chosen. |
+| `/skills`, `/sprint`, `/settings`, `/projects` | `user` or demo | Protected app surfaces when Supabase is configured; demo mode remains available when Supabase env vars are missing. |
+| `/login`, `/register`, `/forgot-password`, `/reset-password` | Public auth | Logged-in users visiting `/login` or `/register` are redirected to `/dashboard`. |
 
 Authorization must be enforced on the server. UI-only role checks are not security boundaries.

@@ -41,10 +41,15 @@ const mockSprint: WeeklySprint = {
 
 const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
+function getTodayLabel() {
+  const today = new Date().toLocaleDateString('en-US', { weekday: 'long' })
+  return daysOfWeek.includes(today) ? today : 'Monday'
+}
+
 export default function SprintPage() {
   const [sprint, setSprint] = useState<WeeklySprint>(mockSprint)
   const [newTaskTitle, setNewTaskTitle] = useState('')
-  const [selectedDay, setSelectedDay] = useState<string>('Thursday')
+  const [selectedDay, setSelectedDay] = useState<string>(() => getTodayLabel())
   const [isEditingGoal, setIsEditingGoal] = useState(false)
   const [editedGoal, setEditedGoal] = useState(sprint.goal)
   const [reflection, setReflection] = useState('')
@@ -98,6 +103,7 @@ export default function SprintPage() {
 
   const completedTasks = sprint.tasks.filter((t) => t.status === 'completed').length
   const totalTasks = sprint.tasks.length
+  const todayLabel = getTodayLabel()
 
   // Group tasks by day
   const tasksByDay = daysOfWeek.reduce((acc, day) => {
@@ -111,7 +117,12 @@ export default function SprintPage() {
 
       {/* Main Content */}
       <div className="flex-1">
-        <DashboardHeader title="Weekly Sprint" subtitle="Track your weekly progress" />
+        <DashboardHeader
+          icon={Calendar}
+          iconColor="green"
+          title="Weekly Sprint"
+          subtitle="Track your weekly progress"
+        />
 
         <Container className="py-6">
           {/* Streak and Week Info */}
@@ -212,29 +223,61 @@ export default function SprintPage() {
           </BrutalCard>
 
           {/* Daily Board */}
-          <div className="grid grid-cols-1 sm:grid-cols-7 gap-3 mb-6 overflow-x-auto">
-            {daysOfWeek.map((day) => (
-              <div key={day} className="min-w-[140px]">
-                <div className={cn(
-                  'px-3 py-2 brutal-border brutal-radius font-bold text-center mb-2',
-                  day === selectedDay ? 'bg-blue text-white' : 'bg-gray-100'
-                )}>
-                  <button onClick={() => setSelectedDay(day)} className="w-full">
-                    {day.slice(0, 3)}
-                  </button>
-                </div>
-                <div className="space-y-2">
-                  {tasksByDay[day].map((task) => (
-                    <SprintTaskCard
-                      key={task.id}
-                      task={task}
-                      onToggle={() => toggleTask(task.id)}
-                      onDelete={() => deleteTask(task.id)}
-                    />
-                  ))}
-                </div>
-              </div>
-            ))}
+          <div className="mb-6 -mx-4 overflow-x-auto px-4 pb-3">
+            <div className="flex min-w-max gap-4 lg:min-w-0">
+              {daysOfWeek.map((day) => {
+                const isSelected = day === selectedDay
+                const isToday = day === todayLabel
+                const dayTasks = tasksByDay[day]
+
+                return (
+                  <section
+                    key={day}
+                    className={cn(
+                      'flex w-[232px] shrink-0 flex-col brutal-border brutal-radius bg-white/90 p-3 shadow-brutal-sm transition-colors lg:flex-1',
+                      isToday && 'bg-yellow/30',
+                      isSelected && 'ring-2 ring-black'
+                    )}
+                    aria-label={`${day} sprint tasks`}
+                  >
+                    <button
+                      onClick={() => setSelectedDay(day)}
+                      className={cn(
+                        'mb-3 flex min-h-12 items-center justify-between gap-2 rounded-md border-2 border-black px-3 py-2 text-left font-bold transition-all',
+                        isSelected ? 'bg-blue text-white' : 'bg-gray-100 hover:bg-yellow/40'
+                      )}
+                    >
+                      <span>{day}</span>
+                      {isToday && (
+                        <span className={cn(
+                          'rounded-sm border-2 border-black px-2 py-0.5 text-[10px] font-bold uppercase',
+                          isSelected ? 'bg-white text-black' : 'bg-green text-black'
+                        )}>
+                          Today
+                        </span>
+                      )}
+                    </button>
+
+                    <div className="flex flex-1 flex-col gap-3">
+                      {dayTasks.length > 0 ? (
+                        dayTasks.map((task) => (
+                          <SprintTaskCard
+                            key={task.id}
+                            task={task}
+                            onToggle={() => toggleTask(task.id)}
+                            onDelete={() => deleteTask(task.id)}
+                          />
+                        ))
+                      ) : (
+                        <div className="flex min-h-[96px] items-center justify-center rounded-md border-2 border-dashed border-black/30 bg-gray-50 p-3 text-center text-sm font-medium text-black/50">
+                          No tasks yet
+                        </div>
+                      )}
+                    </div>
+                  </section>
+                )
+              })}
+            </div>
           </div>
 
           {/* Reflection */}
@@ -280,18 +323,23 @@ function SprintTaskCard({
   return (
     <motion.div
       layout
-      initial={false}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.9 }}
+      transition={{ duration: 0.18 }}
       className={cn(
-        'p-3 brutal-border brutal-radius text-sm',
+        'min-h-[88px] p-3 brutal-border brutal-radius text-sm transition-colors',
         task.status === 'completed'
-          ? 'bg-green/10 border-green'
-          : 'bg-white'
+          ? 'bg-green/20 border-green'
+          : 'bg-white hover:bg-yellow/10'
       )}
     >
       <div className="flex items-start gap-2">
-        <button onClick={onToggle} className="mt-0.5 shrink-0">
+        <button
+          onClick={onToggle}
+          className="mt-0.5 shrink-0 rounded-sm focus:outline-none focus:ring-2 focus:ring-black"
+          aria-label={task.status === 'completed' ? 'Mark task as todo' : 'Mark task as complete'}
+        >
           {task.status === 'completed' ? (
             <Check className="w-5 h-5 text-green" />
           ) : (
@@ -299,14 +347,15 @@ function SprintTaskCard({
           )}
         </button>
         <p className={cn(
-          'flex-1',
-          task.status === 'completed' && 'line-through text-gray-400'
+          'flex-1 whitespace-normal break-words leading-5',
+          task.status === 'completed' && 'text-black/65 line-through decoration-2'
         )}>
           {task.title}
         </p>
         <button
           onClick={onDelete}
-          className="p-1 hover:bg-red/10 brutal-radius text-red opacity-50 hover:opacity-100"
+          className="p-1 hover:bg-red/10 brutal-radius text-red opacity-60 hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-black"
+          aria-label="Delete task"
         >
           <Trash2 className="w-4 h-4" />
         </button>

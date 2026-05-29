@@ -2,13 +2,18 @@ import Link from 'next/link'
 import { AppShell, Container, GradientBackground } from '@/components/layout'
 import { DashboardHeader } from '@/components/layout/dashboard-header'
 import { BrutalButton, BrutalCard } from '@/components/brutal'
-import { ArrowLeft, AlertTriangle } from 'lucide-react'
+import { ArrowLeft, AlertTriangle, Briefcase } from 'lucide-react'
 
 export default function JobNotFound() {
   return (
     <AppShell showBottomNav={true}>
       <GradientBackground />
-      <DashboardHeader title="Job Not Found" subtitle="This posting is not available" />
+      <DashboardHeader
+        icon={Briefcase}
+        iconColor="blue"
+        title="Job Not Found"
+        subtitle="This posting is not available"
+      />
 
       <Container className="py-6">
         <BrutalCard color="white" className="max-w-2xl">

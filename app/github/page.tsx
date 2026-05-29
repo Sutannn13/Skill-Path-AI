@@ -139,7 +139,12 @@ export default function GitHubPage() {
 
       {/* Main Content */}
       <div className="flex-1">
-        <DashboardHeader title="GitHub Portfolio Analyzer" subtitle="Audit your developer profile" />
+        <DashboardHeader
+          icon={Github}
+          iconColor="purple"
+          title="GitHub Portfolio Analyzer"
+          subtitle="Audit your developer profile"
+        />
 
         <Container className="py-6">
           {/* Search Section */}

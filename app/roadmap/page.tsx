@@ -12,6 +12,7 @@ import { getCuratedResourcesForTask } from '@/lib/roadmap/resources'
 import { calculateSkillGap } from '@/lib/scoring/skill-gap'
 import { getRequiredSkillIds, getNiceToHaveSkillIds, getRoleById, getSkillById } from '@/lib/constants'
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser'
+import { initializeUserProfile } from '@/lib/user/profile'
 import { cn } from '@/lib/utils'
 import {
   AlertCircle,
@@ -25,6 +26,7 @@ import {
   ClipboardCheck,
   ExternalLink,
   FileCode2,
+  Map as MapIcon,
   PlayCircle,
   RefreshCw,
   Save,
@@ -43,6 +45,7 @@ import {
   RoadmapTaskRequirementState,
   RoadmapWeek,
   SkillLevel,
+  StudyTime,
   TargetRole,
   UserSkill,
 } from '@/types'
@@ -131,7 +134,7 @@ interface RoadmapTaskQuizRow {
 interface ProfileRow {
   target_role: TargetRole | null
   current_level: CurrentLevel | null
-  study_time: string | null
+  study_time: StudyTime | null
 }
 
 interface UserSkillRow {
@@ -172,13 +175,16 @@ interface ProjectSubmissionState {
   error: string | null
 }
 
-const demoRoadmap = withGeneratedResources(generateFallbackRoadmap({
-  targetRole: 'frontend-developer',
-  currentLevel: 'beginner',
-  missingSkills: ['TypeScript', 'Testing', 'API Integration'],
-  studyTime: '1hour',
-  durationWeeks: 6,
-}))
+const DEFAULT_TARGET_ROLE: TargetRole = 'fullstack-developer'
+
+const roleStarterSkills: Record<TargetRole, string[]> = {
+  'frontend-developer': ['React', 'TypeScript', 'Responsive UI', 'API Integration'],
+  'backend-developer': ['Node.js', 'Express', 'PostgreSQL', 'REST API'],
+  'fullstack-developer': ['React', 'Node.js', 'PostgreSQL', 'Deployment'],
+  'ui-engineer': ['Accessibility', 'Design Systems', 'React', 'Tailwind'],
+  'mobile-developer': ['React Native', 'REST API', 'Mobile UI', 'Testing'],
+  'data-analyst': ['SQL', 'Python', 'Data Visualization', 'Dashboarding'],
+}
 
 function clampSkillLevel(value: number): SkillLevel {
   return Math.max(0, Math.min(4, Number(value))) as SkillLevel
@@ -212,6 +218,29 @@ function withGeneratedResources(roadmap: Roadmap): Roadmap {
       })),
     })),
   }
+}
+
+function resolveRoadmapContext(profile?: ProfileRow | null) {
+  const localProfile = typeof window !== 'undefined' ? initializeUserProfile() : null
+  const targetRole = profile?.target_role ?? localProfile?.targetRole ?? DEFAULT_TARGET_ROLE
+
+  return {
+    targetRole,
+    currentLevel: profile?.current_level ?? localProfile?.currentLevel ?? 'beginner',
+    studyTime: profile?.study_time ?? localProfile?.studyTime ?? '1hour',
+  }
+}
+
+function createDemoRoadmap(profile?: ProfileRow | null) {
+  const context = resolveRoadmapContext(profile)
+
+  return withGeneratedResources(generateFallbackRoadmap({
+    targetRole: context.targetRole,
+    currentLevel: context.currentLevel,
+    missingSkills: roleStarterSkills[context.targetRole],
+    studyTime: context.studyTime,
+    durationWeeks: 6,
+  }))
 }
 
 function hasRequiredResourcesCompleted(task: RoadmapTask) {
@@ -654,7 +683,7 @@ export default function RoadmapPage() {
     }
 
     const generateAndSaveRoadmap = async (userId: string, replaceExisting: boolean) => {
-      if (!supabase) return demoRoadmap
+      if (!supabase) return createDemoRoadmap()
 
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
@@ -667,9 +696,7 @@ export default function RoadmapPage() {
       }
 
       const typedProfile = profile as ProfileRow | null
-      const targetRole = typedProfile?.target_role ?? 'frontend-developer'
-      const currentLevel = typedProfile?.current_level ?? 'beginner'
-      const studyTime = typedProfile?.study_time ?? '1hour'
+      const { targetRole, currentLevel, studyTime } = resolveRoadmapContext(typedProfile)
 
       const { data: skillRows, error: skillsError } = await supabase
         .from('user_skills')
@@ -851,7 +878,7 @@ export default function RoadmapPage() {
 
       if (!supabase) {
         if (isActive) {
-          setRoadmap(demoRoadmap)
+          setRoadmap(createDemoRoadmap())
           setFinalProjectStatus(null)
           setMode('demo')
           setStatusMessage('Demo mode. Sign in to persist roadmap progress.')
@@ -871,7 +898,7 @@ export default function RoadmapPage() {
 
         if (!user) {
           if (isActive) {
-            setRoadmap(demoRoadmap)
+            setRoadmap(createDemoRoadmap())
             setFinalProjectStatus(null)
             setMode('demo')
             setStatusMessage('No Supabase session. Progress is not persisted in demo mode.')
@@ -906,7 +933,7 @@ export default function RoadmapPage() {
         if (isActive) {
           const safeMessage = getRoadmapSafeErrorMessage(error)
           const isSchemaError = safeMessage === ROADMAP_SETUP_REQUIRED_MESSAGE
-          setRoadmap(isSchemaError ? null : demoRoadmap)
+          setRoadmap(isSchemaError ? null : createDemoRoadmap())
           setFinalProjectStatus(null)
           setMode('error')
           setStatusMessage(isSchemaError
@@ -1351,7 +1378,7 @@ export default function RoadmapPage() {
 
   const regenerateRoadmap = async () => {
     if (!supabase || !currentUserId) {
-      setRoadmap(demoRoadmap)
+      setRoadmap(createDemoRoadmap())
       setMode('demo')
       setStatusMessage('Demo roadmap regenerated locally. Sign in to persist progress.')
       return
@@ -1374,9 +1401,7 @@ export default function RoadmapPage() {
             .maybeSingle()
 
           const typedProfile = profile as ProfileRow | null
-          const targetRole = typedProfile?.target_role ?? 'frontend-developer'
-          const currentLevel = typedProfile?.current_level ?? 'beginner'
-          const studyTime = typedProfile?.study_time ?? '1hour'
+          const { targetRole, currentLevel, studyTime } = resolveRoadmapContext(typedProfile)
 
           const { data: skillRows } = await supabase
             .from('user_skills')
@@ -1577,7 +1602,12 @@ export default function RoadmapPage() {
       <GradientBackground />
 
       <div className="flex-1">
-        <DashboardHeader title="AI Roadmap" subtitle="Follow a saved learning module, not a throwaway checklist" />
+        <DashboardHeader
+          icon={MapIcon}
+          iconColor="pink"
+          title="AI Roadmap"
+          subtitle="Follow your personalized learning path"
+        />
 
         <Container className="py-6">
           {mode === 'loading' && (

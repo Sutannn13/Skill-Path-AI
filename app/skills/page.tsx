@@ -8,7 +8,7 @@ import { BrutalCard, BrutalButton, SkillBadge, SkillLevelIndicator, SkillLevelSe
 import { SKILLS, SKILL_CATEGORIES, SKILL_LEVEL_LABELS } from '@/lib/constants'
 import { SkillCategory, SkillLevel } from '@/types'
 import { cn } from '@/lib/utils'
-import { Search, Filter, Save } from 'lucide-react'
+import { Search, Filter, Save, Compass } from 'lucide-react'
 
 // Mock user skills for demonstration
 const initialUserSkills: Record<string, SkillLevel> = {
@@ -49,7 +49,12 @@ export default function SkillsPage() {
 
       {/* Main Content */}
       <div className="flex-1">
-        <DashboardHeader title="Skill Inventory" subtitle="Track your developer skill levels" />
+        <DashboardHeader
+          icon={Compass}
+          iconColor="pink"
+          title="Skill Inventory"
+          subtitle="Track your developer skill levels"
+        />
 
         <Container className="py-6">
           {/* Stats Overview */}

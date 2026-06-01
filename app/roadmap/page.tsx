@@ -17,6 +17,11 @@ import { createSupabaseBrowserClient } from '@/lib/supabase/browser'
 import { initializeUserProfile } from '@/lib/user/profile'
 import { cn } from '@/lib/utils'
 import {
+  NowLearningPanel,
+  LearningWorkspace,
+  ResourceAccordion,
+} from '@/components/roadmap'
+import {
   AlertCircle,
   BookOpen,
   Check,
@@ -36,6 +41,7 @@ import {
   Target,
   Zap,
   Rocket,
+  X,
 } from 'lucide-react'
 import {
   CurrentLevel,
@@ -362,6 +368,29 @@ function getDefaultCurrentTask(week: RoadmapWeek) {
 function hasTaskProgress(task: RoadmapTask) {
   const resourceProgress = (task.resources ?? []).some((resource) => resource.isCompleted || resource.watchedSeconds > 0)
   return resourceProgress || task.quizPassed === true || task.projectPassed === true || task.status === 'completed'
+}
+
+function getNextActionLabel(roadmap: Roadmap, weekIndex: number, taskId: string): string {
+  const week = roadmap.weeks[weekIndex]
+  const task = week?.tasks.find((t) => t.id === taskId)
+  if (!task) return 'Select a task'
+
+  const gate = getLearningResourceGate(task)
+  return getNextActionText(task, gate)
+}
+
+function getNextActionText(task: RoadmapTask, gate: ReturnType<typeof getLearningResourceGate>): string {
+  const requirementState = deriveRequirementState(task)
+
+  if (requirementState === 'completed') return 'Task completed!'
+  if (!gate.resourcesComplete) {
+    if (gate.completedVideos < 1) return 'Watch a video lesson'
+    if (gate.completedDocs < 1) return 'Read documentation'
+    return 'Complete learning resources'
+  }
+  if (!task.quizPassed && task.quizRequired !== false) return 'Take the quiz'
+  if (!task.projectPassed && task.projectRequired === true) return 'Submit mini project'
+  return 'Continue learning'
 }
 
 function getCurrentTaskLocation(roadmap: Roadmap) {
@@ -694,6 +723,10 @@ export default function RoadmapPage() {
   const [finalProjectStatus, setFinalProjectStatus] = useState<RoadmapProjectReviewStatus | null>(null)
   const [focusedTaskByWeek, setFocusedTaskByWeek] = useState<Record<number, string>>({})
   const [openedResources, setOpenedResources] = useState<Record<string, boolean>>({})
+  const [learningWorkspace, setLearningWorkspace] = useState<{
+    task: RoadmapTask
+    week: RoadmapWeek
+  } | null>(null)
   const weekSectionRefs = useRef<Record<number, HTMLDivElement | null>>({})
 
   // Repair callback for empty-task roadmaps
@@ -1164,10 +1197,25 @@ export default function RoadmapPage() {
       [location.weekNumber]: location.taskId,
     }))
 
+    // Open learning workspace
+    const week = roadmap.weeks[location.weekIndex]
+    const task = week?.tasks.find((t) => t.id === location.taskId)
+    if (task && week) {
+      setLearningWorkspace({ task, week })
+    }
+
     requestAnimationFrame(() => {
       const weekNode = weekSectionRefs.current[location.weekNumber]
       weekNode?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     })
+  }
+
+  const openLearningWorkspace = (task: RoadmapTask, week: RoadmapWeek) => {
+    setLearningWorkspace({ task, week })
+  }
+
+  const closeLearningWorkspace = () => {
+    setLearningWorkspace(null)
   }
 
   const persistTaskState = async (task: RoadmapTask) => {
@@ -1617,6 +1665,22 @@ export default function RoadmapPage() {
 
           {roadmap && (
             <>
+              {/* Now Learning Panel */}
+              {currentTaskLocation && !learningWorkspace && (
+                <NowLearningPanel
+                  roadmap={roadmap}
+                  currentWeek={roadmap.weeks[currentTaskLocation.weekIndex]}
+                  currentTask={
+                    roadmap.weeks[currentTaskLocation.weekIndex].tasks.find(
+                      (t) => t.id === currentTaskLocation.taskId
+                    )!
+                  }
+                  nextAction={getNextActionLabel(roadmap, currentTaskLocation.weekIndex, currentTaskLocation.taskId)}
+                  onContinue={continueCurrentTask}
+                  className="mb-6"
+                />
+              )}
+
               <BrutalCard color="yellow" className="mb-6">
                 <div className="mb-4 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div>
@@ -1685,6 +1749,39 @@ export default function RoadmapPage() {
                   />
                 </div>
               </BrutalCard>
+
+              {/* Learning Workspace Modal */}
+              <AnimatePresence>
+                {learningWorkspace && roadmap && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
+                    onClick={() => closeLearningWorkspace()}
+                  >
+                    <div
+                      className="absolute inset-4 lg:inset-8 bg-white rounded-lg border-3 border-black overflow-hidden"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <LearningWorkspace
+                        task={learningWorkspace.task}
+                        week={learningWorkspace.week}
+                        roadmap={roadmap}
+                        onBack={closeLearningWorkspace}
+                        onMarkResourceComplete={toggleResource}
+                        onOpenResource={(resourceId) => {
+                          setOpenedResources((prev) => ({
+                            ...prev,
+                            [resourceId]: true,
+                          }))
+                        }}
+                        onReopenTask={reopenTask}
+                      />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               <div className="space-y-4">
                 {roadmap.weeks.map((week, weekIndex) => {
@@ -1800,6 +1897,7 @@ export default function RoadmapPage() {
                                             [week.week]: task.id,
                                           }))
                                         }}
+                                        onOpenWorkspace={() => openLearningWorkspace(task, week)}
                                       />
                                     )
                                   })}
@@ -1981,6 +2079,7 @@ function CompactTaskRow({
   isLocked,
   hasMiniProject,
   onFocus,
+  onOpenWorkspace,
 }: {
   task: RoadmapTask
   taskNumber: number
@@ -1988,6 +2087,7 @@ function CompactTaskRow({
   isLocked: boolean
   hasMiniProject: boolean
   onFocus: () => void
+  onOpenWorkspace?: () => void
 }) {
   const requirementState = task.requirementState ?? deriveRequirementState(task)
   const { progressPercent, checklistDone, checklistTotal } = getTaskProgressSnapshot(task, hasMiniProject)
@@ -1996,6 +2096,8 @@ function CompactTaskRow({
     medium: 'text-yellow',
     hard: 'text-red',
   }
+  const gate = getLearningResourceGate(task)
+  const nextAction = getNextActionText(task, gate)
 
   return (
     <div
@@ -2034,6 +2136,9 @@ function CompactTaskRow({
               {formatRequirementState(requirementState)}
             </span>
           </div>
+          <p className="mt-1 text-xs text-black/60">
+            Next: {nextAction}
+          </p>
         </div>
         <div className="w-full md:w-44">
           <div className="mb-2 h-2 overflow-hidden rounded border-2 border-black bg-gray-200">
@@ -2042,10 +2147,18 @@ function CompactTaskRow({
           <p className="mb-2 text-xs font-medium text-gray-700">
             Checklist: {checklistDone}/{checklistTotal}
           </p>
-          <BrutalButton size="sm" color="black" variant={isFocused ? 'primary' : 'outline'} className="w-full" onClick={onFocus}>
-            <ChevronRight className="h-4 w-4" />
-            {isFocused ? 'Focused' : 'Focus'}
-          </BrutalButton>
+          <div className="flex flex-col gap-1">
+            <BrutalButton size="sm" color="black" variant={isFocused ? 'primary' : 'outline'} className="w-full" onClick={onFocus}>
+              <ChevronRight className="h-4 w-4" />
+              {isFocused ? 'Focused' : 'Focus'}
+            </BrutalButton>
+            {onOpenWorkspace && (
+              <BrutalButton size="sm" color="green" className="w-full" onClick={onOpenWorkspace}>
+                <PlayCircle className="h-4 w-4" />
+                Learn
+              </BrutalButton>
+            )}
+          </div>
         </div>
       </div>
     </div>

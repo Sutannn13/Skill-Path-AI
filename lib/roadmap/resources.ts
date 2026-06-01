@@ -396,6 +396,213 @@ const BACKEND_HINTS = [
   'deployment',
 ]
 
+type BackendTopicKey =
+  | 'backend-js-typescript'
+  | 'http-basics'
+  | 'json-parsing'
+  | 'git-terminal'
+  | 'node-runtime-npm'
+  | 'backend-folder-structure'
+  | 'environment-variables'
+  | 'node-basic-server'
+  | 'express-routing'
+  | 'express-controllers-services'
+  | 'express-middleware'
+  | 'rest-crud'
+  | 'express-error-handling'
+  | 'sql-basics'
+  | 'postgres-tables'
+  | 'database-relationships'
+  | 'prisma-migrations'
+  | 'database-crud'
+  | 'auth-register-login'
+  | 'bcrypt-password-hashing'
+  | 'jwt-session-auth'
+  | 'protected-routes'
+  | 'input-validation'
+  | 'postman-thunder-client'
+  | 'jest-supertest'
+  | 'api-documentation'
+  | 'environment-config'
+  | 'backend-deployment'
+
+const BACKEND_TASK_TOPIC_MAP: Record<string, BackendTopicKey> = {
+  'backend-1-1': 'backend-js-typescript',
+  'backend-1-2': 'http-basics',
+  'backend-1-3': 'json-parsing',
+  'backend-1-4': 'git-terminal',
+  'backend-2-1': 'node-runtime-npm',
+  'backend-2-2': 'backend-folder-structure',
+  'backend-2-3': 'environment-variables',
+  'backend-2-4': 'node-basic-server',
+  'backend-3-1': 'express-routing',
+  'backend-3-2': 'express-controllers-services',
+  'backend-3-3': 'express-middleware',
+  'backend-3-4': 'rest-crud',
+  'backend-3-5': 'express-error-handling',
+  'backend-4-1': 'sql-basics',
+  'backend-4-2': 'postgres-tables',
+  'backend-4-3': 'database-relationships',
+  'backend-4-4': 'prisma-migrations',
+  'backend-4-5': 'database-crud',
+  'backend-5-1': 'auth-register-login',
+  'backend-5-2': 'bcrypt-password-hashing',
+  'backend-5-3': 'jwt-session-auth',
+  'backend-5-4': 'protected-routes',
+  'backend-5-5': 'input-validation',
+  'backend-6-1': 'postman-thunder-client',
+  'backend-6-2': 'jest-supertest',
+  'backend-6-3': 'api-documentation',
+  'backend-6-4': 'environment-config',
+  'backend-6-5': 'backend-deployment',
+}
+
+const BACKEND_TOPIC_KEYWORDS: Record<BackendTopicKey, string[]> = {
+  'backend-js-typescript': ['javascript', 'typescript', 'backend'],
+  'http-basics': ['http', 'request', 'response', 'status code', 'headers'],
+  'json-parsing': ['json', 'parse', 'payload'],
+  'git-terminal': ['git', 'terminal', 'github'],
+  'node-runtime-npm': ['node.js', 'node', 'npm', 'runtime'],
+  'backend-folder-structure': ['folder structure', 'project structure', 'architecture', 'backend structure'],
+  'environment-variables': ['environment variable', '.env', 'dotenv', 'configuration'],
+  'node-basic-server': ['node.js server', 'http server', 'create server'],
+  'express-routing': ['express routing', 'express route', 'router'],
+  'express-controllers-services': ['controller', 'service', 'express mvc'],
+  'express-middleware': ['middleware', 'express middleware'],
+  'rest-crud': ['crud', 'rest api', 'endpoint'],
+  'express-error-handling': ['error handling', 'express error'],
+  'sql-basics': ['sql', 'query', 'select', 'insert', 'update', 'delete'],
+  'postgres-tables': ['postgresql', 'postgres', 'table', 'constraint'],
+  'database-relationships': ['relationship', 'foreign key', 'one-to-many', 'schema'],
+  'prisma-migrations': ['prisma', 'migration', 'orm'],
+  'database-crud': ['database crud', 'postgresql crud', 'repository', 'data access'],
+  'auth-register-login': ['register', 'login', 'authentication flow', 'auth api'],
+  'bcrypt-password-hashing': ['bcrypt', 'password hashing'],
+  'jwt-session-auth': ['jwt', 'session', 'token', 'authentication'],
+  'protected-routes': ['protected route', 'authorization middleware', 'guard'],
+  'input-validation': ['validation', 'input validation', 'zod', 'joi'],
+  'postman-thunder-client': ['postman', 'thunder client', 'api testing'],
+  'jest-supertest': ['jest', 'supertest', 'integration test'],
+  'api-documentation': ['openapi', 'swagger', 'api documentation'],
+  'environment-config': ['environment config', '.env', 'configuration'],
+  'backend-deployment': ['render', 'railway', 'deploy node', 'deployment'],
+}
+
+const BACKEND_TOPIC_RESOURCE_MAP: Record<BackendTopicKey, RoadmapResourceSeed[]> = {
+  'backend-js-typescript': [
+    youtube('JavaScript & TypeScript basics for backend', 'https://www.youtube.com/watch?v=hdI2bqOjy3c', 32, 'Traversy Media'),
+    docs('TypeScript for JavaScript programmers', 'https://www.typescriptlang.org/docs/handbook/typescript-in-5-minutes.html', 25, 'TypeScript'),
+  ],
+  'http-basics': [
+    youtube('HTTP request, response, headers, and status codes', 'https://www.youtube.com/watch?v=iYM2zFP3Zn0', 24, 'freeCodeCamp.org'),
+    docs('MDN HTTP overview', 'https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Overview', 30, 'MDN Web Docs'),
+  ],
+  'json-parsing': [
+    youtube('JSON basics for API payloads', 'https://www.youtube.com/watch?v=iiADhChRriM', 16, 'Traversy Media'),
+    docs('MDN JSON guide', 'https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/Scripting/JSON', 28, 'MDN Web Docs'),
+  ],
+  'git-terminal': [
+    youtube('Git and terminal basics for beginners', 'https://www.youtube.com/watch?v=RGOj5yH7evk', 30, 'freeCodeCamp.org'),
+    docs('Git documentation: getting started', 'https://git-scm.com/doc', 20, 'Git'),
+  ],
+  'node-runtime-npm': [
+    youtube('Node.js runtime and npm basics', 'https://www.youtube.com/watch?v=ENrzD9HAZK4', 20, 'Fireship'),
+    docs('Node.js Learn: Introduction to Node.js', 'https://nodejs.org/en/learn/getting-started/introduction-to-nodejs', 25, 'Node.js'),
+  ],
+  'backend-folder-structure': [
+    youtube('Node.js backend folder structure', 'https://www.youtube.com/watch?v=5FJM5mWQ5iM', 18, 'JavaScript Mastery'),
+    docs('Node.js project structure best practices', 'https://nodejs.org/en/learn/getting-started/nodejs-the-difference-between-development-and-production', 20, 'Node.js'),
+  ],
+  'environment-variables': [
+    youtube('Environment variables with dotenv in Node.js', 'https://www.youtube.com/watch?v=17UVejOw3zA', 18, 'Fireship'),
+    docs('Node.js environment variables', 'https://nodejs.org/en/learn/command-line/how-to-read-environment-variables-from-nodejs', 20, 'Node.js'),
+  ],
+  'node-basic-server': [
+    youtube('Build a basic Node.js server', 'https://www.youtube.com/watch?v=TlB_eWDSMt4', 20, 'Programming with Mosh'),
+    docs('Node.js HTTP module', 'https://nodejs.org/api/http.html', 25, 'Node.js'),
+  ],
+  'express-routing': [
+    youtube('Express routing tutorial', 'https://www.youtube.com/watch?v=L72fhGm1tfE&t=1520s', 20, 'Traversy Media'),
+    docs('Express routing guide', 'https://expressjs.com/en/guide/routing.html', 30, 'Express'),
+  ],
+  'express-controllers-services': [
+    youtube('Express controllers and services pattern', 'https://www.youtube.com/watch?v=0oXYLzuucwE', 22, 'Academind'),
+    docs('Express writing middleware and handlers', 'https://expressjs.com/en/guide/writing-middleware.html', 20, 'Express'),
+  ],
+  'express-middleware': [
+    youtube('Express middleware explained', 'https://www.youtube.com/watch?v=L72fhGm1tfE&t=2210s', 18, 'Traversy Media'),
+    docs('Express middleware guide', 'https://expressjs.com/en/guide/using-middleware.html', 30, 'Express'),
+  ],
+  'rest-crud': [
+    youtube('Build REST API CRUD with Express', 'https://www.youtube.com/watch?v=DihOP19LQdg', 28, 'Traversy Media'),
+    docs('REST API design best practices', 'https://learn.microsoft.com/en-us/azure/architecture/best-practices/api-design', 30, 'Microsoft Learn'),
+  ],
+  'express-error-handling': [
+    youtube('Express error handling middleware', 'https://www.youtube.com/watch?v=3dSKnY8Ny4M', 20, 'Academind'),
+    docs('Express error handling docs', 'https://expressjs.com/en/guide/error-handling.html', 25, 'Express'),
+  ],
+  'sql-basics': [
+    youtube('SQL basics for beginners', 'https://www.youtube.com/watch?v=HXV3zeQKqGY', 32, 'freeCodeCamp.org'),
+    docs('PostgreSQL SQL tutorial', 'https://www.postgresql.org/docs/current/tutorial-sql.html', 35, 'PostgreSQL'),
+  ],
+  'postgres-tables': [
+    youtube('PostgreSQL tables and constraints', 'https://www.youtube.com/watch?v=Hl4NZB1XR9c', 24, 'Programming with Mosh'),
+    docs('PostgreSQL table definition', 'https://www.postgresql.org/docs/current/ddl.html', 30, 'PostgreSQL'),
+  ],
+  'database-relationships': [
+    youtube('Database relationships and foreign keys', 'https://www.youtube.com/watch?v=ztHopE5Wnpc', 25, 'freeCodeCamp.org'),
+    docs('PostgreSQL constraints and foreign keys', 'https://www.postgresql.org/docs/current/ddl-constraints.html', 30, 'PostgreSQL'),
+  ],
+  'prisma-migrations': [
+    youtube('Prisma ORM and migration basics', 'https://www.youtube.com/watch?v=RebA5J-rlwg', 24, 'Web Dev Simplified'),
+    docs('Prisma migrate workflows', 'https://www.prisma.io/docs/orm/prisma-migrate/workflows/development-and-production', 30, 'Prisma'),
+  ],
+  'database-crud': [
+    youtube('Express + PostgreSQL CRUD integration', 'https://www.youtube.com/watch?v=DihOP19LQdg', 28, 'Traversy Media'),
+    docs('Prisma CRUD operations', 'https://www.prisma.io/docs/orm/prisma-client/queries/crud', 30, 'Prisma'),
+  ],
+  'auth-register-login': [
+    youtube('Build register and login flow in Node.js', 'https://www.youtube.com/watch?v=Ud5xKCYQTjM', 26, 'Web Dev Simplified'),
+    docs('OWASP Authentication Cheat Sheet', 'https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html', 30, 'OWASP'),
+  ],
+  'bcrypt-password-hashing': [
+    youtube('Password hashing with bcrypt in Node.js', 'https://www.youtube.com/watch?v=2jqok-WgelI', 20, 'Web Dev Simplified'),
+    docs('bcrypt npm docs', 'https://www.npmjs.com/package/bcrypt', 20, 'npm Docs'),
+  ],
+  'jwt-session-auth': [
+    youtube('JWT authentication tutorial', 'https://www.youtube.com/watch?v=7Q17ubqLfaM', 26, 'Web Dev Simplified'),
+    docs('jwt.io introduction', 'https://jwt.io/introduction', 20, 'jwt.io'),
+  ],
+  'protected-routes': [
+    youtube('Protect API routes with middleware', 'https://www.youtube.com/watch?v=mbsmsi7l3r4', 20, 'Traversy Media'),
+    docs('Express middleware for route protection', 'https://expressjs.com/en/guide/using-middleware.html', 25, 'Express'),
+  ],
+  'input-validation': [
+    youtube('Input validation for REST APIs', 'https://www.youtube.com/watch?v=CyDp_e2Z03k', 20, 'Web Dev Simplified'),
+    docs('OWASP Input Validation Cheat Sheet', 'https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html', 30, 'OWASP'),
+  ],
+  'postman-thunder-client': [
+    youtube('Postman API testing for beginners', 'https://www.youtube.com/watch?v=VywxIQ2ZXw4', 25, 'freeCodeCamp.org'),
+    docs('Postman learning center', 'https://learning.postman.com/docs/getting-started/introduction/', 25, 'Postman'),
+  ],
+  'jest-supertest': [
+    youtube('Jest and Supertest API testing basics', 'https://www.youtube.com/watch?v=FKnzS_icp20', 30, 'freeCodeCamp.org'),
+    docs('Supertest documentation', 'https://github.com/ladjs/supertest', 25, 'GitHub'),
+  ],
+  'api-documentation': [
+    youtube('Document APIs with OpenAPI', 'https://www.youtube.com/watch?v=6kwmW_p_Tig', 18, 'IBM Technology'),
+    docs('OpenAPI specification', 'https://spec.openapis.org/oas/latest.html', 30, 'OpenAPI Initiative'),
+  ],
+  'environment-config': [
+    youtube('Environment config for production Node.js apps', 'https://www.youtube.com/watch?v=17UVejOw3zA', 18, 'Fireship'),
+    docs('Node.js configuration for environments', 'https://nodejs.org/en/learn/getting-started/nodejs-the-difference-between-development-and-production', 25, 'Node.js'),
+  ],
+  'backend-deployment': [
+    youtube('Deploy backend API to Render or Railway', 'https://www.youtube.com/watch?v=l134cBAJCuc', 24, 'Traversy Media'),
+    docs('Render docs: deploy Node.js services', 'https://render.com/docs/deploy-node-express-app', 25, 'Render'),
+  ],
+}
+
 const KEY_ALIASES: Record<string, string[]> = {
   'javascript variables': ['javascript basics', 'javascript and typescript basics'],
   typescript: ['typescript basics', 'typescript'],
@@ -476,6 +683,46 @@ function inferRoleTrack(
   return 'mixed'
 }
 
+function deriveBackendTopicKey(task: RoadmapTask, week: RoadmapWeek): BackendTopicKey | null {
+  const fromTaskId = BACKEND_TASK_TOPIC_MAP[task.id]
+  if (fromTaskId) return fromTaskId
+
+  const source = normalizeText(
+    `${task.title} ${task.description} ${task.deliverable} ${week.title} ${week.goal} ${week.focusSkills.join(' ')}`
+  )
+
+  if (source.includes('javascript') && source.includes('typescript')) return 'backend-js-typescript'
+  if (source.includes('http') && (source.includes('status') || source.includes('header'))) return 'http-basics'
+  if (source.includes('json')) return 'json-parsing'
+  if (source.includes('git') || source.includes('terminal')) return 'git-terminal'
+  if (source.includes('node') && source.includes('npm')) return 'node-runtime-npm'
+  if (source.includes('folder structure') || source.includes('module boundaries') || source.includes('backend structure')) return 'backend-folder-structure'
+  if (source.includes('environment variable') || source.includes('.env') || source.includes('config safety')) return 'environment-variables'
+  if (source.includes('basic node.js server') || source.includes('express setup and base server') || source.includes('http server')) return 'node-basic-server'
+  if (source.includes('express routing') || source.includes('routing')) return 'express-routing'
+  if (source.includes('controllers and services') || source.includes('routing and controllers') || source.includes('controller')) return 'express-controllers-services'
+  if (source.includes('middleware')) return 'express-middleware'
+  if (source.includes('crud') || source.includes('restful')) return 'rest-crud'
+  if (source.includes('error handling')) return 'express-error-handling'
+  if (source.includes('sql basics') || (source.includes('sql') && source.includes('crud'))) return 'sql-basics'
+  if (source.includes('postgresql tables') || (source.includes('postgresql') && source.includes('table'))) return 'postgres-tables'
+  if (source.includes('relationship')) return 'database-relationships'
+  if (source.includes('prisma') || source.includes('migration')) return 'prisma-migrations'
+  if (source.includes('database crud') || source.includes('crud with database') || source.includes('database integration')) return 'database-crud'
+  if (source.includes('register and login') || source.includes('login flow')) return 'auth-register-login'
+  if (source.includes('bcrypt') || source.includes('password hashing')) return 'bcrypt-password-hashing'
+  if (source.includes('jwt') || source.includes('session authentication')) return 'jwt-session-auth'
+  if (source.includes('protected routes') || source.includes('ownership authorization')) return 'protected-routes'
+  if (source.includes('input validation') || source.includes('validation')) return 'input-validation'
+  if (source.includes('postman') || source.includes('thunder client')) return 'postman-thunder-client'
+  if (source.includes('jest') || source.includes('supertest')) return 'jest-supertest'
+  if (source.includes('api documentation') || source.includes('openapi') || source.includes('swagger')) return 'api-documentation'
+  if (source.includes('environment config') || source.includes('environment configuration')) return 'environment-config'
+  if (source.includes('deploy backend') || source.includes('deployment') || source.includes('render') || source.includes('railway')) return 'backend-deployment'
+
+  return null
+}
+
 function inferResourceKeys(task: RoadmapTask, week: RoadmapWeek): string[] {
   const source = normalizeText(
     `${task.title} ${task.description} ${task.deliverable} ${week.title} ${week.goal} ${week.focusSkills.join(' ')}`
@@ -528,17 +775,24 @@ function hasSemanticOverlap(task: RoadmapTask, week: RoadmapWeek, key: string, t
 export function isResourceLikelyRelevant(
   task: RoadmapTask,
   week: RoadmapWeek,
-  resource: Pick<RoadmapResourceSeed, 'title' | 'resourceType'>,
+  resource: Pick<RoadmapResourceSeed, 'title' | 'resourceType'> & { provider?: string },
   targetRole?: TargetRole | null
 ) {
   const track = inferRoleTrack(task, week, targetRole)
+  const backendTopicKey = deriveBackendTopicKey(task, week)
   const source = normalizeText(
     `${task.title} ${task.description} ${task.deliverable} ${week.title} ${week.goal} ${week.focusSkills.join(' ')}`
   )
   const resourceTitle = normalizeText(resource.title)
+  const resourceSource = normalizeText(`${resource.title} ${resource.provider ?? ''}`)
 
   const frontendHit = FRONTEND_ONLY_HINTS.some((keyword) => resourceTitle.includes(keyword))
   const backendHit = BACKEND_HINTS.some((keyword) => resourceTitle.includes(keyword))
+
+  if (backendTopicKey && track !== 'frontend') {
+    const keywords = BACKEND_TOPIC_KEYWORDS[backendTopicKey]
+    return keywords.some((keyword) => resourceSource.includes(keyword))
+  }
 
   if (track === 'backend' && frontendHit && !backendHit) {
     return false
@@ -551,6 +805,33 @@ export function isResourceLikelyRelevant(
   if (keys.length === 0) return true
 
   return keys.some((key) => hasSemanticOverlap(task, week, key, resource.title) || source.includes(key))
+}
+
+function selectDeterministicBackendResource(
+  resourceType: 'youtube' | 'docs',
+  topicKey: BackendTopicKey,
+  usedUrls: Set<string>
+) {
+  const entries = BACKEND_TOPIC_RESOURCE_MAP[topicKey] ?? []
+  let reusedCandidate: RoadmapResourceSeed | null = null
+
+  for (const entry of entries) {
+    if (entry.resourceType !== resourceType) continue
+    if (!entry.url) continue
+    if (usedUrls.has(entry.url)) {
+      if (!reusedCandidate) reusedCandidate = entry
+      continue
+    }
+    usedUrls.add(entry.url)
+    return entry
+  }
+
+  if (reusedCandidate?.url) {
+    usedUrls.add(reusedCandidate.url)
+    return reusedCandidate
+  }
+
+  return null
 }
 
 function selectResourceByType(
@@ -582,8 +863,23 @@ export function getCuratedResourcesForTask(
   options?: GetCuratedResourcesOptions
 ): RoadmapResourceSeed[] {
   const track = inferRoleTrack(task, week, options?.targetRole)
+  const backendTopicKey = deriveBackendTopicKey(task, week)
   const keys = inferResourceKeys(task, week)
   const usedUrls = options?.usedUrls ?? new Set<string>()
+
+  if (track === 'backend' || backendTopicKey) {
+    if (!backendTopicKey) {
+      return [
+        buildUnavailableResource('youtube', 'missing_backend_topic_key'),
+        buildUnavailableResource('docs', 'missing_backend_topic_key'),
+      ]
+    }
+
+    return [
+      selectDeterministicBackendResource('youtube', backendTopicKey, usedUrls) ?? buildUnavailableResource('youtube', 'missing_video_match'),
+      selectDeterministicBackendResource('docs', backendTopicKey, usedUrls) ?? buildUnavailableResource('docs', 'missing_docs_match'),
+    ]
+  }
 
   const selectedVideo = selectResourceByType('youtube', keys, task, week, track, usedUrls)
   const selectedDocs = selectResourceByType('docs', keys, task, week, track, usedUrls)

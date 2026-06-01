@@ -24,7 +24,7 @@ export function ParallaxCard({ children, className, speed = 0.5 }: ParallaxCardP
   const y = useTransform(scrollYProgress, [0, 1], [-50 * speed, 50 * speed])
 
   return (
-    <motion.div ref={ref} style={{ y }} className={className}>
+    <motion.div ref={ref} style={{ y }} className={cn('relative', className)}>
       {children}
     </motion.div>
   )

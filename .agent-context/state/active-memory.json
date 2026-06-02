@@ -8,7 +8,7 @@
   },
   "project": {
     "name": "project gabut",
-    "currentFocus": "Role-aware roadmap learning path, granular resources, and quiz/project assessment compatibility",
+    "currentFocus": "Role-aware roadmap learning path with UUID-safe resources, shared progress calculation, dashboard sync, and gated quiz/project actions",
     "durableFacts": [
       "SkillPath uses Next.js App Router, Supabase Auth/RLS, and a neobrutalism UI system.",
       "User dashboard lives at /dashboard; admin dashboard lives at /admin and is guarded by profiles.role.",
@@ -17,25 +17,25 @@
   },
   "progress": {
     "lastAchievements": [
-      "Added role-specific fallback roadmaps for frontend, backend, fullstack, UI, mobile, and data analyst targets.",
-      "Expanded roadmap resources into granular task-level video/docs resources instead of broad one-video shortcuts.",
-      "Added local quiz fallback for demo roadmaps and schema-missing quiz persistence paths.",
-      "Kept roadmap final project status compatible with Supabase databases that have not applied optional final_project columns yet."
+      "Fixed roadmap resource progress persistence by backfilling missing curated task resources as UUID `roadmap_resources` rows before saving `roadmap_resource_progress`.",
+      "Centralized roadmap resource, quiz, mini project, task, week, and overall progress calculation in `lib/roadmap/progress.ts`.",
+      "Synced `/dashboard` learning progress and next task with the active Supabase roadmap instead of demo-derived score math.",
+      "Cleaned roadmap learning workspace gates so unavailable resources, locked quiz/project states, and final project CTA are user-facing and consistent."
     ],
     "pendingIssues": [
-      "Apply Supabase migration 006_learning_assessment_system.sql to persist quiz attempts and project review state fully.",
       "Verify the roadmap page manually with a signed-in Backend Developer profile against the live Supabase project.",
-      "External learning resource links should be spot-checked in browser before a release demo."
+      "External learning resource links should be spot-checked in browser before a release demo.",
+      "Run a signed-in resource completion smoke test to confirm the previous non-UUID resource progress error no longer appears in the real Supabase project."
     ],
     "nextBestActions": [
-      "Regenerate the signed-in user's roadmap after selecting the target role to create role-specific persisted tasks.",
-      "Run Supabase migration 006 in the target project and reload /roadmap.",
-      "Smoke-test mini quiz start and submit from a frontend task and a backend task."
+      "Open `/roadmap` as a signed-in user and complete a video/docs resource from a task that previously had generated fallback resources.",
+      "Confirm `/dashboard` updates its roadmap progress and next task after resource completion.",
+      "Smoke-test quiz start/submit, mini project submit, and final project locked/unlocked state."
     ],
     "validationState": [
-      "npm run typecheck passed on 2026-05-28 for roadmap role/quiz changes",
-      "npm run lint passed on 2026-05-28 with Next 16 deprecation warning for next lint",
-      "npm run build passed on 2026-05-28"
+      "npm run typecheck passed on 2026-06-02 for roadmap UUID/progress/dashboard changes",
+      "npm run lint passed on 2026-06-02 with Next 16 deprecation warning for next lint",
+      "npm run build passed on 2026-06-02"
     ]
   },
   "designContinuity": {
@@ -53,5 +53,5 @@
     "redactSensitiveTextBeforeWriting": true
   },
   "generatedAt": "2026-05-26T09:05:08.903Z",
-  "lastUpdatedAt": "2026-05-28T12:00:00.000Z"
+  "lastUpdatedAt": "2026-06-02T00:00:00.000Z"
 }

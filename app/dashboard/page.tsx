@@ -28,7 +28,12 @@ import { createSupabaseBrowserClient } from '@/lib/supabase/browser'
 import { initializeUserProfile } from '@/lib/user/profile'
 import { calculateSkillGap } from '@/lib/scoring/skill-gap'
 import { getRequiredSkillIds, getNiceToHaveSkillIds, getRoleById, getSkillById } from '@/lib/constants'
-import type { SkillLevel, TargetRole, UserSkill } from '@/types'
+import {
+  calculateOverallProgress,
+  getCompletedTaskCount,
+  getCurrentTaskLocation,
+} from '@/lib/roadmap/progress'
+import type { Roadmap, RoadmapResource, RoadmapTask, RoadmapTaskRequirementState, RoadmapWeek, SkillLevel, TargetRole, UserSkill } from '@/types'
 
 interface ProfileRow {
   full_name: string | null
@@ -40,6 +45,63 @@ interface UserSkillRow {
   skill_slug: string
   level: number
 }
+
+interface ActiveRoadmapRow {
+  id: string
+  title: string
+}
+
+interface DashboardRoadmapTaskRow {
+  id: string
+  week_number: number
+  week_title: string | null
+  week_goal: string | null
+  focus_skills: string[] | null
+  title: string
+  description: string | null
+  difficulty: 'easy' | 'medium' | 'hard' | null
+  estimated_time: string | null
+  deliverable: string | null
+  status: 'todo' | 'in-progress' | 'completed'
+  completed_at: string | null
+  quiz_required: boolean | null
+  quiz_passed: boolean | null
+  project_required: boolean | null
+  project_passed: boolean | null
+  requirement_state: RoadmapTaskRequirementState | null
+}
+
+interface DashboardRoadmapResourceRow {
+  id: string
+  roadmap_task_id: string
+  title: string
+  resource_type: RoadmapResource['resourceType']
+  url: string
+  provider: string
+  estimated_minutes: number
+  is_required: boolean
+  completion_rule: string
+}
+
+interface DashboardResourceProgressRow {
+  resource_id: string
+  watched_seconds: number | null
+  duration_seconds: number | null
+  completion_percentage: number | null
+  is_completed: boolean | null
+  completed_at: string | null
+}
+
+interface DashboardRoadmapStats {
+  hasActiveRoadmap: boolean
+  roadmapTitle: string | null
+  progress: number
+  completedTasks: number
+  totalTasks: number
+  currentTaskTitle: string | null
+}
+
+type BrowserSupabaseClient = NonNullable<ReturnType<typeof createSupabaseBrowserClient>>
 
 interface DashboardState {
   isDemoMode: boolean
@@ -53,6 +115,11 @@ interface DashboardState {
   careerReadiness: number
   jobMatchScore: number | null
   weeklyProgress: number
+  hasActiveRoadmap: boolean
+  roadmapProgress: number | null
+  completedRoadmapTasks: number
+  totalRoadmapTasks: number
+  currentRoadmapTask: string | null
   streak: number
   githubScore: number | null
   nextRecommendedSkill: string | null
@@ -74,6 +141,11 @@ const initialDashboardState: DashboardState = {
   careerReadiness: 72,
   jobMatchScore: 85,
   weeklyProgress: 60,
+  hasActiveRoadmap: false,
+  roadmapProgress: null,
+  completedRoadmapTasks: 0,
+  totalRoadmapTasks: 0,
+  currentRoadmapTask: null,
   streak: 5,
   githubScore: 68,
   nextRecommendedSkill: 'TypeScript',
@@ -91,6 +163,174 @@ const mockActivities = [
 
 function clampSkillLevel(value: number): SkillLevel {
   return Math.max(0, Math.min(4, Number(value))) as SkillLevel
+}
+
+function mapDashboardResource(
+  resource: DashboardRoadmapResourceRow,
+  progress?: DashboardResourceProgressRow
+): RoadmapResource {
+  return {
+    id: resource.id,
+    title: resource.title,
+    resourceType: resource.resource_type,
+    url: resource.url,
+    provider: resource.provider,
+    estimatedMinutes: resource.estimated_minutes,
+    isRequired: resource.is_required,
+    completionRule: resource.completion_rule,
+    watchedSeconds: progress?.watched_seconds ?? 0,
+    durationSeconds: progress?.duration_seconds ?? null,
+    completionPercentage: Number(progress?.completion_percentage ?? 0),
+    isCompleted: progress?.is_completed === true,
+    completedAt: progress?.completed_at ?? null,
+  }
+}
+
+function buildDashboardRoadmap(
+  roadmapRow: ActiveRoadmapRow,
+  taskRows: DashboardRoadmapTaskRow[],
+  resourceRows: DashboardRoadmapResourceRow[],
+  progressRows: DashboardResourceProgressRow[]
+): Roadmap {
+  const progressByResourceId = new Map(progressRows.map((progress) => [progress.resource_id, progress]))
+  const resourcesByTaskId = new Map<string, RoadmapResource[]>()
+
+  resourceRows.forEach((resource) => {
+    const taskResources = resourcesByTaskId.get(resource.roadmap_task_id) ?? []
+    taskResources.push(mapDashboardResource(resource, progressByResourceId.get(resource.id)))
+    resourcesByTaskId.set(resource.roadmap_task_id, taskResources)
+  })
+
+  const weeks = new Map<number, RoadmapWeek>()
+
+  taskRows.forEach((taskRow) => {
+    const task: RoadmapTask = {
+      id: taskRow.id,
+      title: taskRow.title,
+      description: taskRow.description ?? '',
+      estimatedTime: taskRow.estimated_time ?? '1 hour',
+      difficulty: taskRow.difficulty ?? 'medium',
+      deliverable: taskRow.deliverable ?? 'Complete the required deliverable.',
+      status: taskRow.status,
+      completedAt: taskRow.completed_at,
+      resources: resourcesByTaskId.get(taskRow.id) ?? [],
+      quizRequired: taskRow.quiz_required !== false,
+      quizPassed: taskRow.quiz_passed === true,
+      projectRequired: taskRow.project_required === true,
+      projectPassed: taskRow.project_passed === true,
+      requirementState: taskRow.requirement_state ?? 'resources_pending',
+    }
+    const week = weeks.get(taskRow.week_number)
+
+    if (week) {
+      week.tasks.push(task)
+      return
+    }
+
+    weeks.set(taskRow.week_number, {
+      week: taskRow.week_number,
+      title: taskRow.week_title ?? `Module ${taskRow.week_number}`,
+      goal: taskRow.week_goal ?? 'Complete this roadmap module.',
+      focusSkills: taskRow.focus_skills ?? [],
+      tasks: [task],
+    })
+  })
+
+  return {
+    id: roadmapRow.id,
+    title: roadmapRow.title,
+    summary: '',
+    durationWeeks: weeks.size,
+    weeks: Array.from(weeks.values()).sort((a, b) => a.week - b.week),
+    source: 'fallback',
+    createdAt: '',
+  }
+}
+
+async function loadDashboardRoadmapStats(
+  supabase: BrowserSupabaseClient,
+  userId: string
+): Promise<DashboardRoadmapStats | null> {
+  try {
+    const { data: roadmapRow, error: roadmapError } = await supabase
+      .from('roadmaps')
+      .select('id, title')
+      .eq('user_id', userId)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (roadmapError) throw roadmapError
+    if (!roadmapRow) {
+      return {
+        hasActiveRoadmap: false,
+        roadmapTitle: null,
+        progress: 0,
+        completedTasks: 0,
+        totalTasks: 0,
+        currentTaskTitle: null,
+      }
+    }
+
+    const typedRoadmap = roadmapRow as ActiveRoadmapRow
+    const { data: taskRows, error: taskError } = await supabase
+      .from('roadmap_tasks')
+      .select('id, week_number, week_title, week_goal, focus_skills, title, description, difficulty, estimated_time, deliverable, status, completed_at, quiz_required, quiz_passed, project_required, project_passed, requirement_state')
+      .eq('roadmap_id', typedRoadmap.id)
+      .order('week_number', { ascending: true })
+      .order('task_order', { ascending: true })
+
+    if (taskError) throw taskError
+
+    const typedTasks = (taskRows ?? []) as DashboardRoadmapTaskRow[]
+    const taskIds = typedTasks.map((task) => task.id)
+    let typedResources: DashboardRoadmapResourceRow[] = []
+    let typedProgress: DashboardResourceProgressRow[] = []
+
+    if (taskIds.length > 0) {
+      const { data: resourceRows, error: resourceError } = await supabase
+        .from('roadmap_resources')
+        .select('id, roadmap_task_id, title, resource_type, url, provider, estimated_minutes, is_required, completion_rule')
+        .in('roadmap_task_id', taskIds)
+
+      if (resourceError) throw resourceError
+
+      typedResources = (resourceRows ?? []) as DashboardRoadmapResourceRow[]
+      const resourceIds = typedResources.map((resource) => resource.id)
+
+      if (resourceIds.length > 0) {
+        const { data: progressRows, error: progressError } = await supabase
+          .from('roadmap_resource_progress')
+          .select('resource_id, watched_seconds, duration_seconds, completion_percentage, is_completed, completed_at')
+          .eq('user_id', userId)
+          .in('resource_id', resourceIds)
+
+        if (progressError) throw progressError
+        typedProgress = (progressRows ?? []) as DashboardResourceProgressRow[]
+      }
+    }
+
+    const roadmap = buildDashboardRoadmap(typedRoadmap, typedTasks, typedResources, typedProgress)
+    const currentTaskLocation = getCurrentTaskLocation(roadmap)
+    const currentTask = currentTaskLocation
+      ? roadmap.weeks[currentTaskLocation.weekIndex]?.tasks.find((task) => task.id === currentTaskLocation.taskId)
+      : null
+
+    return {
+      hasActiveRoadmap: true,
+      roadmapTitle: typedRoadmap.title,
+      progress: calculateOverallProgress(roadmap),
+      completedTasks: getCompletedTaskCount(roadmap),
+      totalTasks: typedTasks.length,
+      currentTaskTitle: currentTask?.title ?? null,
+    }
+  } catch (error) {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[Dashboard] roadmap stats unavailable:', error instanceof Error ? error.message : error)
+    }
+    return null
+  }
 }
 
 export default function DashboardPage() {
@@ -206,6 +446,7 @@ export default function DashboardPage() {
             requiredSkillIds: getRequiredSkillIds(targetRole),
             niceToHaveSkillIds: getNiceToHaveSkillIds(targetRole),
           })
+          const roadmapStats = await loadDashboardRoadmapStats(supabase, user.id)
 
           if (isActive) {
             setState({
@@ -220,7 +461,12 @@ export default function DashboardPage() {
               onboardingCompleted,
               careerReadiness: Math.round(skillGap.weightedMatchScore),
               jobMatchScore: Math.round(skillGap.matchScore),
-              weeklyProgress: Math.min(100, Math.round(skillGap.weightedMatchScore * 0.7)),
+              weeklyProgress: roadmapStats?.progress ?? 0,
+              hasActiveRoadmap: roadmapStats?.hasActiveRoadmap ?? false,
+              roadmapProgress: roadmapStats?.progress ?? null,
+              completedRoadmapTasks: roadmapStats?.completedTasks ?? 0,
+              totalRoadmapTasks: roadmapStats?.totalTasks ?? 0,
+              currentRoadmapTask: roadmapStats?.currentTaskTitle ?? null,
               streak: 0,
               githubScore: null,
               nextRecommendedSkill: skillGap.recommendedNextSkills[0] ?? null,
@@ -266,8 +512,10 @@ export default function DashboardPage() {
   const welcomeName = state.fullName || state.targetRoleLabel || 'Developer'
   const nextBestAction = state.needsOnboarding
     ? { label: 'Complete onboarding', href: '/onboarding', icon: ArrowRight, hint: 'Unlock roadmap and scoring.' }
-    : state.weeklyProgress < 80
-      ? { label: 'Continue roadmap', href: '/roadmap', icon: ArrowRight, hint: 'Finish pending roadmap tasks.' }
+    : !state.hasActiveRoadmap
+      ? { label: 'Build roadmap', href: '/roadmap', icon: Rocket, hint: 'Generate your learning path from saved profile data.' }
+    : (state.roadmapProgress ?? 0) < 100
+      ? { label: 'Continue roadmap', href: '/roadmap', icon: ArrowRight, hint: state.currentRoadmapTask ? `Next: ${state.currentRoadmapTask}` : 'Finish pending roadmap tasks.' }
       : state.githubScore !== null && state.githubScore < 75
         ? { label: 'Analyze GitHub', href: '/github', icon: GitBranch, hint: 'Improve portfolio quality signals.' }
         : { label: 'Save a job', href: '/jobs', icon: Briefcase, hint: 'Track a role that fits your current skills.' }
@@ -494,25 +742,36 @@ export default function DashboardPage() {
                     <div className="flex items-center justify-between mb-4">
                       <h3 className="font-display font-bold text-lg flex items-center gap-2">
                         <Calendar className="w-5 h-5" />
-                        Weekly Sprint
+                        Learning Path
                       </h3>
-                      <StickerBadge variant="in-progress" label="Active" size="sm" />
+                      <StickerBadge
+                        variant={state.hasActiveRoadmap ? 'in-progress' : 'blue'}
+                        label={state.hasActiveRoadmap ? 'Active' : 'Not Started'}
+                        size="sm"
+                      />
                     </div>
                     <ScoreBar
-                      score={state.weeklyProgress}
-                      label="Week Progress"
+                      score={state.roadmapProgress ?? 0}
+                      label="Roadmap Progress"
                       color="black"
                     />
                     <div className="mt-4 flex items-center justify-between">
                       <span className="text-sm text-black/70">
-                        {state.skillsCount > 0 ? `${state.skillsCount} skills tracked` : 'No skill data yet'}
+                        {state.hasActiveRoadmap
+                          ? `${state.completedRoadmapTasks}/${state.totalRoadmapTasks} tasks completed`
+                          : 'No active roadmap yet'}
                       </span>
-                      <Link href="/sprint">
+                      <Link href="/roadmap">
                         <span className="text-sm font-bold underline flex items-center gap-1">
-                          Continue <ArrowRight className="w-4 h-4" />
+                          {state.hasActiveRoadmap ? 'Continue' : 'Build'} <ArrowRight className="w-4 h-4" />
                         </span>
                       </Link>
                     </div>
+                    {state.currentRoadmapTask && (
+                      <p className="mt-3 rounded-md border-2 border-black bg-white p-2 text-xs font-medium text-black/70">
+                        Next task: <span className="font-bold text-black">{state.currentRoadmapTask}</span>
+                      </p>
+                    )}
                   </BrutalCard>
                 </motion.div>
 

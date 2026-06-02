@@ -40,7 +40,8 @@ flowchart TD
   C --> D[Load profile]
   D --> E{Role is admin?}
   E -- Yes --> F[Redirect to /admin]
-  E -- No --> G[Render learning dashboard]
+  E -- No --> G[Load active roadmap, tasks, resources, and resource progress]
+  G --> H[Render learning dashboard with roadmap progress and next task]
 ```
 
 ## Admin Dashboard Flow
@@ -88,6 +89,7 @@ sequenceDiagram
   Page->>DB: Load latest active roadmap and tasks
   alt Roadmap exists
     DB-->>Page: Roadmap, tasks, resources, progress
+    Page->>DB: Insert missing curated task resources with UUID rows when persisted resources are absent
   else No roadmap
     Page->>DB: Load profile and skills
     Page->>API: Request generated roadmap
@@ -114,7 +116,7 @@ sequenceDiagram
   participant DB as Supabase
 
   User->>Map: Open roadmap and expand week
-  Map-->>User: Show task state + action buttons only
+  Map-->>User: Show task state, gated actions, and locked final project state
   User->>QuizPage: Start/continue quiz
   QuizPage->>QuizStart: POST task context
   QuizStart->>DB: Validate ownership and load seeded quiz

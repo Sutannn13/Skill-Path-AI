@@ -178,10 +178,10 @@ Loads the latest mini or final project submission + review summary for the curre
 
 | Route | Role | Behavior |
 | --- | --- | --- |
-| `/dashboard` | `user` | User learning dashboard. Admin sessions redirect to `/admin`. |
+| `/dashboard` | `user` | User learning dashboard. Admin sessions redirect to `/admin`. Signed-in users with an active roadmap see roadmap-derived progress, completed task counts, and the next task instead of demo-derived progress numbers. |
 | `/admin` | `admin` | Admin operations dashboard. Non-admin users see an admin-only state. |
 | `/onboarding` | `user` or demo | Career setup flow. Middleware redirects logged-out users to `/login` when Supabase is configured. |
-| `/roadmap` | `user` or demo | Loads latest active Supabase roadmap, creates one when missing, persists task/resource progress, and asks before regeneration. Task cards show learning map states and navigation actions only (no inline quiz or inline project submission form). |
+| `/roadmap` | `user` or demo | Loads latest active Supabase roadmap, creates one when missing, persists task/resource progress, and asks before regeneration. When an existing roadmap has no usable resource rows for a task, the page inserts curated `roadmap_resources` rows with real UUIDs before saving `roadmap_resource_progress`. Task cards show learning map states, resource/checklist gates, and navigation actions only (no inline quiz or inline project submission form). The final project CTA is locked on the roadmap screen until all learning tasks are complete, while existing submissions remain viewable. |
 | `/roadmap/tasks/[taskId]/quiz` | `user` | Focused quiz workflow per task. Reads ownership/resource gates, starts quiz from `/api/roadmap/quiz/start`, submits answers to `/api/roadmap/quiz/submit`, and surfaces feedback. |
 | `/roadmap/tasks/[taskId]/project` | `user` | Focused mini project submission/review workflow. Reads latest review with `/api/roadmap/project-review` `GET` and submits with `POST`. |
 | `/roadmap/final-project` | `user` | Focused final portfolio submission/review workflow backed by `/api/roadmap/project-review` with `projectType=final_project`. |

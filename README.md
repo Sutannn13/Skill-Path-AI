@@ -91,6 +91,9 @@ npm run build
 - [API Contract](docs/api-contract.md)
 - [Design Contract](docs/DESIGN.md)
 - [Documentation Index](docs/doc-index.md)
+- [Contributing Guide](CONTRIBUTING.md)
+- [Security Policy](SECURITY.md)
+- [Roadmap](ROADMAP.md)
 
 Legacy docs remain available while the project documentation is consolidated:
 
@@ -108,4 +111,4 @@ Legacy docs remain available while the project documentation is consolidated:
 
 ## License
 
-Educational and portfolio project.
+MIT License. See [LICENSE](LICENSE) for details.

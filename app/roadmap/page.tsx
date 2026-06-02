@@ -11,6 +11,23 @@ import { CatMascot } from '@/components/illustrations/cat-mascot'
 import { PageScene } from '@/components/illustrations/page-scene'
 import { generateFallbackRoadmap } from '@/lib/ai'
 import { getCuratedResourcesForTask, isResourceLikelyRelevant } from '@/lib/roadmap/resources'
+import {
+  calculateOverallProgress,
+  calculateWeekProgress,
+  deriveRequirementState,
+  deriveTaskStatus,
+  getCompletedTaskCount,
+  getCurrentTaskLocation,
+  getDefaultCurrentTask,
+  getLearningResourceGate,
+  getNextActionText,
+  getProjectLockReason,
+  getQuizLockReason,
+  getRequirementHint,
+  hasTaskProgress,
+  isResourceUnavailable,
+  taskCanBeCompleted,
+} from '@/lib/roadmap/progress'
 import { calculateSkillGap } from '@/lib/scoring/skill-gap'
 import { getRequiredSkillIds, getNiceToHaveSkillIds, getRoleById, getSkillById } from '@/lib/constants'
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser'
@@ -60,9 +77,11 @@ import {
 
 type RoadmapMode = 'loading' | 'supabase' | 'demo' | 'error' | 'repair'
 type SaveState = 'idle' | 'saving' | 'saved' | 'error'
+type BrowserSupabaseClient = NonNullable<ReturnType<typeof createSupabaseBrowserClient>>
 const IS_DEVELOPMENT = process.env.NODE_ENV === 'development'
 
 const ROADMAP_SETUP_REQUIRED_MESSAGE = 'Roadmap persistence schema is not ready in Supabase. Apply migrations 005_roadmap_persistence.sql and 006_learning_assessment_system.sql, then reload this page.'
+const RESOURCE_PROGRESS_SAVE_ERROR_MESSAGE = 'Progress could not be saved. Try again in a moment.'
 const ROADMAP_TASK_FULL_SELECT = 'id, roadmap_id, week_number, title, description, skill_related, difficulty, estimated_time, deliverable, status, completed_at, task_key, task_order, week_title, week_goal, focus_skills, mini_project, mini_exercise_completed, deliverable_completed, quiz_required, quiz_passed, project_required, project_passed, requirement_state'
 const ROADMAP_TASK_BASE_SELECT = 'id, roadmap_id, week_number, title, description, skill_related, difficulty, estimated_time, deliverable, status, completed_at, task_key, task_order, week_title, week_goal, focus_skills, mini_project, mini_exercise_completed, deliverable_completed'
 
@@ -132,6 +151,19 @@ interface RoadmapProgressRow {
   completed_at: string | null
 }
 
+interface RoadmapResourceInsertRow {
+  id: string
+  roadmap_task_id: string
+  title: string
+  resource_type: RoadmapResource['resourceType']
+  url: string
+  provider: string
+  estimated_minutes: number
+  is_required: boolean
+  completion_rule: string
+  sort_order: number
+}
+
 interface ProfileRow {
   target_role: TargetRole | null
   current_level: CurrentLevel | null
@@ -158,36 +190,8 @@ function clampSkillLevel(value: number): SkillLevel {
   return Math.max(0, Math.min(4, Number(value))) as SkillLevel
 }
 
-function isResourceUnavailable(resource: Pick<RoadmapResource, 'completionRule' | 'url'>) {
-  return resource.completionRule.startsWith('resource_unavailable') || resource.url.trim().length === 0
-}
-
-function getLearningResourceGate(task: RoadmapTask) {
-  const resources = task.resources ?? []
-  const validVideoResources = resources.filter(
-    (resource) => resource.resourceType === 'youtube' && !isResourceUnavailable(resource)
-  )
-  const validDocsResources = resources.filter(
-    (resource) => (resource.resourceType === 'docs' || resource.resourceType === 'article') && !isResourceUnavailable(resource)
-  )
-
-  const completedVideos = validVideoResources.filter((resource) => resource.isCompleted).length
-  const completedDocs = validDocsResources.filter((resource) => resource.isCompleted).length
-
-  const hasVideoResource = validVideoResources.length > 0
-  const hasDocsResource = validDocsResources.length > 0
-  const videoUnlocked = hasVideoResource && completedVideos >= 1
-  const docsUnlocked = hasDocsResource && completedDocs >= 1
-  const resourcesComplete = videoUnlocked && docsUnlocked
-
-  return {
-    resourcesComplete,
-    hasVideoResource,
-    hasDocsResource,
-    completedVideos,
-    completedDocs,
-    unavailableCount: resources.filter(isResourceUnavailable).length,
-  }
+function isUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
 }
 
 function withGeneratedResources(roadmap: Roadmap, targetRole?: TargetRole | null): Roadmap {
@@ -245,91 +249,139 @@ function createDemoRoadmap(profile?: ProfileRow | null) {
   }), context.targetRole)
 }
 
-function hasRequiredResourcesCompleted(task: RoadmapTask) {
-  return getLearningResourceGate(task).resourcesComplete
+function mapResourceRowToRoadmapResource(resource: RoadmapResourceRow, progress?: RoadmapProgressRow): RoadmapResource {
+  return {
+    id: resource.id,
+    title: resource.title,
+    resourceType: resource.resource_type,
+    url: resource.url,
+    provider: resource.provider,
+    estimatedMinutes: resource.estimated_minutes,
+    isRequired: resource.is_required,
+    completionRule: resource.completion_rule,
+    watchedSeconds: progress?.watched_seconds ?? 0,
+    durationSeconds: progress?.duration_seconds ?? null,
+    completionPercentage: Number(progress?.completion_percentage ?? 0),
+    isCompleted: progress?.is_completed === true,
+    completedAt: progress?.completed_at ?? null,
+  }
 }
 
-function deriveRequirementState(task: RoadmapTask): RoadmapTaskRequirementState {
-  const requiredResourcesComplete = hasRequiredResourcesCompleted(task)
-  const quizRequired = task.quizRequired !== false
-  const quizPassed = task.quizPassed === true
-  const projectRequired = task.projectRequired === true
-  const projectPassed = task.projectPassed === true
-
-  if (!requiredResourcesComplete) {
-    return 'resources_pending'
+function buildTaskFromRow(row: RoadmapTaskRow): RoadmapTask {
+  return {
+    id: row.id,
+    title: row.title,
+    description: row.description ?? '',
+    estimatedTime: row.estimated_time ?? '1 hour',
+    difficulty: row.difficulty ?? 'medium',
+    deliverable: row.deliverable ?? 'Marked deliverable',
+    status: row.status,
+    completedAt: row.completed_at,
+    miniExerciseCompleted: row.mini_exercise_completed === true,
+    deliverableCompleted: row.deliverable_completed === true,
+    quizRequired: row.quiz_required !== false,
+    quizPassed: row.quiz_passed === true,
+    projectRequired: row.project_required === true,
+    projectPassed: row.project_passed === true,
+    requirementState: row.requirement_state ?? 'resources_pending',
+    resources: [],
   }
-
-  if (!quizRequired) {
-    return projectRequired
-      ? (projectPassed ? 'completed' : 'project_pending')
-      : 'completed'
-  }
-
-  if (!quizPassed) {
-    return 'quiz_pending'
-  }
-
-  if (projectRequired && !projectPassed) {
-    return 'project_pending'
-  }
-
-  return 'completed'
 }
 
-function taskCanBeCompleted(task: RoadmapTask) {
-  return deriveRequirementState(task) === 'completed'
+function buildWeekContextFromTaskRow(row: RoadmapTaskRow): RoadmapWeek {
+  const weekNumber = row.week_number
+  return {
+    week: weekNumber,
+    title: row.week_title ?? `Week ${weekNumber}`,
+    goal: row.week_goal ?? 'Complete this week of the roadmap',
+    focusSkills: row.focus_skills ?? row.skill_related ?? [],
+    tasks: [],
+    miniProject: row.mini_project ?? undefined,
+  }
 }
 
-function deriveTaskStatus(task: RoadmapTask): RoadmapTask['status'] {
-  return taskCanBeCompleted(task) ? 'completed' : 'todo'
+function isResourceRelevantForTask(
+  task: RoadmapTask,
+  week: RoadmapWeek,
+  resource: RoadmapResource,
+  targetRole?: TargetRole | null
+) {
+  return isResourceUnavailable(resource) || isResourceLikelyRelevant(task, week, resource, targetRole)
 }
 
-function getRequirementHint(task: RoadmapTask) {
-  const resourceGate = getLearningResourceGate(task)
-  const requiredResourcesComplete = resourceGate.resourcesComplete
-  const quizRequired = task.quizRequired !== false
-  const quizPassed = task.quizPassed === true
-  const projectRequired = task.projectRequired === true
-  const projectPassed = task.projectPassed === true
+async function ensurePersistedResourcesForTasks(input: {
+  supabase: BrowserSupabaseClient
+  taskRows: RoadmapTaskRow[]
+  resourceRows: RoadmapResourceRow[]
+  targetRole?: TargetRole | null
+}) {
+  const { supabase, taskRows, resourceRows, targetRole } = input
+  const resourcesByTaskId = new Map<string, RoadmapResourceRow[]>()
+  const usedUrls = new Set(resourceRows.map((resource) => resource.url.trim()).filter(Boolean))
+  const rowsToInsert: RoadmapResourceInsertRow[] = []
 
-  if (!resourceGate.hasVideoResource || !resourceGate.hasDocsResource || resourceGate.unavailableCount > 0) {
-    return 'Resources are being prepared for this task.'
-  }
-  if (!requiredResourcesComplete) {
-    return `Complete 1 video and 1 documentation resource to unlock quiz. (Video ${resourceGate.completedVideos}/1, Docs ${resourceGate.completedDocs}/1)`
-  }
-  if (quizRequired && !quizPassed) return 'Pass the quiz to unlock mini project.'
-  if (projectRequired && !projectPassed) return 'Submit mini project to unlock the next task.'
-  return 'All requirements completed.'
-}
-
-function getQuizLockReason(task: RoadmapTask) {
-  const gate = getLearningResourceGate(task)
-  if (!gate.hasVideoResource || !gate.hasDocsResource || gate.unavailableCount > 0) {
-    return 'Resources are being prepared for this task.'
-  }
-  if (!gate.resourcesComplete) {
-    return `Complete 1 video and 1 documentation resource to unlock quiz. (Video ${gate.completedVideos}/1, Docs ${gate.completedDocs}/1)`
-  }
-  return null
-}
-
-function getProjectLockReason(task: RoadmapTask, hasMiniProject: boolean) {
-  if (!hasMiniProject && task.projectRequired !== true) {
-    return 'This task has no mini project requirement.'
+  for (const resource of resourceRows) {
+    const taskResources = resourcesByTaskId.get(resource.roadmap_task_id) ?? []
+    taskResources.push(resource)
+    resourcesByTaskId.set(resource.roadmap_task_id, taskResources)
   }
 
-  const quizLock = getQuizLockReason(task)
-  if (quizLock) {
-    return quizLock
+  for (const row of taskRows) {
+    const task = buildTaskFromRow(row)
+    const week = buildWeekContextFromTaskRow(row)
+    const loadedRows = resourcesByTaskId.get(row.id) ?? []
+    const loadedResources = loadedRows.map((resource) => mapResourceRowToRoadmapResource(resource))
+    const uniqueLoadedResources = loadedResources.filter((resource, index, all) =>
+      all.findIndex((item) => item.url === resource.url && item.title === resource.title) === index
+    )
+    const relevantResources = uniqueLoadedResources.filter((resource) =>
+      isResourceRelevantForTask(task, week, resource, targetRole)
+    )
+
+    if (relevantResources.length > 0) continue
+
+    const existingTaskResourceKeys = new Set(
+      loadedRows.map((resource) => `${resource.resource_type}:${resource.url.trim() || resource.title.trim().toLowerCase()}`)
+    )
+    const generatedResources = getCuratedResourcesForTask(task, week, { targetRole, usedUrls })
+
+    generatedResources.forEach((resource, index) => {
+      const resourceKey = `${resource.resourceType}:${resource.url.trim() || resource.title.trim().toLowerCase()}`
+      if (existingTaskResourceKeys.has(resourceKey)) return
+      existingTaskResourceKeys.add(resourceKey)
+
+      rowsToInsert.push({
+        id: crypto.randomUUID(),
+        roadmap_task_id: row.id,
+        title: resource.title,
+        resource_type: resource.resourceType,
+        url: resource.url,
+        provider: resource.provider,
+        estimated_minutes: Math.max(1, resource.estimatedMinutes),
+        is_required: resource.isRequired,
+        completion_rule: resource.completionRule,
+        sort_order: loadedRows.length + index,
+      })
+    })
   }
 
-  if (task.quizRequired !== false && !task.quizPassed) {
-    return 'Pass the quiz to unlock mini project.'
+  if (rowsToInsert.length === 0) {
+    return resourceRows
   }
 
-  return null
+  const { data: insertedResources, error } = await supabase
+    .from('roadmap_resources')
+    .insert(rowsToInsert)
+    .select('id, roadmap_task_id, title, resource_type, url, provider, estimated_minutes, is_required, completion_rule, sort_order')
+
+  if (error) {
+    throw new Error(`Failed to save generated roadmap resources: ${error.message}`)
+  }
+
+  return [
+    ...resourceRows,
+    ...((insertedResources ?? []) as RoadmapResourceRow[]),
+  ]
 }
 
 function formatRoadmapSource(source: Roadmap['source'], title: string) {
@@ -341,9 +393,9 @@ function formatRoadmapSource(source: Roadmap['source'], title: string) {
 function formatRequirementState(state: RoadmapTaskRequirementState | null | undefined) {
   const normalized = state ?? 'resources_pending'
   const labels: Record<RoadmapTaskRequirementState, string> = {
-    resources_pending: 'Resources not completed',
+    resources_pending: 'Finish resources',
     resources_completed: 'Resources completed',
-    quiz_pending: 'Quiz not completed',
+    quiz_pending: 'Quiz next',
     quiz_passed: 'Quiz passed',
     project_pending: 'Waiting for project',
     project_passed: 'Project passed',
@@ -362,15 +414,6 @@ function formatProjectStatus(status: string | null | undefined) {
   return 'Needs attention'
 }
 
-function getDefaultCurrentTask(week: RoadmapWeek) {
-  return week.tasks.find((task) => task.status !== 'completed') ?? week.tasks[0] ?? null
-}
-
-function hasTaskProgress(task: RoadmapTask) {
-  const resourceProgress = (task.resources ?? []).some((resource) => resource.isCompleted || resource.watchedSeconds > 0)
-  return resourceProgress || task.quizPassed === true || task.projectPassed === true || task.status === 'completed'
-}
-
 function getNextActionLabel(roadmap: Roadmap, weekIndex: number, taskId: string): string {
   const week = roadmap.weeks[weekIndex]
   const task = week?.tasks.find((t) => t.id === taskId)
@@ -378,44 +421,6 @@ function getNextActionLabel(roadmap: Roadmap, weekIndex: number, taskId: string)
 
   const gate = getLearningResourceGate(task)
   return getNextActionText(task, gate)
-}
-
-function getNextActionText(task: RoadmapTask, gate: ReturnType<typeof getLearningResourceGate>): string {
-  const requirementState = deriveRequirementState(task)
-
-  if (requirementState === 'completed') return 'Task completed!'
-  if (!gate.resourcesComplete) {
-    if (gate.completedVideos < 1) return 'Watch a video lesson'
-    if (gate.completedDocs < 1) return 'Read documentation'
-    return 'Complete learning resources'
-  }
-  if (!task.quizPassed && task.quizRequired !== false) return 'Take the quiz'
-  if (!task.projectPassed && task.projectRequired === true) return 'Submit mini project'
-  return 'Continue learning'
-}
-
-function getCurrentTaskLocation(roadmap: Roadmap) {
-  for (let weekIndex = 0; weekIndex < roadmap.weeks.length; weekIndex += 1) {
-    const week = roadmap.weeks[weekIndex]
-    const currentTask = getDefaultCurrentTask(week)
-    if (currentTask && currentTask.status !== 'completed') {
-      return {
-        weekIndex,
-        weekNumber: week.week,
-        taskId: currentTask.id,
-      }
-    }
-  }
-
-  const lastWeek = roadmap.weeks[roadmap.weeks.length - 1]
-  const lastTask = lastWeek?.tasks[lastWeek.tasks.length - 1]
-  if (!lastWeek || !lastTask) return null
-
-  return {
-    weekIndex: roadmap.weeks.length - 1,
-    weekNumber: lastWeek.week,
-    taskId: lastTask.id,
-  }
 }
 
 function isBackendRoadmapMismatch(roadmap: Roadmap) {
@@ -443,23 +448,19 @@ function isBackendRoadmapMismatch(roadmap: Roadmap) {
   return frontendHits >= 3 && frontendHits >= backendHits
 }
 
-function calculateWeekProgress(week: Roadmap['weeks'][0]) {
-  const completed = week.tasks.filter((task) => task.status === 'completed').length
-  return week.tasks.length > 0 ? Math.round((completed / week.tasks.length) * 100) : 0
-}
-
-function calculateOverallProgress(roadmap: Roadmap) {
-  const totalTasks = roadmap.weeks.reduce((sum, week) => sum + week.tasks.length, 0)
-  const completedTasks = roadmap.weeks.reduce(
-    (sum, week) => sum + week.tasks.filter((task) => task.status === 'completed').length,
-    0
-  )
-
-  return totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0
-}
-
 function findTask(roadmap: Roadmap, taskId: string) {
   return roadmap.weeks.flatMap((week) => week.tasks).find((task) => task.id === taskId) ?? null
+}
+
+function findTaskWithWeek(roadmap: Roadmap, taskId: string) {
+  for (const week of roadmap.weeks) {
+    const task = week.tasks.find((item) => item.id === taskId)
+    if (task) {
+      return { task, week }
+    }
+  }
+
+  return null
 }
 
 function updateRoadmapTask(
@@ -507,26 +508,11 @@ function buildRoadmapFromRows(
 
   const progressByResourceId = new Map(progressRows.map((progress) => [progress.resource_id, progress]))
   const resourcesByTaskId = new Map<string, RoadmapResource[]>()
-  const usedGeneratedResourceUrls = new Set<string>()
   const roadmapTargetRole = roadmapRow.context?.targetRole ?? null
 
   for (const resource of resourceRows) {
     const progress = progressByResourceId.get(resource.id)
-    const mapped: RoadmapResource = {
-      id: resource.id,
-      title: resource.title,
-      resourceType: resource.resource_type,
-      url: resource.url,
-      provider: resource.provider,
-      estimatedMinutes: resource.estimated_minutes,
-      isRequired: resource.is_required,
-      completionRule: resource.completion_rule,
-      watchedSeconds: progress?.watched_seconds ?? 0,
-      durationSeconds: progress?.duration_seconds ?? null,
-      completionPercentage: Number(progress?.completion_percentage ?? 0),
-      isCompleted: progress?.is_completed === true,
-      completedAt: progress?.completed_at ?? null,
-    }
+    const mapped = mapResourceRowToRoadmapResource(resource, progress)
 
     const taskResources = resourcesByTaskId.get(resource.roadmap_task_id) ?? []
     taskResources.push(mapped)
@@ -538,67 +524,20 @@ function buildRoadmapFromRows(
   for (const row of taskRows) {
     const weekNumber = row.week_number
     const existingWeek = weeks.get(weekNumber)
-    const weekTitle = row.week_title ?? `Week ${weekNumber}`
-    const weekGoal = row.week_goal ?? 'Complete this week of the roadmap'
-    const focusSkills = row.focus_skills ?? row.skill_related ?? []
-    const baseTask: RoadmapTask = {
-      id: row.id,
-      title: row.title,
-      description: row.description ?? '',
-      estimatedTime: row.estimated_time ?? '1 hour',
-      difficulty: row.difficulty ?? 'medium',
-      deliverable: row.deliverable ?? 'Marked deliverable',
-      status: row.status,
-      completedAt: row.completed_at,
-      miniExerciseCompleted: row.mini_exercise_completed === true,
-      deliverableCompleted: row.deliverable_completed === true,
-      quizRequired: row.quiz_required !== false,
-      quizPassed: row.quiz_passed === true,
-      projectRequired: row.project_required === true,
-      projectPassed: row.project_passed === true,
-      requirementState: row.requirement_state ?? 'resources_pending',
-      resources: [],
-    }
-
-    const fallbackWeekContext: RoadmapWeek = {
-      week: weekNumber,
-      title: weekTitle,
-      goal: weekGoal,
-      focusSkills,
-      tasks: [],
-      miniProject: row.mini_project ?? undefined,
-    }
+    const baseTask = buildTaskFromRow(row)
+    const fallbackWeekContext = buildWeekContextFromTaskRow(row)
 
     const loadedResources = resourcesByTaskId.get(row.id) ?? []
     const uniqueLoadedResources = loadedResources.filter((resource, index, all) =>
       all.findIndex((item) => item.url === resource.url && item.title === resource.title) === index
     )
     const relevantResources = uniqueLoadedResources.filter((resource) =>
-      isResourceLikelyRelevant(baseTask, fallbackWeekContext, resource, roadmapTargetRole)
+      isResourceRelevantForTask(baseTask, fallbackWeekContext, resource, roadmapTargetRole)
     )
-
-    const generatedFallbackResources = getCuratedResourcesForTask(baseTask, fallbackWeekContext, {
-      targetRole: roadmapTargetRole,
-      usedUrls: usedGeneratedResourceUrls,
-    }).map((resource, index) => ({
-      id: `${row.id}-generated-resource-${index + 1}`,
-      title: resource.title,
-      resourceType: resource.resourceType,
-      url: resource.url,
-      provider: resource.provider,
-      estimatedMinutes: resource.estimatedMinutes,
-      isRequired: resource.isRequired,
-      completionRule: resource.completionRule,
-      watchedSeconds: 0,
-      durationSeconds: null,
-      completionPercentage: 0,
-      isCompleted: false,
-      completedAt: null,
-    }))
 
     const task: RoadmapTask = {
       ...baseTask,
-      resources: relevantResources.length > 0 ? relevantResources : generatedFallbackResources,
+      resources: relevantResources,
     }
 
     if (existingWeek) {
@@ -608,9 +547,9 @@ function buildRoadmapFromRows(
 
     weeks.set(weekNumber, {
       week: weekNumber,
-      title: weekTitle,
-      goal: weekGoal,
-      focusSkills,
+      title: fallbackWeekContext.title,
+      goal: fallbackWeekContext.goal,
+      focusSkills: fallbackWeekContext.focusSkills,
       tasks: [task],
       miniProject: row.mini_project ?? undefined,
     })
@@ -674,7 +613,20 @@ function getRoadmapSafeErrorMessage(error: unknown) {
     return ROADMAP_SETUP_REQUIRED_MESSAGE
   }
 
-  return error.message || fallback
+  return fallback
+}
+
+function getProgressSafeErrorMessage(error: unknown) {
+  if (error instanceof Error && isRoadmapSchemaMismatchError(error.message)) {
+    return ROADMAP_SETUP_REQUIRED_MESSAGE
+  }
+
+  return RESOURCE_PROGRESS_SAVE_ERROR_MESSAGE
+}
+
+function logRoadmapError(label: string, error: unknown) {
+  if (!IS_DEVELOPMENT) return
+  console.error(label, error instanceof Error ? error.message : error)
 }
 
 async function fetchGeneratedRoadmap(input: {
@@ -845,7 +797,12 @@ export default function RoadmapPage() {
           throw new Error(`Failed to load roadmap resources: ${resourceError.message}`)
         }
 
-        typedResources = (resourceRows ?? []) as RoadmapResourceRow[]
+        typedResources = await ensurePersistedResourcesForTasks({
+          supabase,
+          taskRows: typedTasks,
+          resourceRows: (resourceRows ?? []) as RoadmapResourceRow[],
+          targetRole: typedRoadmap.context?.targetRole ?? null,
+        })
         const resourceIds = typedResources.map((resource) => resource.id)
 
         if (resourceIds.length > 0) {
@@ -1018,7 +975,7 @@ export default function RoadmapPage() {
             resource_type: resource.resourceType,
             url: resource.url,
             provider: resource.provider,
-            estimated_minutes: resource.estimatedMinutes,
+            estimated_minutes: Math.max(1, resource.estimatedMinutes),
             is_required: resource.isRequired,
             completion_rule: resource.completionRule,
             sort_order: index,
@@ -1132,14 +1089,13 @@ export default function RoadmapPage() {
         }
       } catch (error) {
         if (isActive) {
+          logRoadmapError('[Roadmap] load failed:', error)
           const safeMessage = getRoadmapSafeErrorMessage(error)
           const isSchemaError = safeMessage === ROADMAP_SETUP_REQUIRED_MESSAGE
           setRoadmap(isSchemaError ? null : createDemoRoadmap())
           setFinalProjectStatus(null)
           setMode('error')
-          setStatusMessage(isSchemaError
-            ? safeMessage
-            : (error instanceof Error ? error.message : 'Roadmap could not be loaded. Try again.'))
+          setStatusMessage(safeMessage)
         }
       }
     }
@@ -1219,6 +1175,15 @@ export default function RoadmapPage() {
     setLearningWorkspace(null)
   }
 
+  const syncLearningWorkspace = (nextRoadmap: Roadmap, taskId: string) => {
+    setLearningWorkspace((previous) => {
+      if (!previous || previous.task.id !== taskId) return previous
+
+      const nextSelection = findTaskWithWeek(nextRoadmap, taskId)
+      return nextSelection ?? previous
+    })
+  }
+
   const persistTaskState = async (task: RoadmapTask) => {
     if (!supabase || !currentUserId || mode !== 'supabase') return
 
@@ -1262,6 +1227,9 @@ export default function RoadmapPage() {
 
   const persistResourceProgress = async (resource: RoadmapResource) => {
     if (!supabase || !currentUserId || mode !== 'supabase') return
+    if (!isUuid(resource.id)) {
+      throw new Error('Resource progress cannot be saved before the resource is persisted.')
+    }
 
     const { error } = await supabase
       .from('roadmap_resource_progress')
@@ -1285,7 +1253,7 @@ export default function RoadmapPage() {
     const updatedTask = findTask(nextRoadmap, taskId)
     const updatedResource = updatedTask?.resources?.find((resource) => resource.id === resourceId)
 
-    if (!updatedTask) return
+    if (!updatedTask) return false
 
     setSaveState('saving')
     setSaveMessage(resourceId ? 'Saving resource progress...' : 'Saving task progress...')
@@ -1297,9 +1265,12 @@ export default function RoadmapPage() {
       await persistTaskState(updatedTask)
       setSaveState('saved')
       setSaveMessage('Saved')
+      return true
     } catch (error) {
+      logRoadmapError('[Roadmap] progress save failed:', error)
       setSaveState('error')
-      setSaveMessage(error instanceof Error ? error.message : 'Error saving task')
+      setSaveMessage(resourceId ? getProgressSafeErrorMessage(error) : getRoadmapSafeErrorMessage(error))
+      return false
     }
   }
 
@@ -1331,8 +1302,11 @@ export default function RoadmapPage() {
       }
     })
 
-    setRoadmap(nextRoadmap)
-    await saveUpdatedTask(nextRoadmap, taskId, resourceId)
+    const didSave = await saveUpdatedTask(nextRoadmap, taskId, resourceId)
+    if (didSave) {
+      setRoadmap(nextRoadmap)
+      syncLearningWorkspace(nextRoadmap, taskId)
+    }
   }
 
   const reopenTask = async (taskId: string) => {
@@ -1348,8 +1322,11 @@ export default function RoadmapPage() {
       requirementState: 'resources_pending',
     }))
 
-    setRoadmap(nextRoadmap)
-    await saveUpdatedTask(nextRoadmap, taskId)
+    const didSave = await saveUpdatedTask(nextRoadmap, taskId)
+    if (didSave) {
+      setRoadmap(nextRoadmap)
+      syncLearningWorkspace(nextRoadmap, taskId)
+    }
   }
 
   const regenerateRoadmap = async () => {
@@ -1523,7 +1500,7 @@ export default function RoadmapPage() {
                 resource_type: resource.resourceType,
                 url: resource.url,
                 provider: resource.provider,
-                estimated_minutes: resource.estimatedMinutes,
+                estimated_minutes: Math.max(1, resource.estimatedMinutes),
                 is_required: resource.isRequired,
                 completion_rule: resource.completionRule,
                 sort_order: index,
@@ -1583,6 +1560,7 @@ export default function RoadmapPage() {
       setSaveState('saved')
       setSaveMessage('New roadmap saved')
     } catch (error) {
+      logRoadmapError('[Roadmap] regenerate failed:', error)
       setSaveState('error')
       setSaveMessage(getRoadmapSafeErrorMessage(error))
     } finally {
@@ -1591,6 +1569,9 @@ export default function RoadmapPage() {
   }
 
   const progress = roadmap ? calculateOverallProgress(roadmap) : 0
+  const hasFinalProjectSubmission = Boolean(finalProjectStatus && finalProjectStatus !== 'pending')
+  const finalProjectUnlocked = progress >= 100
+  const canOpenFinalProject = finalProjectUnlocked || hasFinalProjectSubmission
 
   return (
     <AppShell showBottomNav={true}>
@@ -1660,7 +1641,18 @@ export default function RoadmapPage() {
               ) : (
                 <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
               )}
-              <p className="font-medium">{saveMessage}</p>
+              <p className="min-w-0 flex-1 font-medium">{saveMessage}</p>
+              <button
+                type="button"
+                onClick={() => {
+                  setSaveMessage(null)
+                  setSaveState('idle')
+                }}
+                className="rounded-md border-2 border-black bg-white p-1 transition-colors hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-black"
+                aria-label="Dismiss progress status"
+              >
+                <X className="h-4 w-4" />
+              </button>
             </BrutalCard>
           )}
 
@@ -1736,7 +1728,7 @@ export default function RoadmapPage() {
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="h-5 w-5" />
                     <span>
-                      {roadmap.weeks.reduce((sum, week) => sum + week.tasks.filter((task) => task.status === 'completed').length, 0)}
+                      {getCompletedTaskCount(roadmap)}
                       /{roadmap.weeks.reduce((sum, week) => sum + week.tasks.length, 0)} completed
                     </span>
                   </div>
@@ -1793,7 +1785,7 @@ export default function RoadmapPage() {
                 {roadmap.weeks.map((week, weekIndex) => {
                   const weekProgress = calculateWeekProgress(week)
                   const isExpanded = expandedWeek === weekIndex
-                  const completedTasks = week.tasks.filter((task) => task.status === 'completed').length
+                  const completedTasks = week.tasks.filter((task) => deriveRequirementState(task) === 'completed').length
                   const defaultCurrentTask = getDefaultCurrentTask(week)
                   const focusedTaskId = focusedTaskByWeek[week.week] ?? defaultCurrentTask?.id ?? null
                   const focusedTask = week.tasks.find((task) => task.id === focusedTaskId) ?? defaultCurrentTask
@@ -1957,10 +1949,20 @@ export default function RoadmapPage() {
                   transition={{ delay: 0.5 }}
                   className="mt-8"
                 >
-                  <BrutalCard color="green" shadow="lg">
-                    <h3 className="font-display font-bold text-xl mb-2">
-                      Final Portfolio Project
-                    </h3>
+                  <BrutalCard color={canOpenFinalProject ? 'green' : 'white'} shadow="lg">
+                    <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                      <h3 className="font-display font-bold text-xl">
+                        Final Portfolio Project
+                      </h3>
+                      <span
+                        className={cn(
+                          'rounded-md border-2 border-black px-2 py-1 text-xs font-bold',
+                          canOpenFinalProject ? 'bg-green text-black' : 'bg-gray-100 text-gray-700'
+                        )}
+                      >
+                        {canOpenFinalProject ? 'Unlocked' : 'Locked'}
+                      </span>
+                    </div>
                     <p className="text-black/70 mb-4">
                       {roadmap.finalPortfolioProject.description}
                     </p>
@@ -1972,17 +1974,26 @@ export default function RoadmapPage() {
                     <div className="mb-3 rounded-md border-2 border-black bg-white p-3 text-sm">
                       <p className="font-bold">Final project review status: {formatProjectStatus(finalProjectStatus)}</p>
                       <p className="text-gray-700">
-                        Roadmap completion is only fully validated when the final project review passes.
+                        {canOpenFinalProject
+                          ? 'Roadmap completion is only fully validated when the final project review passes.'
+                          : 'Finish every roadmap task before submitting the final project.'}
                       </p>
                     </div>
                     <div className="mt-4 flex flex-wrap gap-3">
-                      <Link href="/roadmap/final-project">
-                        <BrutalButton color="black">
-                          {finalProjectStatus && finalProjectStatus !== 'pending'
-                            ? 'View Final Project Review'
-                            : 'Submit Final Project'}
+                      {canOpenFinalProject ? (
+                        <Link href="/roadmap/final-project">
+                          <BrutalButton color="black">
+                            {hasFinalProjectSubmission
+                              ? 'View Final Project Review'
+                              : 'Submit Final Project'}
+                          </BrutalButton>
+                        </Link>
+                      ) : (
+                        <BrutalButton color="black" disabled>
+                          <Lock className="h-4 w-4" />
+                          Finish learning path first
                         </BrutalButton>
-                      </Link>
+                      )}
                       <Link href="/projects">
                         <BrutalButton variant="outline" color="black">
                           View Project Ideas

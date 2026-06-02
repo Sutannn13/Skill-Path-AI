@@ -23,6 +23,7 @@ import {
 import { RoadmapTask, RoadmapWeek } from '@/types'
 import { BrutalButton, BrutalCard } from '@/components/brutal'
 import { cn } from '@/lib/utils'
+import { getLearningResourceGate, isResourceUnavailable } from '@/lib/roadmap/progress'
 
 // ===== Notes Panel =====
 interface NotesPanelProps {
@@ -506,20 +507,19 @@ export function LearningTabs({
   activeTab,
   onTabChange,
   task,
-  week,
-  onToggleChecklistItem,
   className,
 }: LearningTabsProps) {
-  const completedVideos = (task.resources ?? []).filter(
+  const validResources = (task.resources ?? []).filter((resource) => !isResourceUnavailable(resource))
+  const completedVideos = validResources.filter(
     (r) => r.resourceType === 'youtube' && r.isCompleted
   ).length
-  const totalVideos = (task.resources ?? []).filter(
+  const totalVideos = validResources.filter(
     (r) => r.resourceType === 'youtube'
   ).length
-  const completedDocs = (task.resources ?? []).filter(
+  const completedDocs = validResources.filter(
     (r) => (r.resourceType === 'docs' || r.resourceType === 'article') && r.isCompleted
   ).length
-  const totalDocs = (task.resources ?? []).filter(
+  const totalDocs = validResources.filter(
     (r) => r.resourceType === 'docs' || r.resourceType === 'article'
   ).length
   const quizPassed = task.quizPassed === true
@@ -535,93 +535,26 @@ export function LearningTabs({
   ]
 
   return (
-    <div className={cn('space-y-4', className)}>
-      {/* Tab Buttons - Horizontal scroll on mobile */}
-      <div className="flex flex-wrap gap-1.5 sm:gap-2 overflow-x-auto hide-scrollbar pb-1 -mx-1 px-1">
-        {tabs.map(({ tab, label, icon }) => (
-          <TabButton
-            key={tab}
-            tab={tab}
-            label={label}
-            icon={icon}
-            isActive={activeTab === tab}
-            onClick={() => onTabChange(tab)}
-            badge={
-              tab === 'resources'
-                ? `${completedVideos + completedDocs}/${totalVideos + totalDocs}`
-                : tab === 'quiz' && quizPassed
+    <div className={cn('flex flex-wrap gap-1.5 overflow-x-auto pb-1 sm:gap-2', className)}>
+      {tabs.map(({ tab, label, icon }) => (
+        <TabButton
+          key={tab}
+          tab={tab}
+          label={label}
+          icon={icon}
+          isActive={activeTab === tab}
+          onClick={() => onTabChange(tab)}
+          badge={
+            tab === 'resources'
+              ? `${completedVideos + completedDocs}/${totalVideos + totalDocs}`
+              : tab === 'quiz' && quizPassed
                 ? 1
                 : tab === 'project' && projectPassed
-                ? 1
-                : undefined
-            }
-          />
-        ))}
-      </div>
-
-      {/* Tab Content */}
-      <div className="rounded-md border-2 border-black bg-white p-3 sm:p-4 overflow-x-hidden">
-        {/* Overview Tab */}
-        {activeTab === 'overview' && (
-          <div className="space-y-4">
-            <div>
-              <h4 className="mb-2 text-sm font-bold">Task Description</h4>
-              <p className="text-sm text-black/70 break-words">{task.description}</p>
-            </div>
-            <div>
-              <h4 className="mb-2 text-sm font-bold">Deliverable</h4>
-              <p className="text-sm text-black/70 break-words">{task.deliverable}</p>
-            </div>
-            <div>
-              <h4 className="mb-2 text-sm font-bold">Why This Matters</h4>
-              <p className="text-sm text-black/70 break-words">{week.goal}</p>
-            </div>
-          </div>
-        )}
-
-        {/* Resources Tab */}
-        {activeTab === 'resources' && (
-          <div>
-            <p className="mb-4 text-sm text-black/60">
-              Watch videos and read documentation to complete this task.
-            </p>
-            {/* Resources will be rendered by parent component via ResourceAccordion */}
-          </div>
-        )}
-
-        {/* Notes Tab */}
-        {activeTab === 'notes' && (
-          <NotesPanel taskId={task.id} />
-        )}
-
-        {/* Checklist Tab */}
-        {activeTab === 'checklist' && (
-          <ChecklistWithResourceGate
-            task={task}
-            week={week}
-            onToggleItem={onToggleChecklistItem}
-          />
-        )}
-
-        {/* Quiz Tab */}
-        {activeTab === 'quiz' && (
-          <QuizPanel
-            task={task}
-            lockReason={null}
-            isLocked={false}
-          />
-        )}
-
-        {/* Project Tab */}
-        {activeTab === 'project' && (
-          <MiniProjectPanel
-            task={task}
-            week={week}
-            lockReason={null}
-            isLocked={false}
-          />
-        )}
-      </div>
+                  ? 1
+                  : undefined
+          }
+        />
+      ))}
     </div>
   )
 }
@@ -634,14 +567,7 @@ interface ChecklistWithResourceGateProps {
 }
 
 export function ChecklistWithResourceGate({ task, week, onToggleItem }: ChecklistWithResourceGateProps) {
-  const resources = task.resources ?? []
-  const videoResources = resources.filter((r) => r.resourceType === 'youtube')
-  const docResources = resources.filter((r) => r.resourceType === 'docs' || r.resourceType === 'article')
-
-  const completedVideos = videoResources.filter((r) => r.isCompleted).length
-  const completedDocs = docResources.filter((r) => r.isCompleted).length
-  const hasVideoResource = videoResources.length > 0
-  const hasDocsResource = docResources.length > 0
+  const gate = getLearningResourceGate(task)
 
   const items: ChecklistItem[] = [
     {
@@ -662,8 +588,8 @@ export function ChecklistWithResourceGate({ task, week, onToggleItem }: Checklis
   ]
 
   const completedItems: string[] = []
-  if (hasVideoResource && completedVideos >= 1) completedItems.push('video')
-  if (hasDocsResource && completedDocs >= 1) completedItems.push('docs')
+  if (gate.hasVideoResource && gate.completedVideos >= 1) completedItems.push('video')
+  if (gate.hasDocsResource && gate.completedDocs >= 1) completedItems.push('docs')
   if (task.quizPassed) completedItems.push('quiz')
 
   return (

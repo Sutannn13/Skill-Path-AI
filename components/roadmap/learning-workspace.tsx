@@ -18,6 +18,14 @@ import {
 import { Roadmap, RoadmapTask, RoadmapWeek } from '@/types'
 import { BrutalButton } from '@/components/brutal'
 import { cn } from '@/lib/utils'
+import {
+  calculateTaskProgress,
+  deriveRequirementState,
+  getLearningResourceGate,
+  getNextActionText,
+  getProjectLockReason,
+  getQuizLockReason,
+} from '@/lib/roadmap/progress'
 import { ResourceAccordion } from './resource-accordion'
 import {
   LearningTabs,
@@ -39,90 +47,6 @@ interface LearningWorkspaceProps {
   className?: string
 }
 
-interface ResourceGate {
-  hasVideoResource: boolean
-  hasDocsResource: boolean
-  completedVideos: number
-  completedDocs: number
-  resourcesComplete: boolean
-}
-
-function getLearningResourceGate(task: RoadmapTask): ResourceGate {
-  const resources = task.resources ?? []
-  const videoResources = resources.filter(
-    (r) => r.resourceType === 'youtube' && r.url.trim().length > 0
-  )
-  const docResources = resources.filter(
-    (r) => (r.resourceType === 'docs' || r.resourceType === 'article') && r.url.trim().length > 0
-  )
-
-  const completedVideos = videoResources.filter((r) => r.isCompleted).length
-  const completedDocs = docResources.filter((r) => r.isCompleted).length
-
-  return {
-    hasVideoResource: videoResources.length > 0,
-    hasDocsResource: docResources.length > 0,
-    completedVideos,
-    completedDocs,
-    resourcesComplete: completedVideos >= 1 && completedDocs >= 1,
-  }
-}
-
-function getQuizLockReason(gate: ResourceGate): string | null {
-  if (!gate.hasVideoResource || !gate.hasDocsResource) {
-    return 'Resources are being prepared for this task.'
-  }
-  if (!gate.resourcesComplete) {
-    return `Complete 1 video and 1 documentation resource to unlock quiz. (Video ${gate.completedVideos}/1, Docs ${gate.completedDocs}/1)`
-  }
-  return null
-}
-
-function getProjectLockReason(task: RoadmapTask, gate: ResourceGate, hasMiniProject: boolean): string | null {
-  if (!hasMiniProject) return null
-
-  const quizLock = getQuizLockReason(gate)
-  if (quizLock) return quizLock
-
-  if (task.quizRequired !== false && !task.quizPassed) {
-    return 'Pass the quiz to unlock mini project.'
-  }
-
-  return null
-}
-
-function deriveRequirementState(task: RoadmapTask): string {
-  const gate = getLearningResourceGate(task)
-  const quizRequired = task.quizRequired !== false
-  const quizPassed = task.quizPassed === true
-  const projectRequired = task.projectRequired === true
-  const projectPassed = task.projectPassed === true
-
-  if (!gate.resourcesComplete) return 'resources_pending'
-  if (!quizRequired) return projectRequired ? (projectPassed ? 'completed' : 'project_pending') : 'completed'
-  if (!quizPassed) return 'quiz_pending'
-  if (projectRequired && !projectPassed) return 'project_pending'
-  return 'completed'
-}
-
-function getNextAction(task: RoadmapTask): string {
-  const gate = getLearningResourceGate(task)
-  const requirementState = deriveRequirementState(task)
-
-  if (requirementState === 'completed') return 'Task completed!'
-
-  if (!gate.resourcesComplete) {
-    if (gate.completedVideos < 1) return 'Watch a video lesson'
-    if (gate.completedDocs < 1) return 'Read documentation'
-    return 'Complete learning resources'
-  }
-
-  if (!task.quizPassed && task.quizRequired !== false) return 'Take the quiz'
-  if (!task.projectPassed && task.projectRequired === true) return 'Submit mini project'
-
-  return 'Continue learning'
-}
-
 const statusColors: Record<string, { bg: string; text: string }> = {
   resources_pending: { bg: 'bg-yellow/20', text: 'text-yellow' },
   resources_completed: { bg: 'bg-blue/20', text: 'text-blue' },
@@ -134,9 +58,9 @@ const statusColors: Record<string, { bg: string; text: string }> = {
 }
 
 const statusLabels: Record<string, string> = {
-  resources_pending: 'Resources not completed',
+  resources_pending: 'Finish resources',
   resources_completed: 'Resources completed',
-  quiz_pending: 'Quiz not completed',
+  quiz_pending: 'Quiz next',
   quiz_passed: 'Quiz passed',
   project_pending: 'Waiting for project',
   project_passed: 'Project passed',
@@ -158,28 +82,15 @@ export function LearningWorkspace({
   const gate = getLearningResourceGate(task)
   const requirementState = deriveRequirementState(task)
   const hasMiniProject = task.projectRequired === true || Boolean(week.miniProject)
-  const quizLockReason = task.quizPassed ? null : getQuizLockReason(gate)
-  const projectLockReason = task.projectPassed ? null : getProjectLockReason(task, gate, hasMiniProject)
+  const quizLockReason = task.quizPassed ? null : getQuizLockReason(task)
+  const projectLockReason = task.projectPassed ? null : getProjectLockReason(task, hasMiniProject)
   const canOpenQuiz = !quizLockReason
   const canOpenProject = !projectLockReason
-  const nextAction = getNextAction(task)
+  const nextAction = getNextActionText(task, gate)
 
   const progress = useMemo(() => {
-    const resources = task.resources ?? []
-    const totalResources = resources.length
-    const completedResources = resources.filter((r) => r.isCompleted).length
-    const resourceProgress = totalResources > 0 ? (completedResources / totalResources) * 25 : 0
-
-    const quizProgress = task.quizPassed ? 25 : task.quizRequired === false ? 25 : 0
-    const projectProgress = task.projectPassed ? 15 : task.projectRequired === false ? 15 : 0
-
-    let checklistProgress = 0
-    if (gate.completedVideos >= 1) checklistProgress += 8
-    if (gate.completedDocs >= 1) checklistProgress += 8
-    if (task.quizPassed) checklistProgress += 9
-
-    return Math.min(100, Math.round(resourceProgress + checklistProgress + quizProgress + projectProgress))
-  }, [task, gate])
+    return calculateTaskProgress(task)
+  }, [task])
 
   const handleMarkResourceComplete = (resourceId: string) => {
     const resource = task.resources?.find((r) => r.id === resourceId)
@@ -425,6 +336,23 @@ export function LearningWorkspace({
 
               {/* Tab-specific content */}
               <div className="mt-4">
+                {activeTab === 'overview' && (
+                  <div className="space-y-4 rounded-md border-2 border-black bg-white p-3 sm:p-4">
+                    <div>
+                      <h4 className="mb-2 text-sm font-bold">Task Description</h4>
+                      <p className="break-words text-sm text-black/70">{task.description}</p>
+                    </div>
+                    <div>
+                      <h4 className="mb-2 text-sm font-bold">Deliverable</h4>
+                      <p className="break-words text-sm text-black/70">{task.deliverable}</p>
+                    </div>
+                    <div>
+                      <h4 className="mb-2 text-sm font-bold">Why This Matters</h4>
+                      <p className="break-words text-sm text-black/70">{week.goal}</p>
+                    </div>
+                  </div>
+                )}
+
                 {activeTab === 'resources' && (
                   <div className="w-full">
                     <ResourceAccordion

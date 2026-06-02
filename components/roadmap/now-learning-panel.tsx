@@ -6,6 +6,7 @@ import { Roadmap, RoadmapTask, RoadmapWeek } from '@/types'
 import { BrutalButton, BrutalCard } from '@/components/brutal'
 import { CatMascot } from '@/components/illustrations/cat-mascot'
 import { cn } from '@/lib/utils'
+import { calculateOverallProgress, calculateWeekProgress, getCompletedTaskCount } from '@/lib/roadmap/progress'
 
 interface NowLearningPanelProps {
   roadmap: Roadmap
@@ -24,16 +25,10 @@ export function NowLearningPanel({
   onContinue,
   className,
 }: NowLearningPanelProps) {
-  const weekProgress = Math.round(
-    (currentWeek.tasks.filter((t) => t.status === 'completed').length / currentWeek.tasks.length) * 100
-  )
-
+  const weekProgress = calculateWeekProgress(currentWeek)
   const totalTasks = roadmap.weeks.reduce((sum, w) => sum + w.tasks.length, 0)
-  const completedTasks = roadmap.weeks.reduce(
-    (sum, w) => sum + w.tasks.filter((t) => t.status === 'completed').length,
-    0
-  )
-  const overallProgress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0
+  const completedTasks = getCompletedTaskCount(roadmap)
+  const overallProgress = calculateOverallProgress(roadmap)
 
   return (
     <motion.div

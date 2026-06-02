@@ -15,6 +15,7 @@ import {
 import { RoadmapResource, RoadmapTask } from '@/types'
 import { BrutalButton } from '@/components/brutal'
 import { cn } from '@/lib/utils'
+import { isResourceUnavailable } from '@/lib/roadmap/progress'
 import { EmbeddedVideoPlayer } from './embedded-video-player'
 
 interface ResourceAccordionProps {
@@ -26,10 +27,6 @@ interface ResourceAccordionProps {
 }
 
 type ResourceType = 'youtube' | 'docs' | 'article'
-
-function isResourceUnavailable(resource: Pick<RoadmapResource, 'completionRule' | 'url'>) {
-  return resource.completionRule.startsWith('resource_unavailable') || resource.url.trim().length === 0
-}
 
 function getResourceStatus(resource: RoadmapResource): 'not_started' | 'in_progress' | 'completed' {
   if (resource.isCompleted || resource.completionPercentage >= 100) return 'completed'
@@ -259,8 +256,9 @@ export function ResourceAccordion({
     // Note: NOT calling onOpenResource here — opening the player shouldn't mark as opened
   }
 
-  const videoResources = resources.filter((r) => r.resourceType === 'youtube')
-  const docResources = resources.filter((r) => r.resourceType === 'docs' || r.resourceType === 'article')
+  const validResources = resources.filter((resource) => !isResourceUnavailable(resource))
+  const videoResources = validResources.filter((r) => r.resourceType === 'youtube')
+  const docResources = validResources.filter((r) => r.resourceType === 'docs' || r.resourceType === 'article')
 
   const completedVideos = videoResources.filter((r) => r.isCompleted).length
   const completedDocs = docResources.filter((r) => r.isCompleted).length
@@ -326,7 +324,7 @@ export function ResourceAccordion({
       )}
 
       {/* Empty State */}
-      {resources.length === 0 && (
+      {validResources.length === 0 && (
         <div className="rounded-md border-2 border-dashed border-black/20 bg-gray-50 p-6 text-center">
           <Folder className="mx-auto mb-2 h-8 w-8 text-black/40" />
           <p className="text-sm font-medium text-black/60">

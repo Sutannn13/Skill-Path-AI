@@ -1,6 +1,6 @@
 export { NowLearningPanel } from './now-learning-panel'
 export { EmbeddedVideoPlayer, CompactVideoCard } from './embedded-video-player'
-export { ResourceAccordion, CompactResourceList } from './resource-accordion'
+export { ResourceAccordion } from './resource-accordion'
 export { LearningWorkspace } from './learning-workspace'
 export {
   LearningTabs,

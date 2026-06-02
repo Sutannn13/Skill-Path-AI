@@ -21,6 +21,7 @@ import {
   LearningWorkspace,
   ResourceAccordion,
 } from '@/components/roadmap'
+import { Portal } from '@/components/ui/portal'
 import {
   AlertCircle,
   BookOpen,
@@ -1750,36 +1751,41 @@ export default function RoadmapPage() {
                 </div>
               </BrutalCard>
 
-              {/* Learning Workspace Modal */}
+              {/* Learning Workspace Modal - Portal to body, centered on viewport */}
               <AnimatePresence>
                 {learningWorkspace && roadmap && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
-                    onClick={() => closeLearningWorkspace()}
-                  >
+                  <Portal>
+                    {/* Backdrop + Modal together as one unit */}
                     <div
-                      className="absolute inset-4 lg:inset-8 bg-white rounded-lg border-3 border-black overflow-hidden"
-                      onClick={(e) => e.stopPropagation()}
+                      className="fixed inset-0 z-[9999] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
+                      onClick={() => closeLearningWorkspace()}
                     >
-                      <LearningWorkspace
-                        task={learningWorkspace.task}
-                        week={learningWorkspace.week}
-                        roadmap={roadmap}
-                        onBack={closeLearningWorkspace}
-                        onMarkResourceComplete={toggleResource}
-                        onOpenResource={(resourceId) => {
-                          setOpenedResources((prev) => ({
-                            ...prev,
-                            [resourceId]: true,
-                          }))
-                        }}
-                        onReopenTask={reopenTask}
-                      />
+                      {/* Modal - centered, scrollable */}
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                        transition={{ duration: 0.2 }}
+                        className="relative w-full max-w-4xl max-h-[88vh] bg-white rounded-2xl border-4 border-black shadow-2xl overflow-hidden"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <LearningWorkspace
+                          task={learningWorkspace.task}
+                          week={learningWorkspace.week}
+                          roadmap={roadmap}
+                          onBack={closeLearningWorkspace}
+                          onMarkResourceComplete={toggleResource}
+                          onOpenResource={(resourceId) => {
+                            setOpenedResources((prev) => ({
+                              ...prev,
+                              [resourceId]: true,
+                            }))
+                          }}
+                          onReopenTask={reopenTask}
+                        />
+                      </motion.div>
                     </div>
-                  </motion.div>
+                  </Portal>
                 )}
               </AnimatePresence>
 

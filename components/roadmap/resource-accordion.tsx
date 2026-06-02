@@ -1,22 +1,21 @@
 'use client'
 
 import { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import {
   BookOpen,
   Check,
   ChevronDown,
   ChevronUp,
-  Clock,
   ExternalLink,
   FileText,
   Folder,
   PlayCircle,
 } from 'lucide-react'
 import { RoadmapResource, RoadmapTask } from '@/types'
-import { BrutalButton, BrutalCard } from '@/components/brutal'
+import { BrutalButton } from '@/components/brutal'
 import { cn } from '@/lib/utils'
-import { EmbeddedVideoPlayer, CompactVideoCard } from './embedded-video-player'
+import { EmbeddedVideoPlayer } from './embedded-video-player'
 
 interface ResourceAccordionProps {
   resources: RoadmapResource[]
@@ -53,18 +52,22 @@ function getResourceTypeLabel(resourceType: ResourceType) {
 
 interface ResourceAccordionItemProps {
   resource: RoadmapResource
-  onToggleExpand: () => void
+  onAccordionToggle: () => void
   onMarkComplete: () => void
   onOpenInNewTab: () => void
-  isExpanded: boolean
+  isAccordionExpanded: boolean
+  isPlayerExpanded: boolean
+  onPlayerToggle: () => void
 }
 
 function ResourceAccordionItem({
   resource,
-  onToggleExpand,
+  onAccordionToggle,
   onMarkComplete,
   onOpenInNewTab,
-  isExpanded,
+  isAccordionExpanded,
+  isPlayerExpanded,
+  onPlayerToggle,
 }: ResourceAccordionItemProps) {
   const unavailable = isResourceUnavailable(resource)
   const status = getResourceStatus(resource)
@@ -72,8 +75,9 @@ function ResourceAccordionItem({
   if (resource.resourceType === 'youtube') {
     return (
       <div className="rounded-md border-2 border-black bg-white">
+        {/* Accordion Header */}
         <button
-          onClick={onToggleExpand}
+          onClick={onAccordionToggle}
           className="flex w-full items-center justify-between p-3 text-left transition-colors hover:bg-gray-50"
         >
           <div className="flex items-center gap-3">
@@ -102,41 +106,34 @@ function ResourceAccordionItem({
               </p>
             </div>
           </div>
-          {isExpanded ? (
+          {isAccordionExpanded ? (
             <ChevronUp className="h-5 w-5 shrink-0" />
           ) : (
             <ChevronDown className="h-5 w-5 shrink-0" />
           )}
         </button>
 
-        <AnimatePresence>
-          {isExpanded && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="overflow-hidden"
-            >
-              <div className="border-t-2 border-black/10 p-3">
-                {unavailable ? (
-                  <div className="rounded-md border-2 border-dashed border-black/20 bg-gray-50 p-4 text-center">
-                    <p className="text-sm text-black/60">
-                      Resources are being prepared for this task.
-                    </p>
-                  </div>
-                ) : (
-                  <EmbeddedVideoPlayer
-                    resource={resource}
-                    isExpanded={false}
-                    onToggleExpand={onToggleExpand}
-                    onMarkWatched={onMarkComplete}
-                  />
-                )}
+        {/* Accordion Content */}
+        {isAccordionExpanded && (
+          <div className="border-t-2 border-black/10">
+            {unavailable ? (
+              <div className="border-t-2 border-dashed border-black/20 bg-gray-50 p-4 text-center">
+                <p className="text-sm text-black/60">
+                  Resources are being prepared for this task.
+                </p>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            ) : (
+              <div className="border-t-2 border-black/10 p-3">
+                <EmbeddedVideoPlayer
+                  resource={resource}
+                  isExpanded={isPlayerExpanded}
+                  onToggleExpand={onPlayerToggle}
+                  onMarkWatched={onMarkComplete}
+                />
+              </div>
+            )}
+          </div>
+        )}
       </div>
     )
   }
@@ -145,7 +142,7 @@ function ResourceAccordionItem({
   return (
     <div className="rounded-md border-2 border-black bg-white">
       <button
-        onClick={onToggleExpand}
+        onClick={onAccordionToggle}
         className="flex w-full items-center justify-between p-3 text-left transition-colors hover:bg-gray-50"
       >
         <div className="flex items-center gap-3">
@@ -174,68 +171,61 @@ function ResourceAccordionItem({
             </p>
           </div>
         </div>
-        {isExpanded ? (
+        {isAccordionExpanded ? (
           <ChevronUp className="h-5 w-5 shrink-0" />
         ) : (
           <ChevronDown className="h-5 w-5 shrink-0" />
         )}
       </button>
 
-      <AnimatePresence>
-        {isExpanded && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="overflow-hidden"
-          >
+      {/* Accordion Content */}
+      {isAccordionExpanded && (
+        <div className="border-t-2 border-black/10">
+          {unavailable ? (
+            <div className="border-t-2 border-dashed border-black/20 bg-gray-50 p-4 text-center">
+              <p className="text-sm text-black/60">
+                Resources are being prepared for this task.
+              </p>
+            </div>
+          ) : (
             <div className="border-t-2 border-black/10 p-3">
-              {unavailable ? (
-                <div className="rounded-md border-2 border-dashed border-black/20 bg-gray-50 p-4 text-center">
-                  <p className="text-sm text-black/60">
-                    Resources are being prepared for this task.
+              <div className="space-y-3">
+                {/* Resource Description */}
+                <div className="rounded-md border-2 border-black/10 bg-gray-50 p-3">
+                  <p className="text-xs font-medium text-black/70">
+                    Learn about {resource.title} from {resource.provider}. This resource will help you understand the key concepts needed for this task.
                   </p>
                 </div>
-              ) : (
-                <div className="space-y-3">
-                  {/* Resource Description */}
-                  <div className="rounded-md border-2 border-black/10 bg-gray-50 p-3">
-                    <p className="text-xs font-medium text-black/70">
-                      Learn about {resource.title} from {resource.provider}. This resource will help you understand the key concepts needed for this task.
-                    </p>
-                  </div>
 
-                  {/* Actions */}
-                  <div className="flex flex-wrap items-center gap-2">
-                    <a
-                      href={resource.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex"
-                      onClick={onOpenInNewTab}
-                    >
-                      <BrutalButton variant="outline" color="black" size="sm">
-                        <ExternalLink className="h-4 w-4" />
-                        Read Documentation
-                      </BrutalButton>
-                    </a>
-                    <BrutalButton
-                      variant={resource.isCompleted ? 'primary' : 'outline'}
-                      color={resource.isCompleted ? 'green' : 'black'}
-                      size="sm"
-                      onClick={onMarkComplete}
-                    >
-                      <Check className="h-4 w-4" />
-                      {resource.isCompleted ? 'Completed' : 'Mark Complete'}
+                {/* Actions */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <a
+                    href={resource.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex"
+                    onClick={onOpenInNewTab}
+                  >
+                    <BrutalButton variant="outline" color="black" size="sm">
+                      <ExternalLink className="h-4 w-4" />
+                      Read Documentation
                     </BrutalButton>
-                  </div>
+                  </a>
+                  <BrutalButton
+                    variant={resource.isCompleted ? 'primary' : 'outline'}
+                    color={resource.isCompleted ? 'green' : 'black'}
+                    size="sm"
+                    onClick={onMarkComplete}
+                  >
+                    <Check className="h-4 w-4" />
+                    {resource.isCompleted ? 'Completed' : 'Mark Complete'}
+                  </BrutalButton>
                 </div>
-              )}
+              </div>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -247,14 +237,26 @@ export function ResourceAccordion({
   onOpenResource,
   className,
 }: ResourceAccordionProps) {
-  const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({})
+  // Accordion expanded state: controls whether accordion content is visible
+  const [accordionExpandedIds, setAccordionExpandedIds] = useState<Record<string, boolean>>({})
 
-  const toggleExpand = (resourceId: string) => {
-    setExpandedIds((prev) => ({
+  // Player expanded state: controls whether video iframe is shown (separate from accordion)
+  const [playerExpandedIds, setPlayerExpandedIds] = useState<Record<string, boolean>>({})
+
+  const toggleAccordion = (resourceId: string) => {
+    setAccordionExpandedIds((prev) => ({
       ...prev,
       [resourceId]: !prev[resourceId],
     }))
     onOpenResource(resourceId)
+  }
+
+  const togglePlayer = (resourceId: string) => {
+    setPlayerExpandedIds((prev) => ({
+      ...prev,
+      [resourceId]: !prev[resourceId],
+    }))
+    // Note: NOT calling onOpenResource here — opening the player shouldn't mark as opened
   }
 
   const videoResources = resources.filter((r) => r.resourceType === 'youtube')
@@ -265,7 +267,7 @@ export function ResourceAccordion({
 
   return (
     <div className={cn('space-y-4', className)}>
-      {/* Video Section */}
+      {/* Videos Section */}
       {videoResources.length > 0 && (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
@@ -282,10 +284,12 @@ export function ResourceAccordion({
               <ResourceAccordionItem
                 key={resource.id}
                 resource={resource}
-                onToggleExpand={() => toggleExpand(resource.id)}
+                onAccordionToggle={() => toggleAccordion(resource.id)}
                 onMarkComplete={() => onMarkResourceComplete(resource.id, !resource.isCompleted)}
                 onOpenInNewTab={() => onOpenResource(resource.id)}
-                isExpanded={expandedIds[resource.id] ?? false}
+                isAccordionExpanded={accordionExpandedIds[resource.id] ?? false}
+                isPlayerExpanded={playerExpandedIds[resource.id] ?? false}
+                onPlayerToggle={() => togglePlayer(resource.id)}
               />
             ))}
           </div>
@@ -309,10 +313,12 @@ export function ResourceAccordion({
               <ResourceAccordionItem
                 key={resource.id}
                 resource={resource}
-                onToggleExpand={() => toggleExpand(resource.id)}
+                onAccordionToggle={() => toggleAccordion(resource.id)}
                 onMarkComplete={() => onMarkResourceComplete(resource.id, !resource.isCompleted)}
                 onOpenInNewTab={() => onOpenResource(resource.id)}
-                isExpanded={expandedIds[resource.id] ?? false}
+                isAccordionExpanded={accordionExpandedIds[resource.id] ?? false}
+                isPlayerExpanded={false}
+                onPlayerToggle={() => {}}
               />
             ))}
           </div>
@@ -326,69 +332,6 @@ export function ResourceAccordion({
           <p className="text-sm font-medium text-black/60">
             Resources are being prepared for this task.
           </p>
-        </div>
-      )}
-    </div>
-  )
-}
-
-// Compact Resource List for sidebar
-interface CompactResourceListProps {
-  resources: RoadmapResource[]
-  onResourceClick: (resourceId: string) => void
-  className?: string
-}
-
-export function CompactResourceList({ resources, onResourceClick, className }: CompactResourceListProps) {
-  const videoResources = resources.filter((r) => r.resourceType === 'youtube')
-  const docResources = resources.filter((r) => r.resourceType === 'docs' || r.resourceType === 'article')
-
-  return (
-    <div className={cn('space-y-3', className)}>
-      {videoResources.length > 0 && (
-        <div className="space-y-1">
-          <p className="flex items-center gap-1.5 text-xs font-bold text-black/60">
-            <PlayCircle className="h-3 w-3" />
-            Videos
-          </p>
-          {videoResources.map((resource) => (
-            <CompactVideoCard
-              key={resource.id}
-              resource={resource}
-              onClick={() => onResourceClick(resource.id)}
-            />
-          ))}
-        </div>
-      )}
-
-      {docResources.length > 0 && (
-        <div className="space-y-1">
-          <p className="flex items-center gap-1.5 text-xs font-bold text-black/60">
-            <BookOpen className="h-3 w-3" />
-            Documentation
-          </p>
-          {docResources.map((resource) => {
-            const status = getResourceStatus(resource)
-            return (
-              <button
-                key={resource.id}
-                onClick={() => onResourceClick(resource.id)}
-                className={cn(
-                  'flex w-full items-center gap-2 rounded-md border-2 border-black bg-white p-2 text-left transition-all hover:bg-gray-50',
-                  status === 'completed' && 'bg-green/10'
-                )}
-              >
-                <FileText className="h-4 w-4 shrink-0 text-blue" />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-xs font-bold">{resource.title}</p>
-                  <p className="text-[10px] text-black/60">{resource.provider}</p>
-                </div>
-                {status === 'completed' && (
-                  <Check className="h-4 w-4 shrink-0 text-green" />
-                )}
-              </button>
-            )
-          })}
         </div>
       )}
     </div>

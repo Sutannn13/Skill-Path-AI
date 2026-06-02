@@ -480,18 +480,18 @@ function TabButton({ tab, label, icon, isActive, onClick, badge }: TabButtonProp
     <button
       onClick={onClick}
       className={cn(
-        'flex items-center gap-2 rounded-md border-2 border-black px-3 py-2 text-sm font-bold transition-all',
+        'flex items-center gap-1.5 sm:gap-2 rounded-md border-2 border-black px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-bold transition-all shrink-0',
         isActive
           ? 'bg-black text-white'
           : 'bg-white text-black hover:bg-gray-100'
       )}
     >
-      {icon}
-      {label}
+      <span className="shrink-0">{icon}</span>
+      <span className="whitespace-nowrap">{label}</span>
       {badge !== undefined && (
         <span
           className={cn(
-            'rounded px-1.5 py-0.5 text-[10px]',
+            'rounded px-1 py-0.5 text-[10px] shrink-0',
             isActive ? 'bg-white text-black' : 'bg-black text-white'
           )}
         >
@@ -536,8 +536,8 @@ export function LearningTabs({
 
   return (
     <div className={cn('space-y-4', className)}>
-      {/* Tab Buttons */}
-      <div className="flex flex-wrap gap-2">
+      {/* Tab Buttons - Horizontal scroll on mobile */}
+      <div className="flex flex-wrap gap-1.5 sm:gap-2 overflow-x-auto hide-scrollbar pb-1 -mx-1 px-1">
         {tabs.map(({ tab, label, icon }) => (
           <TabButton
             key={tab}
@@ -560,21 +560,21 @@ export function LearningTabs({
       </div>
 
       {/* Tab Content */}
-      <div className="rounded-md border-2 border-black bg-white p-4">
+      <div className="rounded-md border-2 border-black bg-white p-3 sm:p-4 overflow-x-hidden">
         {/* Overview Tab */}
         {activeTab === 'overview' && (
           <div className="space-y-4">
             <div>
               <h4 className="mb-2 text-sm font-bold">Task Description</h4>
-              <p className="text-sm text-black/70">{task.description}</p>
+              <p className="text-sm text-black/70 break-words">{task.description}</p>
             </div>
             <div>
               <h4 className="mb-2 text-sm font-bold">Deliverable</h4>
-              <p className="text-sm text-black/70">{task.deliverable}</p>
+              <p className="text-sm text-black/70 break-words">{task.deliverable}</p>
             </div>
             <div>
               <h4 className="mb-2 text-sm font-bold">Why This Matters</h4>
-              <p className="text-sm text-black/70">{week.goal}</p>
+              <p className="text-sm text-black/70 break-words">{week.goal}</p>
             </div>
           </div>
         )}

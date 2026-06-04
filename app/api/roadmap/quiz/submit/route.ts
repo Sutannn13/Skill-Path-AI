@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { isUuid } from '@/lib/utils'
 import {
   QUIZ_PASSING_SCORE,
   getCuratedQuizQuestions,
@@ -39,10 +41,6 @@ function deriveRequirementState(input: {
   }
 
   return 'completed'
-}
-
-function isUuid(value: string) {
-  return z.string().uuid().safeParse(value).success
 }
 
 function getLocalSkillFromQuizId(quizId: string) {
@@ -139,6 +137,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  const admin = createSupabaseAdminClient()
+  if (!admin) {
+    return NextResponse.json({ error: 'Quiz grading is not configured. Please contact support.' }, { status: 503 })
+  }
+
   const { quizId, answers } = parsed.data
 
   const { data: quizMeta, error: quizMetaError } = await supabase
@@ -163,7 +166,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Quiz task is not owned by current user.' }, { status: 403 })
   }
 
-  const { data: questions, error: questionError } = await supabase
+  // Use admin client to access correct_answer, which is no longer
+  // accessible via the authenticated role after migration 008.
+  const { data: questions, error: questionError } = await admin
     .from('roadmap_quiz_questions')
     .select('id, question_text, correct_answer, explanation, position')
     .eq('quiz_id', quizId)

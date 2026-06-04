@@ -128,6 +128,7 @@ export interface RoadmapWeek {
 
 export interface RoadmapTask {
   id: string
+  taskKey?: string
   title: string
   description: string
   estimatedTime: string

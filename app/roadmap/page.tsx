@@ -270,6 +270,7 @@ function mapResourceRowToRoadmapResource(resource: RoadmapResourceRow, progress?
 function buildTaskFromRow(row: RoadmapTaskRow): RoadmapTask {
   return {
     id: row.id,
+    taskKey: row.task_key ?? undefined,
     title: row.title,
     description: row.description ?? '',
     estimatedTime: row.estimated_time ?? '1 hour',

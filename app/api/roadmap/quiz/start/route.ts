@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { isUuid } from '@/lib/utils'
 import {
   QUIZ_PASSING_SCORE,
   QUIZ_QUESTION_COUNT,
@@ -26,10 +27,6 @@ interface TaskOwnershipRow {
   roadmaps: {
     user_id: string
   } | null
-}
-
-function isUuid(value: string) {
-  return z.string().uuid().safeParse(value).success
 }
 
 function isQuizPersistenceUnavailableError(message: string) {

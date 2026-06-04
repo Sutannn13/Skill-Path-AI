@@ -12,6 +12,7 @@ const protectedRoutePrefixes = [
   '/github',
   '/settings',
   '/projects',
+  '/admin',
 ]
 
 const authRoutePrefixes = ['/login', '/register']

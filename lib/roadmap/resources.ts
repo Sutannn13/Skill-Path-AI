@@ -684,6 +684,9 @@ function inferRoleTrack(
 }
 
 function deriveBackendTopicKey(task: RoadmapTask, week: RoadmapWeek): BackendTopicKey | null {
+  const fromTaskKey = task.taskKey && BACKEND_TASK_TOPIC_MAP[task.taskKey]
+  if (fromTaskKey) return fromTaskKey
+
   const fromTaskId = BACKEND_TASK_TOPIC_MAP[task.id]
   if (fromTaskId) return fromTaskId
 
@@ -802,7 +805,7 @@ export function isResourceLikelyRelevant(
   }
 
   const keys = inferResourceKeys(task, week)
-  if (keys.length === 0) return true
+  if (keys.length === 0) return false
 
   return keys.some((key) => hasSemanticOverlap(task, week, key, resource.title) || source.includes(key))
 }

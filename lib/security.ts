@@ -181,21 +181,4 @@ export function validateCSRFToken(token: string, expectedToken: string): boolean
   return result === 0
 }
 
-/**
- * Content Security Policy header value
- */
-export const CSP_HEADER = [
-  "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' https://accounts.google.com https://*.google.com",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  "font-src 'self' https://fonts.gstatic.com",
-  "img-src 'self' data: https: blob:",
-  "media-src 'self' https: blob:",
-  "frame-src 'self' https://www.youtube.com https://youtube.com",
-  "connect-src 'self' https://*.supabase.co https://supabase.co",
-  "object-src 'none'",
-  "base-uri 'self'",
-  "form-action 'self'",
-  "frame-ancestors 'none'",
-  "upgrade-insecure-requests",
-].join('; ')
+/** End of security utilities */

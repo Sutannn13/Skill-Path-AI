@@ -14,3 +14,10 @@ build
 vendor
 .DS_Store
 .env.local
+
+# agentic-senior-core: local-only governance files
+.agent-context/
+AGENTS.md
+CLAUDE.md
+GEMINI.md
+mcp.json

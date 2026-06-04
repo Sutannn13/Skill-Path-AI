@@ -80,7 +80,7 @@ Run this before declaring a task done. Apply only the sections relevant to the c
 
 ## 7. UI And Accessibility
 
-- [ ] UI work follows `docs/DESIGN.md` and `docs/design-intent.json`.
+- [ ] UI work follows `docs/DESIGN.md`.
 - [ ] Visual direction is project-specific and not a template/default component-kit habit.
 - [ ] UI work includes a Motion/Palette Decision, and product categories were treated as heuristics rather than style presets.
 - [ ] Responsive behavior recomposes content and priority, not only shrinking desktop layout.
@@ -129,7 +129,7 @@ Run this before declaring a task done. Apply only the sections relevant to the c
 - [ ] Coding flow is blocked if `docs/flow-overview.md` is missing
 - [ ] Coding flow is blocked if `docs/database-schema.md` is missing while the project uses persistent data
 - [ ] Coding flow is blocked if `docs/api-contract.md` is missing while the project exposes API or web application flows
-- [ ] UI implementation flow is blocked if `docs/DESIGN.md` or `docs/design-intent.json` is missing
+- [ ] UI implementation flow is blocked if `docs/DESIGN.md` is missing
 
 ## Verdict
 

@@ -1,6 +1,6 @@
 {
-  "cliVersion": "4.2.8",
-  "generatedAt": "2026-05-26T09:05:08.918Z",
+  "cliVersion": "4.3.8",
+  "generatedAt": "2026-06-04T08:14:18.575Z",
   "operationMode": "init",
   "selectedProfile": "balanced",
   "selectedPreset": null,
@@ -8,11 +8,11 @@
     "key": "both",
     "label": "Both (frontend + backend)"
   },
-  "projectTopology": "Agent recommendation required from current brief, repo evidence, and live official docs",
+  "projectTopology": null,
   "runtimeDecision": {
     "mode": "agent-decision-required",
     "explicitStack": null,
-    "detectedStackEvidence": null,
+    "detectedStackEvidence": "typescript.md",
     "detectedAdditionalStackEvidence": []
   },
   "architectureDecision": {
@@ -34,8 +34,8 @@
     "agentDecisionRequired": true
   },
   "ciGuardrailsEnabled": true,
-  "localOnly": false,
-  "setupDurationMs": 12774,
+  "localOnly": true,
+  "setupDurationMs": 10284,
   "runtimeEnvironment": {
     "selected": "windows",
     "selectedLabel": "Windows",
@@ -44,7 +44,7 @@
     "detectionSource": "process.platform"
   },
   "containerizationStrategy": {
-    "selected": "No Docker (run services directly)",
+    "selected": null,
     "developmentRequired": false,
     "productionRequired": false,
     "materializationRequired": false,
@@ -77,21 +77,42 @@
     "commandOutputBoundary": "ASCX handles command-output compression separately"
   },
   "autoDetection": {
-    "detectedStack": null,
+    "detectedStack": "typescript.md",
     "detectedAdditionalStacks": [],
     "detectedBlueprint": null,
     "detectedAdditionalBlueprints": [],
-    "confidenceLabel": null,
-    "confidenceScore": 0,
-    "confidenceGap": 0,
-    "detectionReasoning": "No known project markers were detected.",
-    "rankedCandidates": [],
-    "evidence": [],
+    "confidenceLabel": "high",
+    "confidenceScore": 0.97,
+    "confidenceGap": 0.15,
+    "detectionReasoning": "Top signal Typescript won with confidence 0.97 from markers: package.json, tsconfig.json, Next.js config.",
+    "rankedCandidates": [
+      {
+        "stackFileName": "typescript.md",
+        "confidenceScore": 0.97,
+        "evidence": [
+          "package.json",
+          "tsconfig.json",
+          "Next.js config"
+        ]
+      },
+      {
+        "stackFileName": "typescript.md",
+        "confidenceScore": 0.82,
+        "evidence": [
+          "blues-test: package.json"
+        ]
+      }
+    ],
+    "evidence": [
+      "package.json",
+      "tsconfig.json",
+      "Next.js config"
+    ],
     "detectionTransparency": {
-      "declaredAt": "2026-05-26T09:04:56.151Z",
-      "declarationType": "fresh-project",
-      "declarationShown": false,
-      "detectionSummary": "No existing project markers were detected.",
+      "declaredAt": "2026-06-04T08:14:08.317Z",
+      "declarationType": "existing-project",
+      "declarationShown": true,
+      "detectionSummary": "This folder looks like Typescript with high confidence based on package.json, tsconfig.json, Next.js config. Confidence gap: 0.15.",
       "activeRulesSummary": {
         "canonicalSource": "AGENTS.md",
         "compiledRulebook": null,
@@ -117,11 +138,11 @@
       ],
       "quickConfirmation": {
         "offered": false,
-        "response": "not-applicable",
+        "response": "evidence-only",
         "source": "existing-project-detection"
       },
       "decision": {
-        "mode": "fresh-agent-decision-required",
+        "mode": "existing-project-evidence-only",
         "selectedStackFileName": "agent-decision-runtime.md",
         "selectedBlueprintFileName": "agent-decision-architecture.md",
         "selectedAdditionalStackFileNames": [],
@@ -130,8 +151,420 @@
         "selectedProjectScopeKey": "both",
         "selectedProjectScopeLabel": "Both (frontend + backend)"
       },
-      "projectContextEvidence": null
+      "projectContextEvidence": "package.json: skillpath: Career Operating System for Students and Beginner Developers | docs/project-brief.md: Project Brief Product SkillPath is a career operating system for students and beginner developers. It turns skills, target roles, job requirements, GitHub signals, and weekly study habits into a clear path toward internships, freelance work, remote jobs, or portfolio readiness. | README.md: SkillPath SkillPath is a career operating system for students and beginner developers. It helps users check their skill readiness, compare skills against real jobs, generate learning roadmaps, audit GitHub portfolios, and track weekly progress. Stack"
     },
-    "uiScope": null
+    "uiScope": {
+      "isUiScopeLikely": true,
+      "signalReasons": [
+        "ui markers: next.config.js, tailwind.config.ts, app, components",
+        "ui dependencies: next, react, react-dom, tailwindcss"
+      ],
+      "workspaceUiEntries": [],
+      "frontendEvidenceMetrics": {
+        "scannedFileCount": 79,
+        "hardcodedColorCount": 110,
+        "propDrillingCandidateCount": 13,
+        "mediaQueryCount": 1,
+        "tailwindBreakpointUsageCount": 265,
+        "arbitraryBreakpointCount": 0,
+        "uniqueMediaWidthCount": 0,
+        "structuredClassAttributeCount": 2320,
+        "boundClassExpressionCount": 96,
+        "inlineStyleObjectCount": 36,
+        "inlineStyleBindingCount": 0,
+        "inlineStyleTokenBypassCount": 7
+      },
+      "designEvidenceSummary": {
+        "summaryVersion": "v1",
+        "source": "lightweight-static-scan",
+        "scanRootRelativePaths": [
+          "app",
+          "components"
+        ],
+        "scannedFileCount": 79,
+        "cssVariables": {
+          "definitionCount": 10,
+          "referenceCount": 26,
+          "sampleNames": [
+            "color-background",
+            "color-black",
+            "color-yellow",
+            "color-blue",
+            "color-pink",
+            "color-green",
+            "color-orange",
+            "color-purple",
+            "color-red",
+            "color-white",
+            "font-body",
+            "tw-rotate"
+          ],
+          "categoryCounts": {
+            "color": 10,
+            "spacing": 0,
+            "radius": 0,
+            "shadow": 0,
+            "typography": 0,
+            "motion": 0,
+            "other": 0
+          }
+        },
+        "colors": {
+          "hardcodedCount": 110,
+          "kindCounts": {
+            "hex": 95,
+            "rgb": 15,
+            "hsl": 0,
+            "oklch": 0,
+            "other": 0
+          },
+          "sampleValues": [
+            "#FFF7E6",
+            "#111111",
+            "#FFD447",
+            "#7CC9FF",
+            "#FF8FAB",
+            "#9BE564",
+            "#FFB86B",
+            "#B39DDB",
+            "#FF6B6B",
+            "#FFFFFF",
+            "rgba(17, 17, 17, 0.08)",
+            "#FFD84D"
+          ]
+        },
+        "spacing": {
+          "rawValueCount": 0,
+          "sampleValues": []
+        },
+        "radius": {
+          "rawValueCount": 1,
+          "sampleValues": [
+            "12px"
+          ]
+        },
+        "shadow": {
+          "rawValueCount": 6,
+          "sampleValues": [
+            "4px 4px 0px 0px var(--color-black)",
+            "2px 2px 0px 0px var(--color-black)",
+            "6px 6px 0px 0px var(--color-black)",
+            "0 0 30px ${glowColors[glowColor]",
+            "8px 8px 0px 0px #111111',",
+            "glow,"
+          ]
+        },
+        "typography": {
+          "fontFamilyCount": 2,
+          "fontSizeCount": 0,
+          "lineHeightCount": 0,
+          "letterSpacingCount": 0,
+          "fontFamilySamples": [
+            "var(--font-body), system-ui, sans-serif",
+            "Arial',"
+          ],
+          "fontSizeSamples": [],
+          "lineHeightSamples": [],
+          "letterSpacingSamples": []
+        },
+        "motion": {
+          "transitionCount": 207,
+          "animationCount": 15,
+          "durationCount": 14,
+          "durationSamples": [
+            "6s",
+            "2s",
+            "14s",
+            "16s",
+            "12s",
+            "18s",
+            "9s",
+            "1.2s",
+            "0.01ms",
+            "1s",
+            "0.5s",
+            "1.5s"
+          ]
+        },
+        "tailwind": {
+          "breakpointUsageCount": 265,
+          "arbitraryBreakpointCount": 0,
+          "utilityFamilyCounts": {
+            "py": 146,
+            "mx": 68,
+            "max": 45,
+            "flex": 691,
+            "gap": 359,
+            "h": 583,
+            "w": 619,
+            "shrink": 66,
+            "items": 414,
+            "justify": 192,
+            "brutal": 336,
+            "bg": 419,
+            "min": 39,
+            "font": 579,
+            "text": 1058,
+            "mt": 147,
+            "leading": 13,
+            "space": 94,
+            "overflow": 43,
+            "mb": 364,
+            "inline": 22,
+            "px": 110,
+            "grid": 74,
+            "mr": 45,
+            "relative": 65,
+            "absolute": 103,
+            "top": 59,
+            "right": 39,
+            "bottom": 20,
+            "left": 40,
+            "z": 37,
+            "shadow": 35,
+            "ml": 15,
+            "opacity": 26,
+            "rounded": 140,
+            "border": 332,
+            "p": 130,
+            "underline": 7,
+            "backdrop": 10,
+            "hidden": 16,
+            "col": 11,
+            "block": 43,
+            "animate": 35,
+            "transition": 33,
+            "placeholder": 2,
+            "caret": 2,
+            "cursor": 4,
+            "row": 1,
+            "pl": 5,
+            "pr": 5,
+            "outline": 14,
+            "ring": 14,
+            "pt": 12,
+            "capitalize": 3,
+            "whitespace": 14,
+            "list": 3,
+            "${spaceGrotesk.variable}": 1,
+            "${inter.variable}": 1,
+            "antialiased": 1,
+            "sticky": 6,
+            "group": 4,
+            "fixed": 11,
+            "pb": 5,
+            "blur": 2,
+            "rotate": 8,
+            "inset": 23,
+            "from": 2,
+            "via": 2,
+            "to": 2,
+            "resize": 4,
+            "duration": 10,
+            "line": 2,
+            "object": 3,
+            "uppercase": 10,
+            "hide": 2,
+            "pointer": 4,
+            "truncate": 11,
+            "tracking": 4,
+            "transform": 1,
+            "stroke": 2,
+            "cartoon": 3,
+            "isolate": 1,
+            "scale": 1,
+            "self": 1,
+            "break": 3
+          },
+          "utilityFamilySamples": [
+            "py",
+            "mx",
+            "max",
+            "flex",
+            "gap",
+            "h",
+            "w",
+            "shrink",
+            "items",
+            "justify",
+            "brutal",
+            "bg"
+          ]
+        },
+        "componentInventory": {
+          "componentFileCount": 43,
+          "pageFileCount": 24,
+          "layoutFileCount": 2,
+          "surfaceFileSamples": [
+            "app/admin/page.tsx",
+            "app/dashboard/layout.tsx",
+            "app/dashboard/page.tsx",
+            "app/forgot-password/page.tsx",
+            "app/github/page.tsx",
+            "app/jobs/page.tsx",
+            "app/jobs/[id]/page.tsx",
+            "app/layout.tsx",
+            "app/login/page.tsx",
+            "app/onboarding/page.tsx",
+            "app/page.tsx",
+            "app/projects/page.tsx"
+          ]
+        },
+        "structuredInspection": {
+          "mode": "attribute-aware-static-scan",
+          "classAttributeCount": 2320,
+          "boundClassExpressionCount": 96,
+          "inlineStyleObjectCount": 36,
+          "inlineStyleBindingCount": 0,
+          "classAttributeSamples": [
+            "py-8",
+            "mx-auto max-w-2xl",
+            "flex flex-col gap-5 sm:flex-row",
+            "flex h-12 w-12 shrink-0 items-center justify-center brutal-border brutal-radius bg-white",
+            "min-w-0 flex-1",
+            "font-display text-2xl font-bold",
+            "mt-2 text-sm leading-6 text-black/75",
+            "mt-5",
+            "h-6 w-6",
+            "py-6",
+            "space-y-8",
+            "overflow-hidden"
+          ],
+          "inlineStyleSamples": [
+            "borderBottomLeftRadius: '100%'",
+            "borderTopRightRadius: '100%'",
+            "width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#FFD84D', border: '4px solid #000', boxSizing: 'border-box', position: 'relative', fontFamily: 'Arial',",
+            "position: 'absolute', top: 14, width: 34, height: 10, background: '#000', transform: 'skewX(-20deg)', borderRadius: 2,",
+            "position: 'absolute', top: 25, width: 20, height: 7, background: '#000', borderRadius: 2,",
+            "position: 'absolute', top: 18, right: 16, width: 2, height: 18, background: '#000',",
+            "position: 'absolute', top: 34, right: 14, width: 6, height: 6, borderRadius: '50%', background: '#000',",
+            "position: 'absolute', bottom: 11",
+            "borderTopLeftRadius: '100%'",
+            "width: `${weekProgress}%`",
+            "width: `${progressPercent}%`",
+            "perspective, transformStyle: 'preserve-3d', rotateX: rotateXValue, rotateY: rotateYValue, scale: isHovered ? 1.02 : 1,"
+          ],
+          "utilityFamilyCounts": {
+            "py": 146,
+            "mx": 68,
+            "max": 45,
+            "flex": 691,
+            "gap": 359,
+            "h": 583,
+            "w": 619,
+            "shrink": 66,
+            "items": 414,
+            "justify": 192,
+            "brutal": 336,
+            "bg": 419,
+            "min": 39,
+            "font": 579,
+            "text": 1058,
+            "mt": 147,
+            "leading": 13,
+            "space": 94,
+            "overflow": 43,
+            "mb": 364,
+            "inline": 22,
+            "px": 110,
+            "grid": 74,
+            "mr": 45,
+            "relative": 65,
+            "absolute": 103,
+            "top": 59,
+            "right": 39,
+            "bottom": 20,
+            "left": 40,
+            "z": 37,
+            "shadow": 35,
+            "ml": 15,
+            "opacity": 26,
+            "rounded": 140,
+            "border": 332,
+            "p": 130,
+            "underline": 7,
+            "backdrop": 10,
+            "hidden": 16,
+            "col": 11,
+            "block": 43,
+            "animate": 35,
+            "transition": 33,
+            "placeholder": 2,
+            "caret": 2,
+            "cursor": 4,
+            "row": 1,
+            "pl": 5,
+            "pr": 5,
+            "outline": 14,
+            "ring": 14,
+            "pt": 12,
+            "capitalize": 3,
+            "whitespace": 14,
+            "list": 3,
+            "${spaceGrotesk.variable}": 1,
+            "${inter.variable}": 1,
+            "antialiased": 1,
+            "sticky": 6,
+            "group": 4,
+            "fixed": 11,
+            "pb": 5,
+            "blur": 2,
+            "rotate": 8,
+            "inset": 23,
+            "from": 2,
+            "via": 2,
+            "to": 2,
+            "resize": 4,
+            "duration": 10,
+            "line": 2,
+            "object": 3,
+            "uppercase": 10,
+            "hide": 2,
+            "pointer": 4,
+            "truncate": 11,
+            "tracking": 4,
+            "transform": 1,
+            "stroke": 2,
+            "cartoon": 3,
+            "isolate": 1,
+            "scale": 1,
+            "self": 1,
+            "break": 3
+          },
+          "utilityFamilySamples": [
+            "py",
+            "mx",
+            "max",
+            "flex",
+            "gap",
+            "h",
+            "w",
+            "shrink",
+            "items",
+            "justify",
+            "brutal",
+            "bg"
+          ],
+          "inlineTokenBypassSignals": {
+            "hardcodedColorCount": 6,
+            "rawSpacingCount": 0,
+            "rawRadiusCount": 0,
+            "rawShadowCount": 1,
+            "cssVariableReferenceCount": 0
+          }
+        },
+        "tokenBypassSignals": {
+          "hardcodedColorCount": 110,
+          "rawSpacingCount": 0,
+          "rawRadiusCount": 1,
+          "rawShadowCount": 6,
+          "inlineHardcodedColorCount": 6,
+          "inlineRawSpacingCount": 0,
+          "inlineRawRadiusCount": 0,
+          "inlineRawShadowCount": 1,
+          "inlineCssVariableReferenceCount": 0
+        }
+      }
+    }
   }
 }

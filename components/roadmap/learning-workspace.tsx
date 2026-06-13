@@ -58,13 +58,13 @@ const statusColors: Record<string, { bg: string; text: string }> = {
 }
 
 const statusLabels: Record<string, string> = {
-  resources_pending: 'Finish resources',
-  resources_completed: 'Resources completed',
-  quiz_pending: 'Quiz next',
-  quiz_passed: 'Quiz passed',
-  project_pending: 'Waiting for project',
-  project_passed: 'Project passed',
-  completed: 'Completed',
+  resources_pending: 'Selesaikan materi',
+  resources_completed: 'Materi selesai',
+  quiz_pending: 'Kuis selanjutnya',
+  quiz_passed: 'Kuis lulus',
+  project_pending: 'Menunggu proyek',
+  project_passed: 'Proyek lulus',
+  completed: 'Selesai',
 }
 
 export function LearningWorkspace({
@@ -180,7 +180,7 @@ export function LearningWorkspace({
             <div className="p-4 md:p-5">
               <h3 className="mb-3 flex items-center gap-2 text-sm font-bold">
                 <BookOpen className="h-4 w-4" />
-                Learning Resources
+                Materi Pembelajaran
               </h3>
 
               {/* Quick Resource List */}
@@ -188,7 +188,7 @@ export function LearningWorkspace({
                 {/* Videos */}
                 {task.resources?.filter((r) => r.resourceType === 'youtube').length ? (
                   <div>
-                    <p className="text-xs font-bold text-black/60 mb-2">Videos</p>
+                    <p className="text-xs font-bold text-black/60 mb-2">Video Tutorial</p>
                     <div className="space-y-1">
                       {task.resources
                         .filter((r) => r.resourceType === 'youtube')
@@ -206,7 +206,7 @@ export function LearningWorkspace({
                             </div>
                             <div className="min-w-0 flex-1">
                               <p className="truncate font-bold text-xs">{resource.title}</p>
-                              <p className="text-[10px] text-black/60">{resource.estimatedMinutes} min</p>
+                              <p className="text-[10px] text-black/60">{resource.estimatedMinutes} menit</p>
                             </div>
                             {resource.isCompleted && (
                               <CheckCircle2 className="h-4 w-4 shrink-0 text-green" />
@@ -220,7 +220,7 @@ export function LearningWorkspace({
                 {/* Documentation */}
                 {task.resources?.filter((r) => r.resourceType === 'docs' || r.resourceType === 'article').length ? (
                   <div>
-                    <p className="text-xs font-bold text-black/60 mb-2 mt-3">Documentation</p>
+                    <p className="text-xs font-bold text-black/60 mb-2 mt-3">Dokumentasi</p>
                     <div className="space-y-1">
                       {task.resources
                         .filter((r) => r.resourceType === 'docs' || r.resourceType === 'article')
@@ -252,7 +252,7 @@ export function LearningWorkspace({
 
               {/* Quick Actions */}
               <div className="mt-5 pt-4 border-t-2 border-black/10 space-y-3">
-                <h3 className="text-xs font-bold text-black/60">Quick Actions</h3>
+                <h3 className="text-xs font-bold text-black/60">Aksi Cepat</h3>
 
                 {/* Quiz Button */}
                 {task.quizRequired !== false && (
@@ -266,7 +266,7 @@ export function LearningWorkspace({
                           className="w-full justify-center"
                         >
                           <FileText className="mr-2 h-4 w-4" />
-                          {task.quizPassed ? 'Retry Quiz' : 'Take Quiz'}
+                          {task.quizPassed ? 'Ulangi Kuis' : 'Kerjakan Kuis'}
                         </BrutalButton>
                       </Link>
                     ) : (
@@ -278,7 +278,7 @@ export function LearningWorkspace({
                         disabled
                       >
                         <Lock className="mr-2 h-4 w-4" />
-                        Quiz Locked
+                        Kuis Terkunci
                       </BrutalButton>
                     )}
                     {quizLockReason && !task.quizPassed && (
@@ -299,7 +299,7 @@ export function LearningWorkspace({
                           className="w-full justify-center"
                         >
                           <Rocket className="mr-2 h-4 w-4" />
-                          {task.projectPassed ? 'View Project' : 'Submit Project'}
+                          {task.projectPassed ? 'Lihat Proyek' : 'Kirim Proyek'}
                         </BrutalButton>
                       </Link>
                     ) : (
@@ -311,7 +311,7 @@ export function LearningWorkspace({
                         disabled
                       >
                         <Lock className="mr-2 h-4 w-4" />
-                        Project Locked
+                        Proyek Terkunci
                       </BrutalButton>
                     )}
                     {projectLockReason && !task.projectPassed && (
@@ -339,15 +339,15 @@ export function LearningWorkspace({
                 {activeTab === 'overview' && (
                   <div className="space-y-4 rounded-md border-2 border-black bg-white p-3 sm:p-4">
                     <div>
-                      <h4 className="mb-2 text-sm font-bold">Task Description</h4>
+                      <h4 className="mb-2 text-sm font-bold">Deskripsi Tugas</h4>
                       <p className="break-words text-sm text-black/70">{task.description}</p>
                     </div>
                     <div>
-                      <h4 className="mb-2 text-sm font-bold">Deliverable</h4>
+                      <h4 className="mb-2 text-sm font-bold">Hasil yang Diharapkan</h4>
                       <p className="break-words text-sm text-black/70">{task.deliverable}</p>
                     </div>
                     <div>
-                      <h4 className="mb-2 text-sm font-bold">Why This Matters</h4>
+                      <h4 className="mb-2 text-sm font-bold">Mengapa Ini Penting</h4>
                       <p className="break-words text-sm text-black/70">{week.goal}</p>
                     </div>
                   </div>

@@ -1,9 +1,11 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { motion } from 'framer-motion'
+import { motion, useScroll } from 'framer-motion'
+import { useState } from 'react'
 import Link from 'next/link'
 import { Container } from '@/components/layout'
+import { cn } from '@/lib/utils'
 import { CartoonBackground } from '@/components/illustrations/cartoon-background'
 import { BrutalCard, BrutalCardHover, BrutalButton, FloatingSticker, StickerBadge, ParallaxCard, GlowCard, StarBurst } from '@/components/brutal'
 import type { CardColor } from '@/components/brutal/brutal-card'
@@ -103,9 +105,15 @@ const stepBadgeVariants = ['yellow', 'blue', 'pink', 'green'] satisfies StickerB
 
 export default function HomePage() {
   const use3D = use3DSupport()
+  const { scrollYProgress } = useScroll()
+  const [activeTab, setActiveTab] = useState<'stats' | 'quests'>('stats')
 
   return (
     <div className="min-h-screen relative overflow-hidden">
+      <motion.div 
+        className="fixed top-0 left-0 right-0 h-2 bg-pink z-[60] origin-left border-b-2 border-black"
+        style={{ scaleX: scrollYProgress }}
+      />
       <CartoonBackground variant="default" intensity="high" showDoodles animated />
 
       {/* Navigation */}
@@ -337,10 +345,10 @@ export default function HomePage() {
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
-              { emoji: '🤔', title: 'Skill Boss', text: 'Students do not know which skills actually matter' },
-              { emoji: '📄', title: 'Confusion Spell', text: 'Job descriptions are confusing and inconsistent' },
-              { emoji: '📚', title: 'No Map Quest', text: 'Tutorials are scattered everywhere, no clear path' },
-              { emoji: '💼', title: 'Portfolio Ghost', text: 'Portfolios do not match target roles' },
+              { emoji: '🤔', title: 'Skill Boss', text: 'Students do not know which skills actually matter', color: 'bg-pink' },
+              { emoji: '📄', title: 'Confusion Spell', text: 'Job descriptions are confusing and inconsistent', color: 'bg-blue' },
+              { emoji: '📚', title: 'No Map Quest', text: 'Tutorials are scattered everywhere, no clear path', color: 'bg-yellow' },
+              { emoji: '💼', title: 'Portfolio Ghost', text: 'Portfolios do not match target roles', color: 'bg-orange' },
             ].map((problem, i) => (
               <motion.div
                 key={i}
@@ -349,10 +357,10 @@ export default function HomePage() {
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
               >
-                <div className="h-full brutal-border brutal-radius p-6 bg-white/10 backdrop-blur border-white/20">
+                <div className={cn('h-full brutal-border brutal-radius p-6 text-black shadow-brutal-sm hover:shadow-brutal transition-shadow', problem.color)}>
                   <span className="text-5xl mb-4 block">{problem.emoji}</span>
                   <p className="font-bold text-lg mb-2">{problem.title}</p>
-                  <p className="text-sm text-gray-300">{problem.text}</p>
+                  <p className="text-sm text-black/70">{problem.text}</p>
                 </div>
               </motion.div>
             ))}
@@ -436,8 +444,10 @@ export default function HomePage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
+                whileHover={{ scale: 1.02, rotate: i % 2 === 0 ? 1 : -1 }}
+                className="h-full"
               >
-                <BrutalCard color={feature.color} className="h-full relative overflow-hidden">
+                <BrutalCard color={feature.color} className="h-full relative overflow-hidden transition-all duration-300">
                   <div className="absolute top-2 right-2 opacity-20">
                     <feature.icon className="w-20 h-20" />
                   </div>
@@ -477,8 +487,8 @@ export default function HomePage() {
           >
             <BrutalCard shadow="lg" className="p-0 overflow-hidden">
               {/* Dashboard Preview Header */}
-              <div className="bg-yellow p-4 border-b-3 border-black">
-                <div className="flex items-center justify-between">
+              <div className="bg-yellow pt-4 px-4 border-b-3 border-black">
+                <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 bg-white brutal-border brutal-radius flex items-center justify-center">
                       <Target className="w-6 h-6" />
@@ -493,51 +503,78 @@ export default function HomePage() {
                     <StickerBadge variant="completed" label="Level 5" size="sm" />
                   </div>
                 </div>
+                {/* Tabs */}
+                <div className="flex gap-2 relative top-[3px]">
+                  <button 
+                    onClick={() => setActiveTab('stats')}
+                    className={`px-4 py-2 brutal-border text-sm font-bold transition-all ${activeTab === 'stats' ? 'bg-white shadow-none' : 'bg-white/50 shadow-brutal-sm hover:bg-white translate-y-[-2px]'}`}
+                    style={{ borderBottomWidth: activeTab === 'stats' ? '0px' : '3px', borderBottomLeftRadius: '0px', borderBottomRightRadius: '0px', zIndex: activeTab === 'stats' ? 10 : 1 }}
+                  >
+                    Stats
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab('quests')}
+                    className={`px-4 py-2 brutal-border text-sm font-bold transition-all ${activeTab === 'quests' ? 'bg-white shadow-none' : 'bg-white/50 shadow-brutal-sm hover:bg-white translate-y-[-2px]'}`}
+                    style={{ borderBottomWidth: activeTab === 'quests' ? '0px' : '3px', borderBottomLeftRadius: '0px', borderBottomRightRadius: '0px', zIndex: activeTab === 'quests' ? 10 : 1 }}
+                  >
+                    Quests
+                  </button>
+                </div>
               </div>
 
               {/* Dashboard Preview Content */}
-              <div className="p-6 space-y-6">
-                <div className="grid sm:grid-cols-3 gap-4">
-                  <BrutalCard color="pink" className="text-center">
-                    <p className="text-4xl font-bold mb-1">72%</p>
-                    <p className="text-sm font-medium">Career Power</p>
-                    <StickerBadge variant="completed" label="Strong" size="sm" className="mt-2" />
-                  </BrutalCard>
-                  <BrutalCard color="blue" className="text-center">
-                    <p className="text-4xl font-bold mb-1">85%</p>
-                    <p className="text-sm font-medium">Job Match</p>
-                    <StickerBadge variant="great-match" label="Great!" size="sm" className="mt-2" />
-                  </BrutalCard>
-                  <BrutalCard color="green" className="text-center">
-                    <p className="text-4xl font-bold mb-1">5</p>
-                    <p className="text-sm font-medium">Day Streak</p>
-                    <StickerBadge variant="yellow" label="On Fire!" size="sm" className="mt-2" />
-                  </BrutalCard>
-                </div>
+              <div className="p-6 space-y-6 bg-white relative z-0">
+                {activeTab === 'stats' && (
+                  <motion.div 
+                    initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
+                    className="grid sm:grid-cols-3 gap-4"
+                  >
+                    <BrutalCard color="pink" className="text-center">
+                      <p className="text-4xl font-bold mb-1">72%</p>
+                      <p className="text-sm font-medium">Career Power</p>
+                      <StickerBadge variant="completed" label="Strong" size="sm" className="mt-2" />
+                    </BrutalCard>
+                    <BrutalCard color="blue" className="text-center">
+                      <p className="text-4xl font-bold mb-1">85%</p>
+                      <p className="text-sm font-medium">Job Match</p>
+                      <StickerBadge variant="great-match" label="Great!" size="sm" className="mt-2" />
+                    </BrutalCard>
+                    <BrutalCard color="green" className="text-center">
+                      <p className="text-4xl font-bold mb-1">5</p>
+                      <p className="text-sm font-medium">Day Streak</p>
+                      <StickerBadge variant="yellow" label="On Fire!" size="sm" className="mt-2" />
+                    </BrutalCard>
+                  </motion.div>
+                )}
 
-                <div className="grid sm:grid-cols-3 gap-4">
-                  <BrutalCard>
-                    <div className="flex items-center gap-2 mb-2">
-                      <h4 className="font-bold">Current Quest</h4>
-                      <StickerBadge variant="in-progress" label="Active" size="sm" />
-                    </div>
-                    <p className="text-2xl font-display font-bold text-blue">Frontend Developer</p>
-                  </BrutalCard>
-                  <BrutalCard>
-                    <div className="flex items-center gap-2 mb-2">
-                      <h4 className="font-bold">Roadmap Module</h4>
-                      <StickerBadge variant="blue" label="Level 2" size="sm" />
-                    </div>
-                    <p className="text-lg">React API Patterns</p>
-                  </BrutalCard>
-                  <BrutalCard>
-                    <div className="flex items-center gap-2 mb-2">
-                      <h4 className="font-bold">Job Radar</h4>
-                      <StickerBadge variant="great-match" label="85%" size="sm" />
-                    </div>
-                    <p className="text-lg">Junior Frontend Intern</p>
-                  </BrutalCard>
-                </div>
+                {activeTab === 'quests' && (
+                  <motion.div 
+                    initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }}
+                    className="grid sm:grid-cols-3 gap-4"
+                  >
+                    <BrutalCard color="yellow">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h4 className="font-bold">Current Quest</h4>
+                        <StickerBadge variant="in-progress" label="Active" size="sm" />
+                      </div>
+                      <p className="text-xl font-display font-bold text-black">Frontend Developer</p>
+                    </BrutalCard>
+                    <BrutalCard color="white">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h4 className="font-bold">Module</h4>
+                        <StickerBadge variant="blue" label="Level 2" size="sm" />
+                      </div>
+                      <p className="text-lg">React API Patterns</p>
+                    </BrutalCard>
+                    <BrutalCard color="white">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h4 className="font-bold">Job Radar</h4>
+                        <StickerBadge variant="great-match" label="85%" size="sm" />
+                      </div>
+                      <p className="text-lg">Junior Frontend Intern</p>
+                    </BrutalCard>
+                  </motion.div>
+                )}
 
                 <div>
                   <h4 className="font-bold mb-3">Missing Power-Ups</h4>
@@ -559,7 +596,12 @@ export default function HomePage() {
       </section>
 
       {/* CTA Section - Final Quest */}
-      <section className="py-20 px-4 bg-yellow relative">
+      <section className="py-20 px-4 bg-yellow relative overflow-hidden">
+        {/* Decorative floating stickers */}
+        <div className="absolute top-6 left-8 w-16 h-16 bg-pink brutal-border brutal-radius rotate-12 animate-float-slow opacity-60" />
+        <div className="absolute bottom-10 right-12 w-12 h-12 bg-blue brutal-border brutal-radius -rotate-6 animate-float opacity-50" />
+        <div className="absolute top-1/2 right-1/4 w-10 h-10 bg-green brutal-border brutal-radius rotate-45 animate-float-slow opacity-40" />
+
         <Container className="text-center relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -577,7 +619,7 @@ export default function HomePage() {
               Join thousands of developers who have used SkillPath to conquer their career. It takes just 5 minutes to begin!
             </p>
             <Link href="/register">
-              <BrutalButton color="black" size="lg" className="shadow-brutal hover:shadow-brutal-lg">
+              <BrutalButton color="black" size="lg" className="shadow-brutal hover:shadow-brutal-lg active:translate-y-[2px] active:translate-x-[2px] active:shadow-none">
                 <Rocket className="w-5 h-5 mr-2" />
                 Start Your Journey
               </BrutalButton>
@@ -610,15 +652,15 @@ export default function HomePage() {
             </p>
 
             <div className="flex gap-6 text-sm">
-              <a href="#" className="text-gray-400 hover:text-white transition-colors">
+              <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-yellow transition-colors">
                 GitHub
               </a>
-              <a href="#" className="text-gray-400 hover:text-white transition-colors">
-                Docs
-              </a>
-              <a href="#" className="text-gray-400 hover:text-white transition-colors">
-                Privacy
-              </a>
+              <Link href="/dashboard" className="text-gray-400 hover:text-yellow transition-colors">
+                Dashboard
+              </Link>
+              <Link href="/login" className="text-gray-400 hover:text-yellow transition-colors">
+                Login
+              </Link>
             </div>
           </div>
         </Container>

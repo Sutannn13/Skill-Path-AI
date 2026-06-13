@@ -4,12 +4,12 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
-import { Target, Mail, Lock, AlertCircle, ArrowRight, Eye, EyeOff, ArrowLeft, Rocket } from 'lucide-react'
+import { Target, Mail, Lock, AlertCircle, ArrowRight, Eye, EyeOff, ArrowLeft, Rocket, Github } from 'lucide-react'
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser'
 import { BrutalCard, BrutalButton, StickerBadge } from '@/components/brutal'
 import { cn } from '@/lib/utils'
 import { AnimatedBrutalBackground, BrutalBackgroundStyles } from '@/components/illustrations/animated-brutal-background'
-import { AnimatedCatMascot } from '@/components/illustrations/animated-cat-mascot'
+import { AnimatedCatMascot, CatMascotMood } from '@/components/illustrations/animated-cat-mascot'
 
 interface LoginFormData {
   email: string
@@ -22,6 +22,14 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [focusedField, setFocusedField] = useState<'email' | 'password' | null>(null)
+  const [oauthLoading, setOauthLoading] = useState<'github' | 'google' | null>(null)
+
+  const mascotMood: CatMascotMood = focusedField === 'password' && !showPassword 
+    ? 'sleepy' 
+    : focusedField === 'email' 
+      ? 'focus' 
+      : 'happy'
 
   const supabase = useMemo(() => createSupabaseBrowserClient(), [])
 
@@ -84,6 +92,30 @@ export default function LoginPage() {
     }
   }
 
+  const handleOAuthLogin = async (provider: 'github' | 'google') => {
+    if (!supabase) {
+      setError('Supabase is not configured. Cannot sign in with OAuth.')
+      return
+    }
+    setOauthLoading(provider)
+    setError(null)
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      })
+      if (error) {
+        setError(error.message)
+        setOauthLoading(null)
+      }
+    } catch (err) {
+      setError('OAuth sign-in failed. Please try again.')
+      setOauthLoading(null)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
       <BrutalBackgroundStyles />
@@ -119,9 +151,9 @@ export default function LoginPage() {
               <div className="mb-6">
                 <AnimatedCatMascot
                   size="xl"
-                  mood="happy"
+                  mood={mascotMood}
                   animated={true}
-                  withMessage="Welcome back!"
+                  withMessage={mascotMood === 'sleepy' ? "No peeking!" : "Welcome back!"}
                 />
               </div>
               <h2 className="font-display text-2xl font-bold mb-2">Welcome Back, Hero!</h2>
@@ -195,11 +227,13 @@ export default function LoginPage() {
                         id="email"
                         value={formData.email}
                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        onFocus={() => setFocusedField('email')}
+                        onBlur={() => setFocusedField(null)}
                         placeholder="you@example.com"
                         required
                         className={cn(
-                          'w-full pl-12 pr-4 py-3 brutal-border brutal-radius bg-gray-50 text-black placeholder-gray-500 caret-black',
-                          'focus:bg-white focus:outline-none focus:ring-2 focus:ring-yellow',
+                          'w-full pl-12 pr-4 py-3 brutal-border brutal-radius brutal-input-focus bg-gray-50 text-black placeholder-gray-500 caret-black',
+                          'focus:bg-white focus:outline-none focus:ring-4 focus:ring-yellow focus:border-black',
                           'transition-all'
                         )}
                       />
@@ -217,12 +251,14 @@ export default function LoginPage() {
                         id="password"
                         value={formData.password}
                         onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                        onFocus={() => setFocusedField('password')}
+                        onBlur={() => setFocusedField(null)}
                         placeholder="Enter your password"
                         required
                         minLength={6}
                         className={cn(
-                          'w-full pl-12 pr-12 py-3 brutal-border brutal-radius bg-gray-50 text-black placeholder-gray-500 caret-black',
-                          'focus:bg-white focus:outline-none focus:ring-2 focus:ring-yellow',
+                          'w-full pl-12 pr-12 py-3 brutal-border brutal-radius brutal-input-focus bg-gray-50 text-black placeholder-gray-500 caret-black',
+                          'focus:bg-white focus:outline-none focus:ring-4 focus:ring-yellow focus:border-black',
                           'transition-all'
                         )}
                       />
@@ -248,6 +284,11 @@ export default function LoginPage() {
                     </motion.div>
                   )}
 
+                  <div className="flex items-center gap-2">
+                    <input type="checkbox" id="remember" className="w-5 h-5 brutal-border brutal-radius accent-yellow cursor-pointer" />
+                    <label htmlFor="remember" className="text-sm font-bold cursor-pointer">Remember me</label>
+                  </div>
+
                   <BrutalButton
                     type="submit"
                     color="yellow"
@@ -255,10 +296,42 @@ export default function LoginPage() {
                     fullWidth
                     loading={isLoading}
                     disabled={isLoading}
+                    className="active:translate-y-[2px] active:translate-x-[2px] active:shadow-none"
                   >
                     {isLoading ? 'Signing in...' : 'Login'}
                     {!isLoading && <ArrowRight className="w-5 h-5 ml-2" />}
                   </BrutalButton>
+
+                  <div className="relative my-6">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t-3 border-black"></div>
+                    </div>
+                    <div className="relative flex justify-center">
+                      <span className="bg-white px-4 font-bold text-sm">OR</span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <BrutalButton 
+                      variant="outline" color="black" 
+                      className="w-full shadow-brutal-sm hover:shadow-brutal active:translate-y-[2px] active:translate-x-[2px] active:shadow-none"
+                      onClick={() => handleOAuthLogin('github')}
+                      disabled={oauthLoading !== null}
+                      loading={oauthLoading === 'github'}
+                    >
+                      <Github className="w-5 h-5 mr-2" />
+                      GitHub
+                    </BrutalButton>
+                    <BrutalButton 
+                      variant="outline" color="black" 
+                      className="w-full shadow-brutal-sm hover:shadow-brutal active:translate-y-[2px] active:translate-x-[2px] active:shadow-none"
+                      onClick={() => handleOAuthLogin('google')}
+                      disabled={oauthLoading !== null}
+                      loading={oauthLoading === 'google'}
+                    >
+                      Google
+                    </BrutalButton>
+                  </div>
                 </form>
               )}
             </BrutalCard>

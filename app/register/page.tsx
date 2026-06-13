@@ -4,12 +4,12 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
-import { Target, Mail, Lock, User, AlertCircle, CheckCircle, ArrowRight, Eye, EyeOff, ArrowLeft, Rocket, Star } from 'lucide-react'
+import { Target, Mail, Lock, User, AlertCircle, CheckCircle, ArrowRight, Eye, EyeOff, ArrowLeft, Rocket, Star, Github } from 'lucide-react'
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser'
 import { BrutalCard, BrutalButton, StickerBadge } from '@/components/brutal'
 import { cn } from '@/lib/utils'
 import { AnimatedBrutalBackground, BrutalBackgroundStyles } from '@/components/illustrations/animated-brutal-background'
-import { AnimatedCatMascot } from '@/components/illustrations/animated-cat-mascot'
+import { AnimatedCatMascot, CatMascotMood } from '@/components/illustrations/animated-cat-mascot'
 
 interface RegisterFormData {
   fullName: string
@@ -19,16 +19,17 @@ interface RegisterFormData {
 }
 
 function getPasswordStrength(password: string) {
-  let score = 0
-  if (password.length >= 8) score += 1
-  if (/[A-Z]/.test(password)) score += 1
-  if (/[a-z]/.test(password)) score += 1
-  if (/\d/.test(password)) score += 1
-  if (/[^A-Za-z0-9]/.test(password)) score += 1
-
-  if (score <= 2) return { label: 'Weak', color: 'bg-red' }
-  if (score <= 4) return { label: 'Medium', color: 'bg-yellow' }
-  return { label: 'Strong', color: 'bg-green' }
+  const rules = [
+    { label: '8+ Chars', met: password.length >= 8 },
+    { label: 'Upper', met: /[A-Z]/.test(password) },
+    { label: 'Lower', met: /[a-z]/.test(password) },
+    { label: 'Number', met: /\d/.test(password) },
+    { label: 'Special', met: /[^A-Za-z0-9]/.test(password) },
+  ]
+  const metCount = rules.filter(r => r.met).length
+  const strength = metCount <= 2 ? 'Weak' : metCount <= 4 ? 'Medium' : 'Strong'
+  const color = metCount <= 2 ? 'text-red' : metCount <= 4 ? 'text-yellow' : 'text-green'
+  return { rules, strength, color }
 }
 
 export default function RegisterPage() {
@@ -44,6 +45,14 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [focusedField, setFocusedField] = useState<'fullName' | 'email' | 'password' | 'confirmPassword' | null>(null)
+  const [oauthLoading, setOauthLoading] = useState<'github' | 'google' | null>(null)
+
+  const mascotMood: CatMascotMood = (focusedField === 'password' || focusedField === 'confirmPassword') && !showPassword 
+    ? 'sleepy' 
+    : focusedField === 'email' || focusedField === 'fullName'
+      ? 'focus' 
+      : 'cheer'
 
   const supabase = createSupabaseBrowserClient()
 
@@ -86,7 +95,8 @@ export default function RegisterPage() {
       })
 
       if (signUpError) {
-        setError('Failed to create account. Please try again.')
+        console.error('Sign up error:', signUpError)
+        setError(signUpError.message || 'Failed to create account. Please try again.')
         setIsLoading(false)
         return
       }
@@ -116,6 +126,30 @@ export default function RegisterPage() {
     } catch (err) {
       setError('Something went wrong. Please try again.')
       setIsLoading(false)
+    }
+  }
+
+  const handleOAuthLogin = async (provider: 'github' | 'google') => {
+    if (!supabase) {
+      setError('Supabase is not configured. Cannot sign in with OAuth.')
+      return
+    }
+    setOauthLoading(provider)
+    setError(null)
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      })
+      if (error) {
+        setError(error.message)
+        setOauthLoading(null)
+      }
+    } catch (err) {
+      setError('OAuth sign-in failed. Please try again.')
+      setOauthLoading(null)
     }
   }
 
@@ -158,9 +192,9 @@ export default function RegisterPage() {
               <div className="mb-6">
                 <AnimatedCatMascot
                   size="xl"
-                  mood="cheer"
+                  mood={mascotMood}
                   animated={true}
-                  withMessage="Create your Hero!"
+                  withMessage={mascotMood === 'sleepy' ? "A secret!" : "Create your Hero!"}
                 />
               </div>
               <h2 className="font-display text-2xl font-bold mb-2">Create Your Developer Hero</h2>
@@ -206,11 +240,15 @@ export default function RegisterPage() {
           </BrutalCard>
 
           <div className="lg:col-span-3">
-            <div className="mb-6 flex items-center justify-between">
+            <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <StickerBadge variant="yellow" label="Character Setup" size="sm" />
+                  <StickerBadge variant="pink" label="Credentials" size="sm" />
+                </div>
                 <div className="flex items-center gap-2 mb-1">
                   <Rocket className="w-6 h-6 text-pink" />
-                  <h1 className="font-display text-3xl font-black">Create Your Hero</h1>
+                  <h1 className="font-display text-3xl font-black">Character Creation</h1>
                 </div>
                 <p className="text-gray-600">Start your adventure with SkillPath</p>
               </div>
@@ -273,11 +311,13 @@ export default function RegisterPage() {
                           id="fullName"
                           value={formData.fullName}
                           onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                          onFocus={() => setFocusedField('fullName')}
+                          onBlur={() => setFocusedField(null)}
                           placeholder="John Doe"
                           required
                           className={cn(
-                            'w-full pl-12 pr-4 py-3 brutal-border brutal-radius bg-gray-50 text-black placeholder-gray-500 caret-black',
-                            'focus:bg-white focus:outline-none focus:ring-2 focus:ring-yellow',
+                            'w-full pl-12 pr-4 py-3 brutal-border brutal-radius brutal-input-focus bg-gray-50 text-black placeholder-gray-500 caret-black',
+                            'focus:bg-white focus:outline-none focus:ring-4 focus:ring-yellow focus:border-black',
                             'transition-all'
                           )}
                         />
@@ -295,11 +335,13 @@ export default function RegisterPage() {
                           id="email"
                           value={formData.email}
                           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                          onFocus={() => setFocusedField('email')}
+                          onBlur={() => setFocusedField(null)}
                           placeholder="you@example.com"
                           required
                           className={cn(
-                            'w-full pl-12 pr-4 py-3 brutal-border brutal-radius bg-gray-50 text-black placeholder-gray-500 caret-black',
-                            'focus:bg-white focus:outline-none focus:ring-2 focus:ring-yellow',
+                            'w-full pl-12 pr-4 py-3 brutal-border brutal-radius brutal-input-focus bg-gray-50 text-black placeholder-gray-500 caret-black',
+                            'focus:bg-white focus:outline-none focus:ring-4 focus:ring-yellow focus:border-black',
                             'transition-all'
                           )}
                         />
@@ -317,12 +359,14 @@ export default function RegisterPage() {
                           id="password"
                           value={formData.password}
                           onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                          placeholder="Min. 6 characters"
+                          onFocus={() => setFocusedField('password')}
+                          onBlur={() => setFocusedField(null)}
+                          placeholder="Min. 8 characters"
                           required
-                          minLength={6}
+                          minLength={8}
                           className={cn(
-                            'w-full pl-12 pr-12 py-3 brutal-border brutal-radius bg-gray-50 text-black placeholder-gray-500 caret-black',
-                            'focus:bg-white focus:outline-none focus:ring-2 focus:ring-yellow',
+                            'w-full pl-12 pr-12 py-3 brutal-border brutal-radius brutal-input-focus bg-gray-50 text-black placeholder-gray-500 caret-black',
+                            'focus:bg-white focus:outline-none focus:ring-4 focus:ring-yellow focus:border-black',
                             'transition-all'
                           )}
                         />
@@ -335,9 +379,21 @@ export default function RegisterPage() {
                           {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
                       </div>
-                      <div className="mt-2 flex items-center gap-2">
-                        <span className={cn('h-2 w-20 rounded-sm border-2 border-black', passwordStrength.color)} />
-                        <span className="text-xs font-medium">{passwordStrength.label}</span>
+                      <div className="mt-3 flex flex-col gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className={cn('text-xs font-bold uppercase', passwordStrength.color)}>Strength: {passwordStrength.strength}</span>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {passwordStrength.rules.map((rule) => (
+                            <StickerBadge 
+                              key={rule.label} 
+                              variant={rule.met ? 'green' : 'gray'} 
+                              label={rule.label} 
+                              size="sm" 
+                              className={cn("transition-all duration-300", !rule.met && "opacity-50 grayscale")}
+                            />
+                          ))}
+                        </div>
                       </div>
                     </div>
 
@@ -352,12 +408,14 @@ export default function RegisterPage() {
                           id="confirmPassword"
                           value={formData.confirmPassword}
                           onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                          onFocus={() => setFocusedField('confirmPassword')}
+                          onBlur={() => setFocusedField(null)}
                           placeholder="Repeat your password"
                           required
-                          minLength={6}
+                          minLength={8}
                           className={cn(
-                            'w-full pl-12 pr-12 py-3 brutal-border brutal-radius bg-gray-50 text-black placeholder-gray-500 caret-black',
-                            'focus:bg-white focus:outline-none focus:ring-2 focus:ring-yellow',
+                            'w-full pl-12 pr-12 py-3 brutal-border brutal-radius brutal-input-focus bg-gray-50 text-black placeholder-gray-500 caret-black',
+                            'focus:bg-white focus:outline-none focus:ring-4 focus:ring-yellow focus:border-black',
                             'transition-all',
                             formData.confirmPassword && !passwordMatch && 'border-red border-2'
                           )}
@@ -394,10 +452,42 @@ export default function RegisterPage() {
                       fullWidth
                       loading={isLoading}
                       disabled={!canSubmit}
+                      className="active:translate-y-[2px] active:translate-x-[2px] active:shadow-none"
                     >
                       {isLoading ? 'Creating account...' : 'Create Account'}
                       {!isLoading && <ArrowRight className="w-5 h-5 ml-2" />}
                     </BrutalButton>
+
+                    <div className="relative my-6">
+                      <div className="absolute inset-0 flex items-center">
+                        <div className="w-full border-t-3 border-black"></div>
+                      </div>
+                      <div className="relative flex justify-center">
+                        <span className="bg-white px-4 font-bold text-sm">OR</span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <BrutalButton 
+                        variant="outline" color="black" 
+                        className="w-full shadow-brutal-sm hover:shadow-brutal active:translate-y-[2px] active:translate-x-[2px] active:shadow-none"
+                        onClick={() => handleOAuthLogin('github')}
+                        disabled={oauthLoading !== null}
+                        loading={oauthLoading === 'github'}
+                      >
+                        <Github className="w-5 h-5 mr-2" />
+                        GitHub
+                      </BrutalButton>
+                      <BrutalButton 
+                        variant="outline" color="black" 
+                        className="w-full shadow-brutal-sm hover:shadow-brutal active:translate-y-[2px] active:translate-x-[2px] active:shadow-none"
+                        onClick={() => handleOAuthLogin('google')}
+                        disabled={oauthLoading !== null}
+                        loading={oauthLoading === 'google'}
+                      >
+                        Google
+                      </BrutalButton>
+                    </div>
                   </form>
                 )}
               </BrutalCard>

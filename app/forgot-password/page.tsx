@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
-import { Target, Mail, AlertCircle, CheckCircle, ArrowLeft, KeyRound } from 'lucide-react'
+import { Target, Mail, AlertCircle, CheckCircle, ArrowLeft, KeyRound, ExternalLink } from 'lucide-react'
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser'
 import { BrutalCard, BrutalButton } from '@/components/brutal'
 import { cn } from '@/lib/utils'
@@ -18,6 +18,9 @@ export default function ForgotPasswordPage() {
   const [validationError, setValidationError] = useState<string | null>(null)
 
   const supabase = createSupabaseBrowserClient()
+
+  const mascotMood = success ? 'cheer' : isLoading ? 'focus' : 'happy'
+  const mascotMessage = success ? 'Mail sent!' : isLoading ? 'Searching...' : 'Reset your password!'
 
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -104,9 +107,9 @@ export default function ForgotPasswordPage() {
           >
             <AnimatedCatMascot
               size="xl"
-              mood="focus"
+              mood={mascotMood}
               animated={true}
-              withMessage="Reset your password!"
+              withMessage={mascotMessage}
               className="mx-auto"
             />
             <div className="text-center mt-4 relative z-10">
@@ -159,8 +162,14 @@ export default function ForgotPasswordPage() {
                 </div>
 
                 <div className="flex flex-wrap gap-3">
+                  <a href="https://mail.google.com" target="_blank" rel="noreferrer">
+                    <BrutalButton color="yellow" className="active:translate-y-[2px] active:translate-x-[2px] active:shadow-none">
+                      <ExternalLink className="mr-2 h-4 w-4" />
+                      Open Gmail
+                    </BrutalButton>
+                  </a>
                   <Link href="/login">
-                    <BrutalButton variant="outline" color="black">
+                    <BrutalButton variant="outline" color="black" className="active:translate-y-[2px] active:translate-x-[2px] active:shadow-none">
                       <ArrowLeft className="mr-2 h-4 w-4" />
                       Back to Login
                     </BrutalButton>
@@ -170,7 +179,7 @@ export default function ForgotPasswordPage() {
                       setSuccess(false)
                       setEmail('')
                     }}
-                    className="px-4 py-2 brutal-border brutal-radius font-bold hover:bg-gray-100 transition-all"
+                    className="px-4 py-2 brutal-border brutal-radius font-bold hover:bg-gray-100 transition-all active:translate-y-[2px] active:translate-x-[2px]"
                   >
                     Try different email
                   </button>
@@ -215,8 +224,8 @@ export default function ForgotPasswordPage() {
                           placeholder="you@example.com"
                           required
                           className={cn(
-                            'w-full pl-12 pr-4 py-3 brutal-border brutal-radius bg-gray-50 text-black placeholder-gray-500 caret-black',
-                            'focus:bg-white focus:outline-none focus:ring-2 focus:ring-yellow',
+                            'w-full pl-12 pr-4 py-3 brutal-border brutal-radius brutal-input-focus bg-gray-50 text-black placeholder-gray-500 caret-black',
+                            'focus:bg-white focus:outline-none focus:ring-4 focus:ring-yellow focus:border-black',
                             'transition-all',
                             validationError && 'border-red border-2'
                           )}
@@ -255,6 +264,7 @@ export default function ForgotPasswordPage() {
                       fullWidth
                       loading={isLoading}
                       disabled={isLoading}
+                      className="active:translate-y-[2px] active:translate-x-[2px] active:shadow-none"
                     >
                       {isLoading ? 'Sending...' : 'Send Reset Link'}
                       {!isLoading && <Mail className="w-5 h-5 ml-2" />}

@@ -239,6 +239,42 @@ body {
   animation: cartoonWiggleSoft 1.2s ease-in-out 2;
 }
 
+/* Brutal Input Focus - tactile shadow shift */
+.brutal-input-focus {
+  transition: box-shadow 150ms ease, transform 150ms ease;
+}
+
+.brutal-input-focus:focus {
+  box-shadow: 4px 4px 0px 0px var(--color-black);
+  transform: translate(-2px, -2px);
+}
+
+.brutal-input-focus:focus:active {
+  box-shadow: none;
+  transform: translate(0, 0);
+}
+
+/* Press animation for interactive elements */
+@keyframes press {
+  0% { transform: translate(0, 0); box-shadow: 4px 4px 0px 0px var(--color-black); }
+  50% { transform: translate(2px, 2px); box-shadow: 2px 2px 0px 0px var(--color-black); }
+  100% { transform: translate(0, 0); box-shadow: 4px 4px 0px 0px var(--color-black); }
+}
+
+.animate-press {
+  animation: press 300ms ease;
+}
+
+/* Slow float for decorative elements */
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+.animate-float-slow {
+  animation: float-slow 8s ease-in-out infinite;
+}
+
 /* Hide scrollbar but allow scrolling */
 .hide-scrollbar::-webkit-scrollbar {
   display: none;
@@ -253,6 +289,8 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .animate-float,
   .animate-wiggle,
+  .animate-float-slow,
+  .animate-press,
   .cartoon-float-slow,
   .cartoon-float-reverse,
   .cartoon-bob,

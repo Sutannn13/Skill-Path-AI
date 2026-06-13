@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { type NextRequest, NextResponse } from 'next/server'
 import { getSupabaseConfig } from './config'
+import { canAccessAdmin, isUserRole } from '@/lib/auth/roles'
 
 const protectedRoutePrefixes = [
   '/dashboard',
@@ -16,6 +17,7 @@ const protectedRoutePrefixes = [
 ]
 
 const authRoutePrefixes = ['/login', '/register']
+const adminRoutePrefixes = ['/admin', '/api/admin']
 
 function matchesRoutePrefix(pathname: string, prefixes: string[]) {
   return prefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))
@@ -25,6 +27,22 @@ function copyResponseCookies(source: NextResponse, target: NextResponse) {
   source.cookies.getAll().forEach((cookie) => {
     target.cookies.set(cookie)
   })
+}
+
+function createForbiddenResponse(request: NextRequest, response: NextResponse) {
+  if (request.nextUrl.pathname.startsWith('/api/')) {
+    const forbiddenResponse = NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    copyResponseCookies(response, forbiddenResponse)
+    return forbiddenResponse
+  }
+
+  const redirectUrl = request.nextUrl.clone()
+  redirectUrl.pathname = '/dashboard'
+  redirectUrl.search = ''
+
+  const redirectResponse = NextResponse.redirect(redirectUrl)
+  copyResponseCookies(response, redirectResponse)
+  return redirectResponse
 }
 
 export async function updateSupabaseSession(request: NextRequest) {
@@ -79,6 +97,25 @@ export async function updateSupabaseSession(request: NextRequest) {
     const redirectResponse = NextResponse.redirect(redirectUrl)
     copyResponseCookies(response, redirectResponse)
     return redirectResponse
+  }
+
+  if (user && matchesRoutePrefix(pathname, adminRoutePrefixes)) {
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    if (profileError) {
+      console.error('[Middleware] Failed to load profile role:', profileError.message)
+      return createForbiddenResponse(request, response)
+    }
+
+    const role = isUserRole(profile?.role) ? profile.role : null
+
+    if (!canAccessAdmin(role)) {
+      return createForbiddenResponse(request, response)
+    }
   }
 
   return response

@@ -7,9 +7,13 @@
  */
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
-import { fetchJobsFromAllSources, deduplicateJobs, getEnabledAdapters } from './sources'
+import { getEnabledAdapters } from './sources'
 import { assessJobValidity } from './validity'
 import { JobPost } from './types'
+
+const SOURCE_FETCH_TIMEOUT_MS = 12000
+const SOURCE_FETCH_MAX_ATTEMPTS = 3
+const SOURCE_FETCH_BASE_BACKOFF_MS = 250
 
 // Hash function for duplicate detection
 export function hashJobContent(content: {
@@ -43,6 +47,62 @@ export interface IngestionResult {
   finishedAt: string
 }
 
+function createTimeoutError(timeoutMs: number) {
+  return new Error(`Timed out after ${timeoutMs}ms`)
+}
+
+async function withTimeout<T>(operation: Promise<T>, timeoutMs: number): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null
+
+  try {
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timeoutId = setTimeout(() => reject(createTimeoutError(timeoutMs)), timeoutMs)
+    })
+
+    return await Promise.race([operation, timeoutPromise])
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId)
+    }
+  }
+}
+
+function getBackoffDelayMs(attempt: number) {
+  const exponential = SOURCE_FETCH_BASE_BACKOFF_MS * (2 ** (attempt - 1))
+  const jitter = Math.floor(Math.random() * 100)
+  return exponential + jitter
+}
+
+async function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+async function fetchWithRetry(sourceSlug: string) {
+  const adapters = getEnabledAdapters()
+  const adapter = adapters.find(a => a.slug === sourceSlug)
+
+  if (!adapter) {
+    return { jobs: null as Partial<JobPost>[] | null, error: `Source ${sourceSlug} not found or not configured` }
+  }
+
+  let lastError: Error | null = null
+
+  for (let attempt = 1; attempt <= SOURCE_FETCH_MAX_ATTEMPTS; attempt++) {
+    try {
+      const jobs = await withTimeout(adapter.fetch(), SOURCE_FETCH_TIMEOUT_MS)
+      return { jobs, error: null }
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error('Unknown source fetch error')
+
+      if (attempt < SOURCE_FETCH_MAX_ATTEMPTS) {
+        await wait(getBackoffDelayMs(attempt))
+      }
+    }
+  }
+
+  return { jobs: null, error: lastError?.message ?? 'Unknown source fetch error' }
+}
+
 /**
  * Stage 1: Fetch raw jobs from a single source
  */
@@ -70,15 +130,17 @@ async function fetchRawJobsFromSource(sourceSlug: string): Promise<{
   }
 
   const adapters = getEnabledAdapters()
-  const adapter = adapters.find(a => a.slug === sourceSlug)
-
-  if (!adapter) {
+  if (!adapters.find(a => a.slug === sourceSlug)) {
     return { rawJobs: [], error: `Source ${sourceSlug} not found or not configured` }
   }
 
   try {
-    // Fetch jobs from the source adapter
-    const fetchedJobs = await adapter.fetch()
+    const fetchResult = await fetchWithRetry(sourceSlug)
+    if (fetchResult.error || !fetchResult.jobs) {
+      return { rawJobs: [], error: fetchResult.error ?? 'Source fetch failed' }
+    }
+
+    const fetchedJobs = fetchResult.jobs
 
     // Process and normalize
     const rawJobs = fetchedJobs
@@ -458,7 +520,25 @@ export async function ingestAllSources(): Promise<{
   let totalRejected = 0
 
   for (const adapter of enabledAdapters) {
-    const result = await ingestJobsFromSource(adapter.slug)
+    let result: IngestionResult
+
+    try {
+      result = await ingestJobsFromSource(adapter.slug)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown ingestion error'
+      result = {
+        sourceSlug: adapter.slug,
+        status: 'failed',
+        fetchedCount: 0,
+        insertedCount: 0,
+        updatedCount: 0,
+        rejectedCount: 0,
+        errorMessage: message,
+        startedAt: new Date().toISOString(),
+        finishedAt: new Date().toISOString(),
+      }
+    }
+
     results.push(result)
     totalFetched += result.fetchedCount
     totalInserted += result.insertedCount

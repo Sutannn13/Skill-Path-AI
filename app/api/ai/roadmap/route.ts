@@ -16,10 +16,10 @@ const targetRoleSchema = z.enum([
 
 const roadmapRequestSchema = z.object({
   targetRole: targetRoleSchema,
-  currentLevel: z.string().optional(),
-  missingSkills: z.array(z.string()).optional(),
-  studyTime: z.string().optional(),
-  durationWeeks: z.number().optional(),
+  currentLevel: z.string().trim().max(40).optional(),
+  missingSkills: z.array(z.string().trim().min(1).max(40)).max(12).optional(),
+  studyTime: z.string().trim().max(40).optional(),
+  durationWeeks: z.number().int().min(1).max(24).optional(),
 })
 
 const roadmapResponseSchema = z.object({
@@ -141,31 +141,104 @@ function isBackendRoadmapAligned(roadmap: z.infer<typeof roadmapResponseSchema>)
 }
 
 function getRoleSpecificPrompt(role: TargetRole) {
-  if (role !== 'backend-developer') {
-    return `Role-specific constraints:
-- Keep every week aligned to ${ROLE_LABELS[role]} outcomes.
-- Keep tasks practical, implementation-focused, and portfolio-ready.
-- Avoid unrelated topic jumps across weeks.
-`
-  }
-
-  return `Backend-specific constraints (must follow):
+  switch (role) {
+    case 'backend-developer':
+      return `Backend-specific constraints (must follow):
 - Use this 6-module sequence in order:
-  1) Programming & Web Foundation
+  1) Programming & Web Foundation (JS/TS basics, HTTP, JSON, Git)
   2) Node.js Backend Fundamentals
   3) Express.js & REST API
-  4) Database with PostgreSQL
-  5) Authentication & Authorization
+  4) Database with PostgreSQL (Prisma)
+  5) Authentication & Authorization (JWT, Bcrypt)
   6) Testing, Documentation, and Deployment
 - Include mini project per module and make the final project an E-commerce Backend API.
 - Do NOT use frontend-heavy modules as core topics (React fundamentals, CSS mastery, UI components, React state management, Next.js frontend deployment).
-- Frontend can appear only as optional context, never as the main weekly objective.
-`
+- Frontend can appear only as optional context, never as the main weekly objective.`
+
+    case 'frontend-developer':
+    case 'ui-engineer':
+      return `Frontend-specific constraints (must follow):
+- Use this 6-module sequence in order:
+  1) Web Fundamentals (HTML, CSS, DOM)
+  2) JavaScript & Async JS
+  3) React Fundamentals (Components, Props, State)
+  4) Advanced React (Hooks, Context, Routing)
+  5) Next.js App Router Basics
+  6) API Integration & Deployment
+- Do NOT include backend-heavy modules (Node.js servers, PostgreSQL, Database schema, Express routing, Bcrypt password hashing).
+- Backend concepts should only be mentioned in the context of "fetching from an API".`
+
+    case 'fullstack-developer':
+      return `Fullstack-specific constraints (must follow):
+- Blend frontend and backend logically across weeks:
+  1) Web & JS/TS Fundamentals
+  2) Frontend with React
+  3) Node.js & Express Basics
+  4) Database Integration (PostgreSQL)
+  5) Fullstack Auth (JWT & React Context)
+  6) Next.js Fullstack & Deployment
+- Keep a balance. Do not skew too heavily into one side.`
+
+    case 'mobile-developer':
+      return `Mobile-specific constraints (must follow):
+- Focus entirely on mobile app development (React Native or Flutter).
+- Do NOT include deep backend development (Express, PostgreSQL) or deep web frontend (Next.js, complex CSS grids).
+- API integration is fine, but building the API is out of scope.`
+
+    case 'data-analyst':
+      return `Data Analyst-specific constraints (must follow):
+- Focus entirely on data skills (SQL, Python/Pandas, Data Visualization).
+- Do NOT include Web Development (React, Express, Node.js, HTML/CSS).`
+
+    default:
+      return `Role-specific constraints:
+- Keep every week aligned to ${ROLE_LABELS[role]} outcomes.
+- Keep tasks practical, implementation-focused, and portfolio-ready.
+- Avoid unrelated topic jumps across weeks.`
+  }
 }
 
 // Gemini API configuration
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent'
+const GEMINI_TIMEOUT_MS = 12000
+const GEMINI_MAX_ATTEMPTS = 3
+const GEMINI_BASE_BACKOFF_MS = 300
+
+function sanitizePromptInput(value: string | null | undefined, maxLength = 300) {
+  return (value ?? '')
+    .replace(/[\u0000-\u001F\u007F]/g, ' ')
+    .replace(/[`<>]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, maxLength)
+}
+
+function sanitizeSkillList(skills: string[] | undefined) {
+  if (!skills) return []
+
+  return Array.from(
+    new Set(
+      skills
+        .map((skill) => sanitizePromptInput(skill, 40))
+        .filter((skill) => skill.length > 0)
+    )
+  ).slice(0, 12)
+}
+
+function createTimeoutError(timeoutMs: number) {
+  return new Error(`Gemini request timed out after ${timeoutMs}ms`)
+}
+
+function getBackoffDelayMs(attempt: number) {
+  const exponential = GEMINI_BASE_BACKOFF_MS * (2 ** (attempt - 1))
+  const jitter = Math.floor(Math.random() * 100)
+  return exponential + jitter
+}
+
+async function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
 
 async function generateAIRoadmap(input: {
   targetRole: TargetRole
@@ -181,11 +254,16 @@ async function generateAIRoadmap(input: {
   try {
     const roleLabel = ROLE_LABELS[input.targetRole]
     const fallbackMissingSkills = ROLE_MISSING_SKILLS_FALLBACK[input.targetRole]
+    const safeCurrentLevel = sanitizePromptInput(input.currentLevel, 40)
+    const safeStudyTime = sanitizePromptInput(input.studyTime, 40)
+    const safeMissingSkills = sanitizeSkillList(input.missingSkills)
+    const safeFallbackMissingSkills = sanitizeSkillList(fallbackMissingSkills)
+
     const prompt = `Generate a personalized learning roadmap for someone who wants to become a ${roleLabel}.
 
-Current Level: ${input.currentLevel || 'beginner'}
-Missing Skills: ${input.missingSkills?.join(', ') || fallbackMissingSkills.join(', ')}
-Available Study Time: ${input.studyTime || '1 hour'} per day
+Current Level: ${safeCurrentLevel || 'beginner'}
+Missing Skills: ${safeMissingSkills.join(', ') || safeFallbackMissingSkills.join(', ')}
+Available Study Time: ${safeStudyTime || '1 hour'} per day
 Roadmap Duration: ${input.durationWeeks || 6} weeks
 
 ${getRoleSpecificPrompt(input.targetRole)}
@@ -239,29 +317,59 @@ Requirements:
 - Final project should be comprehensive and showcase all learned skills
 - Return ONLY JSON, no markdown or other text`
 
-    const response = await fetch(
-      `${GEMINI_API_URL}?key=${GEMINI_API_KEY}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: prompt,
-            }]
-          }],
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 8192,
-          },
-        }),
-      }
-    )
+    let response: Response | null = null
 
-    if (!response.ok) {
-      console.error('Gemini API error:', response.status)
+    for (let attempt = 1; attempt <= GEMINI_MAX_ATTEMPTS; attempt++) {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(createTimeoutError(GEMINI_TIMEOUT_MS)), GEMINI_TIMEOUT_MS)
+
+      try {
+        response = await fetch(
+          `${GEMINI_API_URL}?key=${GEMINI_API_KEY}`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              contents: [{
+                parts: [{
+                  text: prompt,
+                }]
+              }],
+              generationConfig: {
+                temperature: 0.7,
+                maxOutputTokens: 8192,
+              },
+            }),
+            signal: controller.signal,
+          }
+        )
+
+        if (response.ok) {
+          break
+        }
+
+        const shouldRetry = response.status === 429 || response.status >= 500
+        if (!shouldRetry || attempt === GEMINI_MAX_ATTEMPTS) {
+          console.error('Gemini API error:', response.status)
+          return null
+        }
+
+        await wait(getBackoffDelayMs(attempt))
+      } catch (error) {
+        if (attempt === GEMINI_MAX_ATTEMPTS) {
+          console.error('Gemini generation error:', error)
+          return null
+        }
+
+        await wait(getBackoffDelayMs(attempt))
+      } finally {
+        clearTimeout(timeoutId)
+      }
+    }
+
+    if (!response || !response.ok) {
       return null
     }
 
@@ -306,13 +414,18 @@ export async function POST(request: NextRequest) {
     const { targetRole, currentLevel, missingSkills, studyTime, durationWeeks } = parseResult.data
     requestedRole = targetRole
 
+    const normalizedCurrentLevel = sanitizePromptInput(currentLevel, 40) || 'beginner'
+    const normalizedStudyTime = sanitizePromptInput(studyTime, 40) || '1hour'
+    const normalizedMissingSkills = sanitizeSkillList(missingSkills)
+    const normalizedDurationWeeks = durationWeeks || 6
+
     // Try AI generation first
     const aiRoadmap = await generateAIRoadmap({
       targetRole,
-      currentLevel: currentLevel || 'beginner',
-      missingSkills: missingSkills || [],
-      studyTime: studyTime || '1hour',
-      durationWeeks: durationWeeks || 6,
+      currentLevel: normalizedCurrentLevel,
+      missingSkills: normalizedMissingSkills,
+      studyTime: normalizedStudyTime,
+      durationWeeks: normalizedDurationWeeks,
     })
 
     // If AI succeeded, return it
@@ -326,10 +439,10 @@ export async function POST(request: NextRequest) {
     // Fall back to template-based roadmap
     const fallbackRoadmap = generateFallbackRoadmap({
       targetRole: targetRole as TargetRole,
-      currentLevel: currentLevel || 'beginner',
-      missingSkills: missingSkills || [],
-      studyTime: studyTime || '1hour',
-      durationWeeks: durationWeeks || 6,
+      currentLevel: normalizedCurrentLevel,
+      missingSkills: normalizedMissingSkills,
+      studyTime: normalizedStudyTime,
+      durationWeeks: normalizedDurationWeeks,
     })
 
     return NextResponse.json({

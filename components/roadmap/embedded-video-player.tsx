@@ -100,10 +100,10 @@ function getYouTubeThumbnailUrl(url: string): string | null {
 }
 
 const statusConfig: Record<VideoStatus, { label: string; color: string; bgColor: string }> = {
-  not_started: { label: 'Not Started', color: 'text-black/60', bgColor: 'bg-gray-200' },
-  in_progress: { label: 'In Progress', color: 'text-yellow', bgColor: 'bg-yellow/20' },
-  watched: { label: 'Watched', color: 'text-blue', bgColor: 'bg-blue/20' },
-  completed: { label: 'Completed', color: 'text-green', bgColor: 'bg-green/20' },
+  not_started: { label: 'Belum Dimulai', color: 'text-black/60', bgColor: 'bg-gray-200' },
+  in_progress: { label: 'Sedang Belajar', color: 'text-yellow', bgColor: 'bg-yellow/20' },
+  watched: { label: 'Sudah Ditonton', color: 'text-blue', bgColor: 'bg-blue/20' },
+  completed: { label: 'Selesai', color: 'text-green', bgColor: 'bg-green/20' },
 }
 
 export function EmbeddedVideoPlayer({
@@ -227,11 +227,11 @@ export function EmbeddedVideoPlayer({
               </motion.div>
               {canEmbed ? (
                 <span className="rounded bg-black/70 px-2 py-1 text-xs font-bold text-white">
-                  Watch Video
+                  Tonton Video
                 </span>
               ) : (
                 <span className="rounded bg-red-600 px-2 py-1 text-xs font-bold text-white">
-                  Open in YouTube
+                  Buka di YouTube
                 </span>
               )}
             </div>
@@ -278,12 +278,12 @@ export function EmbeddedVideoPlayer({
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-gray-800 text-white p-6">
             <VideoOff className="h-16 w-16 text-white/50" />
             <p className="text-center font-medium">
-              This video cannot be embedded here.
+              Video ini tidak bisa ditampilkan di sini.
             </p>
             <p className="text-center text-sm text-white/60">
               {embedError
-                ? 'The video server blocked embedding.'
-                : 'The video URL is not a valid YouTube link.'}
+                ? 'Server video memblokir tampilan embed.'
+                : 'URL video bukan link YouTube yang valid.'}
             </p>
             <div className="flex gap-2">
               <a
@@ -293,7 +293,7 @@ export function EmbeddedVideoPlayer({
               >
                 <BrutalButton variant="primary" color="white" size="sm">
                   <ExternalLink className="h-4 w-4 mr-1" />
-                  Open in YouTube
+                  Buka di YouTube
                 </BrutalButton>
               </a>
               <BrutalButton
@@ -302,7 +302,7 @@ export function EmbeddedVideoPlayer({
                 size="sm"
                 onClick={onToggleExpand}
               >
-                Close
+                Tutup
               </BrutalButton>
             </div>
           </div>
@@ -353,17 +353,17 @@ export function EmbeddedVideoPlayer({
             {isExpanded ? (
               <>
                 <X className="h-4 w-4 mr-1" />
-                Close Video
+                Tutup Video
               </>
             ) : embedUrl ? (
               <>
                 <Play className="h-4 w-4 mr-1" />
-                Watch Now
+                Tonton Sekarang
               </>
             ) : (
               <>
                 <ExternalLink className="h-4 w-4 mr-1" />
-                Open in YouTube
+                Buka di YouTube
               </>
             )}
           </BrutalButton>
@@ -391,7 +391,7 @@ export function EmbeddedVideoPlayer({
             onClick={onMarkWatched}
           >
             <Check className="h-4 w-4" />
-            {resource.isCompleted ? 'Watched' : 'Mark Watched'}
+            {resource.isCompleted ? 'Selesai' : 'Tandai Selesai'}
           </BrutalButton>
         )}
       </div>

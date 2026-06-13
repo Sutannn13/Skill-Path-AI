@@ -15,7 +15,6 @@ import {
 export const dynamic = 'force-dynamic'
 
 const CRON_SECRET = process.env.CRON_SECRET
-const IS_DEVELOPMENT = process.env.NODE_ENV === 'development'
 
 function getProvidedCronSecret(request: NextRequest) {
   const authHeader = request.headers.get('authorization')
@@ -35,12 +34,8 @@ function secretsMatch(providedSecret: string, expectedSecret: string) {
 }
 
 function authorizeCronRequest(request: NextRequest) {
-  if (IS_DEVELOPMENT) {
-    return null
-  }
-
   if (!CRON_SECRET) {
-    console.error('[Cron] CRON_SECRET is required outside development')
+    console.error('[Cron] CRON_SECRET is required')
 
     return NextResponse.json(
       { error: 'Cron secret is not configured' },

@@ -24,7 +24,7 @@ export type StickerBadgeVariant =
   | 'completed' | 'locked' | 'in-progress' | 'quiz-passed'
   | 'needs-review' | 'great-match' | 'low-risk'
   | 'internship' | 'fresh-graduate' | 'boss-fight'
-  | 'yellow' | 'blue' | 'pink' | 'green' | 'orange' | 'purple'
+  | 'yellow' | 'blue' | 'pink' | 'green' | 'orange' | 'purple' | 'gray'
 
 interface StickerBadgeProps {
   variant: StickerBadgeVariant
@@ -51,6 +51,7 @@ const variantStyles: Record<StickerBadgeVariant, { bg: string; text: string; bor
   green: { bg: 'bg-green', text: 'text-black', border: 'border-black' },
   orange: { bg: 'bg-orange', text: 'text-black', border: 'border-black' },
   purple: { bg: 'bg-purple', text: 'text-black', border: 'border-black' },
+  gray: { bg: 'bg-gray-200', text: 'text-gray-600', border: 'border-gray-400' },
 }
 
 const variantLabels: Record<StickerBadgeVariant, string> = {
@@ -70,6 +71,7 @@ const variantLabels: Record<StickerBadgeVariant, string> = {
   green: '',
   orange: '',
   purple: '',
+  gray: '',
 }
 
 const sizeClasses = {

@@ -39,11 +39,11 @@ function getResourceTypeLabel(resourceType: ResourceType) {
     case 'youtube':
       return 'Video'
     case 'docs':
-      return 'Documentation'
+      return 'Dokumentasi'
     case 'article':
-      return 'Article'
+      return 'Artikel'
     default:
-      return 'Resource'
+      return 'Materi'
   }
 }
 
@@ -94,7 +94,7 @@ function ResourceAccordionItem({
                     status === 'not_started' && 'bg-gray-200 text-black/60'
                   )}
                 >
-                  {status === 'completed' ? 'Watched' : status === 'in_progress' ? 'In Progress' : 'Not Started'}
+                  {status === 'completed' ? 'Selesai' : status === 'in_progress' ? 'Sedang Belajar' : 'Belum Dimulai'}
                 </span>
               </div>
               <p className="mt-1 truncate font-bold">{resource.title}</p>
@@ -116,7 +116,7 @@ function ResourceAccordionItem({
             {unavailable ? (
               <div className="border-t-2 border-dashed border-black/20 bg-gray-50 p-4 text-center">
                 <p className="text-sm text-black/60">
-                  Resources are being prepared for this task.
+                  Materi sedang disiapkan untuk tugas ini.
                 </p>
               </div>
             ) : (
@@ -159,7 +159,7 @@ function ResourceAccordionItem({
                   status === 'not_started' && 'bg-gray-200 text-black/60'
                 )}
               >
-                {status === 'completed' ? 'Completed' : status === 'in_progress' ? 'In Progress' : 'Not Started'}
+                {status === 'completed' ? 'Selesai' : status === 'in_progress' ? 'Sedang Belajar' : 'Belum Dimulai'}
               </span>
             </div>
             <p className="mt-1 truncate font-bold">{resource.title}</p>
@@ -181,7 +181,7 @@ function ResourceAccordionItem({
           {unavailable ? (
             <div className="border-t-2 border-dashed border-black/20 bg-gray-50 p-4 text-center">
               <p className="text-sm text-black/60">
-                Resources are being prepared for this task.
+                Materi sedang disiapkan untuk tugas ini.
               </p>
             </div>
           ) : (
@@ -190,7 +190,7 @@ function ResourceAccordionItem({
                 {/* Resource Description */}
                 <div className="rounded-md border-2 border-black/10 bg-gray-50 p-3">
                   <p className="text-xs font-medium text-black/70">
-                    Learn about {resource.title} from {resource.provider}. This resource will help you understand the key concepts needed for this task.
+                    Pelajari {resource.title} dari {resource.provider}. Materi ini akan membantu kamu memahami konsep-konsep penting untuk tugas ini.
                   </p>
                 </div>
 
@@ -205,7 +205,7 @@ function ResourceAccordionItem({
                   >
                     <BrutalButton variant="outline" color="black" size="sm">
                       <ExternalLink className="h-4 w-4" />
-                      Read Documentation
+                      Baca Dokumentasi
                     </BrutalButton>
                   </a>
                   <BrutalButton
@@ -215,7 +215,7 @@ function ResourceAccordionItem({
                     onClick={onMarkComplete}
                   >
                     <Check className="h-4 w-4" />
-                    {resource.isCompleted ? 'Completed' : 'Mark Complete'}
+                    {resource.isCompleted ? 'Selesai' : 'Tandai Selesai'}
                   </BrutalButton>
                 </div>
               </div>
@@ -271,25 +271,38 @@ export function ResourceAccordion({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <PlayCircle className="h-4 w-4" />
-              <span className="text-sm font-bold">Videos</span>
+              <span className="text-sm font-bold">Video Tutorial</span>
             </div>
             <span className="text-xs font-medium text-black/60">
-              {completedVideos}/{videoResources.length} completed
+              {completedVideos}/{videoResources.length} selesai
             </span>
           </div>
           <div className="space-y-2">
-            {videoResources.map((resource) => (
-              <ResourceAccordionItem
-                key={resource.id}
-                resource={resource}
-                onAccordionToggle={() => toggleAccordion(resource.id)}
-                onMarkComplete={() => onMarkResourceComplete(resource.id, !resource.isCompleted)}
-                onOpenInNewTab={() => onOpenResource(resource.id)}
-                isAccordionExpanded={accordionExpandedIds[resource.id] ?? false}
-                isPlayerExpanded={playerExpandedIds[resource.id] ?? false}
-                onPlayerToggle={() => togglePlayer(resource.id)}
-              />
-            ))}
+            {videoResources.map((resource, index) => {
+              const isNext = index > 0 && videoResources[index - 1]?.isCompleted && !resource.isCompleted
+              return (
+                <div key={resource.id} className="relative">
+                  {/* Step number indicator */}
+                  <div className="absolute -left-1 -top-1 z-10 flex h-5 w-5 items-center justify-center rounded-full border-2 border-black bg-yellow text-[10px] font-bold">
+                    {index + 1}
+                  </div>
+                  {isNext && (
+                    <div className="absolute -right-1 -top-1 z-10 rounded-full border-2 border-black bg-green px-1.5 py-0.5 text-[9px] font-bold text-white">
+                      Selanjutnya
+                    </div>
+                  )}
+                  <ResourceAccordionItem
+                    resource={resource}
+                    onAccordionToggle={() => toggleAccordion(resource.id)}
+                    onMarkComplete={() => onMarkResourceComplete(resource.id, !resource.isCompleted)}
+                    onOpenInNewTab={() => onOpenResource(resource.id)}
+                    isAccordionExpanded={accordionExpandedIds[resource.id] ?? false}
+                    isPlayerExpanded={playerExpandedIds[resource.id] ?? false}
+                    onPlayerToggle={() => togglePlayer(resource.id)}
+                  />
+                </div>
+              )
+            })}
           </div>
         </div>
       )}
@@ -300,10 +313,10 @@ export function ResourceAccordion({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <BookOpen className="h-4 w-4" />
-              <span className="text-sm font-bold">Documentation</span>
+              <span className="text-sm font-bold">Dokumentasi</span>
             </div>
             <span className="text-xs font-medium text-black/60">
-              {completedDocs}/{docResources.length} completed
+              {completedDocs}/{docResources.length} selesai
             </span>
           </div>
           <div className="space-y-2">
@@ -328,7 +341,7 @@ export function ResourceAccordion({
         <div className="rounded-md border-2 border-dashed border-black/20 bg-gray-50 p-6 text-center">
           <Folder className="mx-auto mb-2 h-8 w-8 text-black/40" />
           <p className="text-sm font-medium text-black/60">
-            Resources are being prepared for this task.
+            Materi sedang disiapkan untuk tugas ini.
           </p>
         </div>
       )}

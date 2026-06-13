@@ -25,9 +25,18 @@ const submitSchema = z.object({
   projectType: z.enum(['mini_project', 'final_project']),
   repoUrl: z.string().url(),
   liveUrl: z.string().url().nullable().optional(),
-  notes: z.string().nullable().optional(),
-  taskContext: z.string().optional().default(''),
+  notes: z.string().trim().max(2000).nullable().optional(),
+  taskContext: z.string().trim().max(2000).optional().default(''),
 })
+
+function sanitizePromptInput(value: string | null | undefined, maxLength = 1000) {
+  return (value ?? '')
+    .replace(/[\u0000-\u001F\u007F]/g, ' ')
+    .replace(/[`<>]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, maxLength)
+}
 
 function deriveRequirementState(input: {
   resourcesComplete: boolean
@@ -109,6 +118,8 @@ export async function POST(request: NextRequest) {
   }
 
   const input = parsed.data
+  const safeTaskContext = sanitizePromptInput(input.taskContext, 1000)
+  const safeNotes = sanitizePromptInput(input.notes, 1000)
   const normalizedRepo = parseGitHubRepositoryUrl(input.repoUrl)
 
   const { data: roadmapOwned, error: roadmapError } = await supabase
@@ -183,7 +194,7 @@ export async function POST(request: NextRequest) {
       project_type: input.projectType,
       repo_url: normalizedRepo?.normalizedUrl ?? input.repoUrl,
       live_url: input.liveUrl ?? null,
-      notes: input.notes ?? null,
+      notes: safeNotes || null,
       status: 'submitted',
     })
     .select('id')
@@ -202,7 +213,7 @@ export async function POST(request: NextRequest) {
     repoUrl: normalizedRepo?.normalizedUrl ?? input.repoUrl,
     liveUrl: input.liveUrl ?? null,
     projectType: input.projectType,
-    taskContext: input.taskContext,
+    taskContext: safeTaskContext,
     repoContext: repoContextResult.context,
     repoIssues: repoContextResult.issues,
   })
@@ -225,7 +236,7 @@ export async function POST(request: NextRequest) {
     const aiReview = await generateGeminiProjectReview({
       geminiApiKey: GEMINI_API_KEY,
       projectType: input.projectType,
-      taskContext: input.taskContext,
+      taskContext: safeTaskContext,
       repoUrl: normalizedRepo?.normalizedUrl ?? input.repoUrl,
       liveUrl: input.liveUrl ?? null,
       ruleReview,

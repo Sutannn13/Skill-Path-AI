@@ -1,6 +1,9 @@
 import { RoadmapProjectReviewStatus } from '@/types'
 
 const GITHUB_API_URL = 'https://api.github.com'
+const OUTBOUND_TIMEOUT_MS = 10000
+const OUTBOUND_MAX_ATTEMPTS = 3
+const OUTBOUND_BASE_BACKOFF_MS = 300
 
 export interface RuleBasedProjectReview {
   status: RoadmapProjectReviewStatus
@@ -48,6 +51,58 @@ export function parseGitHubRepositoryUrl(repoUrl: string) {
   }
 }
 
+function createTimeoutError(timeoutMs: number) {
+  return new Error(`Request timed out after ${timeoutMs}ms`)
+}
+
+function getBackoffDelayMs(attempt: number) {
+  const exponential = OUTBOUND_BASE_BACKOFF_MS * (2 ** (attempt - 1))
+  const jitter = Math.floor(Math.random() * 100)
+  return exponential + jitter
+}
+
+async function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+async function fetchWithRetry(url: string, init?: RequestInit) {
+  let lastError: Error | null = null
+
+  for (let attempt = 1; attempt <= OUTBOUND_MAX_ATTEMPTS; attempt++) {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(createTimeoutError(OUTBOUND_TIMEOUT_MS)), OUTBOUND_TIMEOUT_MS)
+
+    try {
+      const response = await fetch(url, {
+        ...init,
+        signal: controller.signal,
+      })
+
+      if (response.ok || (response.status < 500 && response.status !== 429)) {
+        return response
+      }
+
+      if (attempt === OUTBOUND_MAX_ATTEMPTS) {
+        return response
+      }
+
+      await wait(getBackoffDelayMs(attempt))
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error('Unknown outbound request error')
+
+      if (attempt === OUTBOUND_MAX_ATTEMPTS) {
+        throw lastError
+      }
+
+      await wait(getBackoffDelayMs(attempt))
+    } finally {
+      clearTimeout(timeoutId)
+    }
+  }
+
+  throw lastError ?? new Error('Outbound request failed')
+}
+
 function createGitHubHeaders(token?: string): HeadersInit {
   const headers: HeadersInit = {
     Accept: 'application/vnd.github+json',
@@ -71,7 +126,7 @@ export async function fetchGitHubRepoContext(
   const basePath = `${GITHUB_API_URL}/repos/${owner}/${repo}`
 
   try {
-    const repoResponse = await fetch(basePath, {
+    const repoResponse = await fetchWithRetry(basePath, {
       headers: createGitHubHeaders(token),
       cache: 'no-store',
     })
@@ -94,11 +149,11 @@ export async function fetchGitHubRepoContext(
     }
 
     const [readmeResponse, treeResponse] = await Promise.all([
-      fetch(`${basePath}/readme`, {
+      fetchWithRetry(`${basePath}/readme`, {
         headers: createGitHubHeaders(token),
         cache: 'no-store',
       }),
-      fetch(`${basePath}/git/trees/${repoData.default_branch}?recursive=1`, {
+      fetchWithRetry(`${basePath}/git/trees/${repoData.default_branch}?recursive=1`, {
         headers: createGitHubHeaders(token),
         cache: 'no-store',
       }),
@@ -321,22 +376,31 @@ Return strict JSON only with:
 
 Do not include markdown.`
 
-  const response = await fetch('https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=' + input.geminiApiKey, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      contents: [{
-        parts: [{ text: prompt }],
-      }],
-      generationConfig: {
-        temperature: 0.3,
-        maxOutputTokens: 2048,
-      },
-    }),
-    cache: 'no-store',
-  })
+  let response: Response
+
+  try {
+    response = await fetchWithRetry(
+      'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=' + input.geminiApiKey,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{ text: prompt }],
+          }],
+          generationConfig: {
+            temperature: 0.3,
+            maxOutputTokens: 2048,
+          },
+        }),
+        cache: 'no-store',
+      }
+    )
+  } catch {
+    return null
+  }
 
   if (!response.ok) {
     return null

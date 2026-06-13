@@ -5,6 +5,10 @@ import { arbeitnowAdapter } from './adapters/arbeitnow'
 import { adzunaAdapter } from './adapters/adzuna'
 import { indonesiaSampleAdapter } from './adapters/indonesia-sample'
 
+const ADAPTER_FETCH_TIMEOUT_MS = 12000
+const ADAPTER_FETCH_MAX_ATTEMPTS = 3
+const ADAPTER_FETCH_BASE_BACKOFF_MS = 250
+
 // Registry of all available job source adapters
 export const jobSourceAdapters: JobSourceAdapter[] = [
   // Primary sources
@@ -29,6 +33,55 @@ export function getAdapterBySlug(slug: string): JobSourceAdapter | undefined {
   return jobSourceAdapters.find(adapter => adapter.slug === slug)
 }
 
+function createTimeoutError(timeoutMs: number) {
+  return new Error(`Timed out after ${timeoutMs}ms`)
+}
+
+async function withTimeout<T>(operation: Promise<T>, timeoutMs: number): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null
+
+  try {
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timeoutId = setTimeout(() => reject(createTimeoutError(timeoutMs)), timeoutMs)
+    })
+
+    return await Promise.race([operation, timeoutPromise])
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId)
+    }
+  }
+}
+
+function getBackoffDelayMs(attempt: number) {
+  const exponential = ADAPTER_FETCH_BASE_BACKOFF_MS * (2 ** (attempt - 1))
+  const jitter = Math.floor(Math.random() * 100)
+  return exponential + jitter
+}
+
+async function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+async function fetchAdapterWithRetry(adapter: JobSourceAdapter) {
+  let lastError: Error | null = null
+
+  for (let attempt = 1; attempt <= ADAPTER_FETCH_MAX_ATTEMPTS; attempt++) {
+    try {
+      const jobs = await withTimeout(adapter.fetch(), ADAPTER_FETCH_TIMEOUT_MS)
+      return jobs
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error('Unknown adapter fetch failure')
+
+      if (attempt < ADAPTER_FETCH_MAX_ATTEMPTS) {
+        await wait(getBackoffDelayMs(attempt))
+      }
+    }
+  }
+
+  throw lastError ?? new Error('Adapter fetch failed')
+}
+
 // Fetch jobs from all enabled sources
 export async function fetchJobsFromAllSources(): Promise<{
   jobs: Partial<JobPost>[]
@@ -42,7 +95,7 @@ export async function fetchJobsFromAllSources(): Promise<{
 
   for (const adapter of enabledAdapters) {
     try {
-      const jobs = await adapter.fetch()
+      const jobs = await fetchAdapterWithRetry(adapter)
       if (jobs.length > 0) {
         allJobs.push(...jobs)
         sources.push(adapter.slug)

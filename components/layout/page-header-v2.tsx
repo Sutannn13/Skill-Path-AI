@@ -66,7 +66,7 @@ export function PageHeaderV2({
       <div className="absolute top-0 left-0 w-6 h-6 bg-yellow border-r-3 border-b-3 border-black" />
       <div className="absolute top-0 right-0 w-6 h-6 bg-pink border-l-3 border-b-3 border-black" />
 
-      <div className="relative px-4 lg:px-6 max-w-4xl mx-auto">
+      <div className="relative px-4 lg:px-6 max-w-7xl mx-auto">
         <div className="flex items-start gap-4">
           {/* Icon Badge */}
           {Icon && (
@@ -140,7 +140,7 @@ export function PageHeaderV2({
 export function PageHeaderSkeleton() {
   return (
     <div className="bg-white border-b-3 border-black px-4 py-6">
-      <div className="max-w-4xl mx-auto flex items-center gap-4">
+      <div className="max-w-7xl mx-auto flex items-center gap-4">
         <div className="w-14 h-14 bg-gray-200 brutal-radius animate-pulse" />
         <div className="flex-1 space-y-2">
           <div className="h-8 bg-gray-200 rounded w-48 animate-pulse" />

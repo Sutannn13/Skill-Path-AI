@@ -266,7 +266,7 @@ export function QuizPanel({ task, lockReason, isLocked, className }: QuizPanelPr
   if (!quizRequired) {
     return (
       <div className={cn('rounded-md border-2 border-black bg-white p-4', className)}>
-        <p className="text-sm text-black/60">Quiz not required for this task.</p>
+        <p className="text-sm text-black/60">Kuis tidak diperlukan untuk tugas ini.</p>
       </div>
     )
   }
@@ -275,7 +275,7 @@ export function QuizPanel({ task, lockReason, isLocked, className }: QuizPanelPr
     <div className={cn('space-y-3', className)}>
       <div className="flex items-center gap-2">
         <FileText className="h-4 w-4" />
-        <span className="text-sm font-bold">Quiz Assessment</span>
+        <span className="text-sm font-bold">Penilaian Kuis</span>
       </div>
 
       <div
@@ -291,37 +291,37 @@ export function QuizPanel({ task, lockReason, isLocked, className }: QuizPanelPr
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green text-white">
                 <CheckCircle2 className="h-5 w-5" />
               </div>
-              <span className="font-bold text-green">Quiz Passed</span>
+              <span className="font-bold text-green">Kuis Lulus</span>
             </>
           ) : isLocked ? (
             <>
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-300 text-white">
                 <Lock className="h-5 w-5" />
               </div>
-              <span className="font-bold text-black/60">Quiz Locked</span>
+              <span className="font-bold text-black/60">Kuis Terkunci</span>
             </>
           ) : (
             <>
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-yellow text-black">
                 <Timer className="h-5 w-5" />
               </div>
-              <span className="font-bold">Quiz Available</span>
+              <span className="font-bold">Kuis Tersedia</span>
             </>
           )}
         </div>
 
         <p className="mb-3 text-sm text-black/70">
           {quizPassed
-            ? 'You have passed this quiz. Great job!'
+            ? 'Kamu sudah lulus kuis ini. Kerja bagus!'
             : isLocked
-            ? lockReason || 'Complete the learning resources first to unlock this quiz.'
-            : 'Test your knowledge by taking this quiz. You need 80% to pass.'}
+            ? lockReason || 'Selesaikan materi pembelajaran terlebih dahulu untuk membuka kuis ini.'
+            : 'Uji pengetahuanmu dengan mengerjakan kuis ini. Kamu butuh 80% untuk lulus.'}
         </p>
 
         {isLocked ? (
           <BrutalButton variant="outline" color="black" size="sm" disabled>
             <Lock className="mr-2 h-4 w-4" />
-            Complete resources first
+            Selesaikan materi dulu
           </BrutalButton>
         ) : (
           <Link href={`/roadmap/tasks/${task.id}/quiz`} className="inline-flex">
@@ -331,7 +331,7 @@ export function QuizPanel({ task, lockReason, isLocked, className }: QuizPanelPr
               size="sm"
             >
               <Rocket className="mr-2 h-4 w-4" />
-              {quizPassed ? 'Retry Quiz' : 'Start Quiz'}
+              {quizPassed ? 'Ulangi Kuis' : 'Mulai Kuis'}
             </BrutalButton>
           </Link>
         )}
@@ -363,7 +363,7 @@ export function MiniProjectPanel({
   if (!hasMiniProject) {
     return (
       <div className={cn('rounded-md border-2 border-black bg-white p-4', className)}>
-        <p className="text-sm text-black/60">No mini project for this task.</p>
+        <p className="text-sm text-black/60">Tidak ada mini proyek untuk tugas ini.</p>
       </div>
     )
   }
@@ -372,7 +372,7 @@ export function MiniProjectPanel({
     <div className={cn('space-y-3', className)}>
       <div className="flex items-center gap-2">
         <Rocket className="h-4 w-4" />
-        <span className="text-sm font-bold">Mini Project</span>
+        <span className="text-sm font-bold">Mini Proyek</span>
       </div>
 
       <div
@@ -388,21 +388,21 @@ export function MiniProjectPanel({
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green text-white">
                 <Trophy className="h-5 w-5" />
               </div>
-              <span className="font-bold text-green">Project Approved</span>
+              <span className="font-bold text-green">Proyek Disetujui</span>
             </>
           ) : isLocked ? (
             <>
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-300 text-white">
                 <Lock className="h-5 w-5" />
               </div>
-              <span className="font-bold text-black/60">Project Locked</span>
+              <span className="font-bold text-black/60">Proyek Terkunci</span>
             </>
           ) : (
             <>
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-yellow text-black">
                 <Rocket className="h-5 w-5" />
               </div>
-              <span className="font-bold">Project Available</span>
+              <span className="font-bold">Proyek Tersedia</span>
             </>
           )}
         </div>
@@ -427,16 +427,16 @@ export function MiniProjectPanel({
 
         <p className="mb-3 text-sm text-black/70">
           {projectPassed
-            ? 'Your project has been approved. Great work!'
+            ? 'Proyekmu sudah disetujui. Kerja bagus!'
             : isLocked
-            ? lockReason || 'Pass the quiz first to unlock the mini project.'
-            : 'Submit your mini project to demonstrate what you have learned.'}
+            ? lockReason || 'Lulus kuis terlebih dahulu untuk membuka mini proyek.'
+            : 'Kirimkan mini proyekmu untuk menunjukkan apa yang sudah kamu pelajari.'}
         </p>
 
         {isLocked ? (
           <BrutalButton variant="outline" color="black" size="sm" disabled>
             <Lock className="mr-2 h-4 w-4" />
-            Pass quiz first
+            Lulus kuis dulu
           </BrutalButton>
         ) : (
           <Link href={`/roadmap/tasks/${task.id}/project`} className="inline-flex">
@@ -446,7 +446,7 @@ export function MiniProjectPanel({
               size="sm"
             >
               <Rocket className="mr-2 h-4 w-4" />
-              {projectPassed ? 'View Project' : 'Submit Project'}
+              {projectPassed ? 'Lihat Proyek' : 'Kirim Proyek'}
             </BrutalButton>
           </Link>
         )}
@@ -526,12 +526,12 @@ export function LearningTabs({
   const projectPassed = task.projectPassed === true
 
   const tabs: { tab: LearningTab; label: string; icon: React.ReactNode }[] = [
-    { tab: 'overview', label: 'Overview', icon: <BookOpen className="h-4 w-4" /> },
-    { tab: 'resources', label: 'Resources', icon: <Play className="h-4 w-4" /> },
-    { tab: 'notes', label: 'Notes', icon: <PenTool className="h-4 w-4" /> },
+    { tab: 'overview', label: 'Ringkasan', icon: <BookOpen className="h-4 w-4" /> },
+    { tab: 'resources', label: 'Materi', icon: <Play className="h-4 w-4" /> },
+    { tab: 'notes', label: 'Catatan', icon: <PenTool className="h-4 w-4" /> },
     { tab: 'checklist', label: 'Checklist', icon: <Clipboard className="h-4 w-4" /> },
-    { tab: 'quiz', label: 'Quiz', icon: <FileText className="h-4 w-4" /> },
-    { tab: 'project', label: 'Project', icon: <Rocket className="h-4 w-4" /> },
+    { tab: 'quiz', label: 'Kuis', icon: <FileText className="h-4 w-4" /> },
+    { tab: 'project', label: 'Proyek', icon: <Rocket className="h-4 w-4" /> },
   ]
 
   return (

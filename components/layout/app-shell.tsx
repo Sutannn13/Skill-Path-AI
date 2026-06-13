@@ -53,7 +53,7 @@ interface PageHeaderProps {
 export function PageHeader({ title, subtitle, action }: PageHeaderProps) {
   return (
     <header className="sticky top-0 z-40 bg-background/95 backdrop-blur-sm border-b-3 border-black px-4 py-4">
-      <div className="max-w-4xl mx-auto flex items-center justify-between">
+      <div className="max-w-7xl mx-auto flex items-center justify-between">
         <div>
           <h1 className="text-xl font-display font-bold">{title}</h1>
           {subtitle && (
@@ -73,7 +73,7 @@ interface ContainerProps {
 
 export function Container({ children, className }: ContainerProps) {
   return (
-    <div className={cn('max-w-4xl mx-auto px-4 py-6', className)}>
+    <div className={cn('max-w-7xl mx-auto px-4 py-6', className)}>
       {children}
     </div>
   )

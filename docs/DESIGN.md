@@ -56,6 +56,7 @@ Admin dashboard:
 - Keep icon buttons labeled with accessible names.
 - Keep touch targets at least 44px where practical.
 - Prevent long headings or helper text from overflowing cards on mobile.
+- Never display static XP, task counts, activity, or roadmap progress as if they belong to the authenticated user.
 
 ## Component Rules
 

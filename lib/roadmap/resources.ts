@@ -1,4 +1,5 @@
 import type { RoadmapTask, RoadmapWeek, TargetRole } from '@/types'
+import { getTaskResourceKeys } from '@/lib/roadmap/content-contract'
 
 export type RoadmapResourceType = 'youtube' | 'article' | 'docs' | 'project' | 'quiz'
 
@@ -50,6 +51,10 @@ const RESOURCE_LIBRARY: Record<string, RoadmapResourceSeed[]> = {
     youtube('HTML Forms Tutorial (English)', 'https://www.youtube.com/watch?v=fNcJuPIZ2WE', 18, 'freeCodeCamp.org'),
     docs('MDN Web forms guide', 'https://developer.mozilla.org/en-US/docs/Learn/Forms', 35, 'MDN Web Docs'),
   ],
+  'semantic html and forms': [
+    youtube('HTML Crash Course (English)', 'https://www.youtube.com/watch?v=UB1O30fR-EE', 60, 'Traversy Media'),
+    docs('MDN Web forms guide', 'https://developer.mozilla.org/en-US/docs/Learn/Forms', 35, 'MDN Web Docs'),
+  ],
   html: [
     youtube('HTML Crash Course (English)', 'https://www.youtube.com/watch?v=UB1O30fR-EE', 60, 'Traversy Media'),
     docs('MDN HTML reference', 'https://developer.mozilla.org/en-US/docs/Web/HTML', 30, 'MDN Web Docs'),
@@ -72,6 +77,10 @@ const RESOURCE_LIBRARY: Record<string, RoadmapResourceSeed[]> = {
   ],
   responsive: [
     youtube('Responsive Design (English)', 'https://www.youtube.com/watch?v=srvUrASNj0s', 25, 'Kevin Powell'),
+    docs('MDN responsive design', 'https://developer.mozilla.org/en-US/docs/Learn/CSS/CSS_layout/Responsive_Design', 30, 'MDN Web Docs'),
+  ],
+  'grid and responsive layout': [
+    youtube('CSS Grid Tutorial (English)', 'https://www.youtube.com/watch?v=jV8B24rSN5o', 25, 'Traversy Media'),
     docs('MDN responsive design', 'https://developer.mozilla.org/en-US/docs/Learn/CSS/CSS_layout/Responsive_Design', 30, 'MDN Web Docs'),
   ],
   css: [
@@ -102,12 +111,24 @@ const RESOURCE_LIBRARY: Record<string, RoadmapResourceSeed[]> = {
     youtube('JavaScript Objects (English)', 'https://www.youtube.com/watch?v=hdI2bqOjy3c&t=2700s', 18, 'Traversy Media'),
     docs('MDN working with objects', 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Working_with_objects', 35, 'MDN Web Docs'),
   ],
+  'javascript functions and collections': [
+    youtube('JavaScript Crash Course (English)', 'https://www.youtube.com/watch?v=hdI2bqOjy3c', 60, 'Traversy Media'),
+    docs('MDN JavaScript Guide', 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide', 45, 'MDN Web Docs'),
+  ],
   'dom events': [
     youtube('DOM Events (English)', 'https://www.youtube.com/watch?v=0ik6X4DJKCc', 24, 'Traversy Media'),
     docs('MDN event introduction', 'https://developer.mozilla.org/en-US/docs/Learn/JavaScript/Building_blocks/Events', 30, 'MDN Web Docs'),
   ],
+  'dom and async behavior': [
+    youtube('DOM Events (English)', 'https://www.youtube.com/watch?v=0ik6X4DJKCc', 24, 'Traversy Media'),
+    docs('MDN asynchronous JavaScript', 'https://developer.mozilla.org/en-US/docs/Learn/JavaScript/Asynchronous', 35, 'MDN Web Docs'),
+  ],
   'form validation': [
     youtube('Form Validation (English)', 'https://www.youtube.com/watch?v=rsd4FNGTRBw', 24, 'Traversy Media'),
+    docs('MDN client-side form validation', 'https://developer.mozilla.org/en-US/docs/Learn/Forms/Form_validation', 30, 'MDN Web Docs'),
+  ],
+  'dom and form behavior': [
+    youtube('DOM Events (English)', 'https://www.youtube.com/watch?v=0ik6X4DJKCc', 24, 'Traversy Media'),
     docs('MDN client-side form validation', 'https://developer.mozilla.org/en-US/docs/Learn/Forms/Form_validation', 30, 'MDN Web Docs'),
   ],
   'async javascript': [
@@ -116,6 +137,10 @@ const RESOURCE_LIBRARY: Record<string, RoadmapResourceSeed[]> = {
   ],
   fetch: [
     youtube('Fetch API Tutorial (English)', 'https://www.youtube.com/watch?v=cuEtnrL9-H0', 22, 'Traversy Media'),
+    docs('MDN Fetch API guide', 'https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch', 30, 'MDN Web Docs'),
+  ],
+  'async fetch workflow': [
+    youtube('Async JavaScript (English)', 'https://www.youtube.com/watch?v=PoRJizFvM7s', 18, 'Traversy Media'),
     docs('MDN Fetch API guide', 'https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch', 30, 'MDN Web Docs'),
   ],
   javascript: [
@@ -146,9 +171,17 @@ const RESOURCE_LIBRARY: Record<string, RoadmapResourceSeed[]> = {
     youtube('React useState (English)', 'https://www.youtube.com/watch?v=O6P86uwfdR0', 15, 'Web Dev Simplified'),
     docs('React adding interactivity', 'https://react.dev/learn/adding-interactivity', 30, 'React'),
   ],
+  'react component state fundamentals': [
+    youtube('React Crash Course (English)', 'https://www.youtube.com/watch?v=w7ejDZ8SWv8', 50, 'Traversy Media'),
+    docs('React Learn', 'https://react.dev/learn', 45, 'React'),
+  ],
   'react lists': [
     youtube('React Lists and Keys (English)', 'https://www.youtube.com/watch?v=w7ejDZ8SWv8&t=2310s', 18, 'Traversy Media'),
     docs('React rendering lists', 'https://react.dev/learn/rendering-lists', 25, 'React'),
+  ],
+  'react lists forms and states': [
+    youtube('React Crash Course (English)', 'https://www.youtube.com/watch?v=w7ejDZ8SWv8', 50, 'Traversy Media'),
+    docs('React Learn', 'https://react.dev/learn', 45, 'React'),
   ],
   'conditional ui': [
     youtube('React Conditional Rendering (English)', 'https://www.youtube.com/watch?v=w7ejDZ8SWv8&t=2100s', 15, 'Traversy Media'),
@@ -161,6 +194,22 @@ const RESOURCE_LIBRARY: Record<string, RoadmapResourceSeed[]> = {
   'api fetching': [
     youtube('React Fetch API (English)', 'https://www.youtube.com/watch?v=w7ejDZ8SWv8&t=3180s', 20, 'Traversy Media'),
     docs('MDN Fetch API guide', 'https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch', 30, 'MDN Web Docs'),
+  ],
+  'react effects and fetching': [
+    youtube('React Fetch API (English)', 'https://www.youtube.com/watch?v=w7ejDZ8SWv8&t=3180s', 20, 'Traversy Media'),
+    docs('React synchronizing with effects', 'https://react.dev/learn/synchronizing-with-effects', 35, 'React'),
+  ],
+  'react state and forms': [
+    youtube('React useState (English)', 'https://www.youtube.com/watch?v=O6P86uwfdR0', 15, 'Web Dev Simplified'),
+    docs('React input reference', 'https://react.dev/reference/react-dom/components/input', 30, 'React'),
+  ],
+  'frontend project architecture': [
+    youtube('React Crash Course (English)', 'https://www.youtube.com/watch?v=w7ejDZ8SWv8', 50, 'Traversy Media'),
+    docs('Thinking in React', 'https://react.dev/learn/thinking-in-react', 35, 'React'),
+  ],
+  'web performance and accessibility': [
+    youtube('Web Performance (English)', 'https://www.youtube.com/watch?v=AQqFZ5t8uNc', 20, 'Google Chrome Developers'),
+    docs('MDN accessibility learning area', 'https://developer.mozilla.org/en-US/docs/Learn/Accessibility', 35, 'MDN Web Docs'),
   ],
   'custom hooks': [
     youtube('React Custom Hooks (English)', 'https://www.youtube.com/watch?v=6ThXsUwLWvc', 20, 'Web Dev Simplified'),
@@ -234,6 +283,10 @@ const RESOURCE_LIBRARY: Record<string, RoadmapResourceSeed[]> = {
     youtube('HTTP Requests Explained (English)', 'https://www.youtube.com/watch?v=iYM2zFP3Zn0', 24, 'freeCodeCamp.org'),
     docs('MDN HTTP overview', 'https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Overview', 30, 'MDN Web Docs'),
   ],
+  'http and json exchange': [
+    youtube('HTTP Requests Explained (English)', 'https://www.youtube.com/watch?v=iYM2zFP3Zn0', 24, 'freeCodeCamp.org'),
+    docs('MDN JSON guide', 'https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/Scripting/JSON', 28, 'MDN Web Docs'),
+  ],
   json: [
     youtube('JSON Crash Course (English)', 'https://www.youtube.com/watch?v=iiADhChRriM', 16, 'Traversy Media'),
     docs('MDN JSON guide', 'https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/Scripting/JSON', 28, 'MDN Web Docs'),
@@ -256,6 +309,10 @@ const RESOURCE_LIBRARY: Record<string, RoadmapResourceSeed[]> = {
   ],
   'error handling': [
     youtube('Express Error Handling (English)', 'https://www.youtube.com/watch?v=3dSKnY8Ny4M', 20, 'Academind'),
+    docs('Express error handling', 'https://expressjs.com/en/guide/error-handling.html', 25, 'Express'),
+  ],
+  'rest crud and error handling': [
+    youtube('CRUD API with Express (English)', 'https://www.youtube.com/watch?v=DihOP19LQdg', 28, 'Traversy Media'),
     docs('Express error handling', 'https://expressjs.com/en/guide/error-handling.html', 25, 'Express'),
   ],
   'sql basics': [
@@ -334,6 +391,30 @@ const RESOURCE_LIBRARY: Record<string, RoadmapResourceSeed[]> = {
     youtube('Authentication Explained (English)', 'https://www.youtube.com/watch?v=F-sFp_AvHc8', 20, 'Fireship'),
     docs('OWASP authentication cheat sheet', 'https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html', 35, 'OWASP'),
   ],
+  'registration and password security': [
+    youtube('Authentication Explained (English)', 'https://www.youtube.com/watch?v=F-sFp_AvHc8', 20, 'Fireship'),
+    docs('OWASP password storage cheat sheet', 'https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html', 35, 'OWASP'),
+  ],
+  'protected authentication and ownership': [
+    youtube('JWT Authentication (English)', 'https://www.youtube.com/watch?v=7Q17ubqLfaM', 26, 'Web Dev Simplified'),
+    docs('OWASP authorization cheat sheet', 'https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html', 35, 'OWASP'),
+  ],
+  'frontend authentication state': [
+    youtube('Authentication Explained (English)', 'https://www.youtube.com/watch?v=F-sFp_AvHc8', 20, 'Fireship'),
+    docs('React managing state', 'https://react.dev/learn/managing-state', 35, 'React'),
+  ],
+  'fullstack client server integration': [
+    youtube('React Fetch API (English)', 'https://www.youtube.com/watch?v=w7ejDZ8SWv8&t=3180s', 20, 'Traversy Media'),
+    docs('MDN client-server overview', 'https://developer.mozilla.org/en-US/docs/Learn_web_development/Extensions/Server-side/First_steps/Client-Server_overview', 35, 'MDN Web Docs'),
+  ],
+  'fullstack critical testing': [
+    youtube('API Testing with Jest (English)', 'https://www.youtube.com/watch?v=FKnzS_icp20', 30, 'freeCodeCamp.org'),
+    docs('React testing overview', 'https://react.dev/learn', 30, 'React'),
+  ],
+  'deployment and documentation': [
+    youtube('Deploy JavaScript App (English)', 'https://www.youtube.com/watch?v=Kx_1NYYJS7Q', 20, 'Traversy Media'),
+    docs('GitHub README quickstart', 'https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-readmes', 25, 'GitHub Docs'),
+  ],
   authorization: [
     youtube('Auth vs Authorization (English)', 'https://www.youtube.com/watch?v=KNIpJi7d7K4', 16, 'OktaDev'),
     docs('OWASP authorization cheat sheet', 'https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html', 35, 'OWASP'),
@@ -366,6 +447,186 @@ const RESOURCE_LIBRARY: Record<string, RoadmapResourceSeed[]> = {
     youtube('Web Performance (English)', 'https://www.youtube.com/watch?v=AQqFZ5t8uNc', 20, 'Google Chrome Developers'),
     docs('web.dev performance guide', 'https://web.dev/learn/performance', 35, 'web.dev'),
   ],
+  'ui interaction states': [
+    youtube('UI States and Feedback (English)', 'https://www.youtube.com/results?search_query=accessible+ui+loading+empty+error+states', 25, 'YouTube'),
+    docs('ARIA live regions', 'https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Guides/Live_regions', 25, 'MDN Web Docs'),
+  ],
+  'motion accessibility': [
+    youtube('Accessible Motion Design (English)', 'https://www.youtube.com/results?search_query=accessible+motion+prefers-reduced-motion', 20, 'YouTube'),
+    docs('prefers-reduced-motion', 'https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-reduced-motion', 20, 'MDN Web Docs'),
+  ],
+  'design systems': [
+    youtube('Design Systems for Developers (English)', 'https://www.youtube.com/results?search_query=design+systems+for+developers+storybook', 30, 'YouTube'),
+    docs('Storybook component workshop docs', 'https://storybook.js.org/docs', 40, 'Storybook'),
+  ],
+  'ui system planning': [
+    youtube('Design Systems for Developers (English)', 'https://www.youtube.com/results?search_query=design+systems+for+developers+storybook', 30, 'YouTube'),
+    docs('Storybook component workshop docs', 'https://storybook.js.org/docs', 40, 'Storybook'),
+  ],
+  'design tokens': [
+    youtube('Design Tokens Explained (English)', 'https://www.youtube.com/results?search_query=design+tokens+for+developers', 20, 'YouTube'),
+    docs('Design Tokens Community Group format', 'https://www.designtokens.org/tr/drafts/format/', 35, 'Design Tokens Community Group'),
+  ],
+  'component documentation': [
+    youtube('Document React Components with Storybook (English)', 'https://www.youtube.com/results?search_query=storybook+react+component+documentation+tutorial', 30, 'YouTube'),
+    docs('Storybook writing stories', 'https://storybook.js.org/docs/writing-stories', 30, 'Storybook'),
+  ],
+  'accessibility testing': [
+    youtube('Accessibility Testing (English)', 'https://www.youtube.com/results?search_query=web+accessibility+testing+axe+keyboard', 25, 'YouTube'),
+    docs('W3C easy checks', 'https://www.w3.org/WAI/test-evaluate/preliminary/', 35, 'W3C WAI'),
+  ],
+  'react native fundamentals': [
+    youtube('React Native Course (English)', 'https://www.youtube.com/watch?v=0-S5a0eXPoc', 120, 'Programming with Mosh'),
+    docs('React Native core components', 'https://reactnative.dev/docs/components-and-apis', 35, 'React Native'),
+  ],
+  'expo setup': [
+    youtube('Expo React Native Tutorial (English)', 'https://www.youtube.com/results?search_query=expo+react+native+tutorial+official', 35, 'YouTube'),
+    docs('Expo create a project', 'https://docs.expo.dev/get-started/create-a-project/', 30, 'Expo'),
+  ],
+  'react native styling': [
+    youtube('React Native Styling (English)', 'https://www.youtube.com/results?search_query=react+native+stylesheet+flexbox+tutorial', 30, 'YouTube'),
+    docs('React Native style guide', 'https://reactnative.dev/docs/style', 30, 'React Native'),
+  ],
+  'mobile lists and forms': [
+    youtube('React Native FlatList and Forms (English)', 'https://www.youtube.com/results?search_query=react+native+flatlist+forms+tutorial', 30, 'YouTube'),
+    docs('React Native FlatList', 'https://reactnative.dev/docs/flatlist', 30, 'React Native'),
+  ],
+  'mobile accessibility': [
+    youtube('React Native Accessibility (English)', 'https://www.youtube.com/results?search_query=react+native+accessibility+tutorial', 25, 'YouTube'),
+    docs('React Native accessibility', 'https://reactnative.dev/docs/accessibility', 35, 'React Native'),
+  ],
+  'expo router': [
+    youtube('Expo Router Tutorial (English)', 'https://www.youtube.com/results?search_query=expo+router+tutorial+official', 35, 'YouTube'),
+    docs('Expo Router introduction', 'https://docs.expo.dev/router/introduction/', 35, 'Expo'),
+  ],
+  'mobile navigation': [
+    youtube('React Native Navigation (English)', 'https://www.youtube.com/results?search_query=react+native+navigation+tutorial', 35, 'YouTube'),
+    docs('Expo Router navigation patterns', 'https://docs.expo.dev/router/basics/navigation/', 30, 'Expo'),
+  ],
+  'mobile state management': [
+    youtube('React Native State Management (English)', 'https://www.youtube.com/results?search_query=react+native+state+management+context+reducer', 30, 'YouTube'),
+    docs('React managing state', 'https://react.dev/learn/managing-state', 35, 'React'),
+  ],
+  'mobile deep linking': [
+    youtube('Expo Deep Linking (English)', 'https://www.youtube.com/results?search_query=expo+router+deep+linking', 25, 'YouTube'),
+    docs('Expo linking into your app', 'https://docs.expo.dev/linking/into-your-app/', 30, 'Expo'),
+  ],
+  'mobile networking': [
+    youtube('React Native API Fetching (English)', 'https://www.youtube.com/results?search_query=react+native+fetch+api+loading+error', 30, 'YouTube'),
+    docs('React Native networking', 'https://reactnative.dev/docs/network', 30, 'React Native'),
+  ],
+  'mobile storage': [
+    youtube('React Native Local Storage (English)', 'https://www.youtube.com/results?search_query=react+native+asyncstorage+tutorial', 25, 'YouTube'),
+    docs('Async Storage for Expo', 'https://docs.expo.dev/versions/latest/sdk/async-storage/', 30, 'Expo'),
+  ],
+  'mobile permissions': [
+    youtube('Expo Permissions (English)', 'https://www.youtube.com/results?search_query=expo+permissions+tutorial', 25, 'YouTube'),
+    docs('Expo permissions guide', 'https://docs.expo.dev/guides/permissions/', 30, 'Expo'),
+  ],
+  'mobile offline states': [
+    youtube('Offline React Native Apps (English)', 'https://www.youtube.com/results?search_query=react+native+offline+network+state', 25, 'YouTube'),
+    docs('NetInfo API', 'https://github.com/react-native-netinfo/react-native-netinfo', 30, 'GitHub'),
+  ],
+  'mobile testing': [
+    youtube('React Native Testing Library (English)', 'https://www.youtube.com/results?search_query=react+native+testing+library+tutorial', 30, 'YouTube'),
+    docs('React Native testing overview', 'https://reactnative.dev/docs/testing-overview', 35, 'React Native'),
+  ],
+  'mobile performance': [
+    youtube('React Native Performance (English)', 'https://www.youtube.com/results?search_query=react+native+performance+optimization', 30, 'YouTube'),
+    docs('React Native performance overview', 'https://reactnative.dev/docs/performance', 35, 'React Native'),
+  ],
+  'mobile error handling': [
+    youtube('React Native Error Handling (English)', 'https://www.youtube.com/results?search_query=react+native+error+handling+error+boundary', 25, 'YouTube'),
+    docs('React error boundaries', 'https://react.dev/reference/react/Component#catching-rendering-errors-with-an-error-boundary', 30, 'React'),
+  ],
+  'mobile app architecture': [
+    youtube('React Native App Architecture (English)', 'https://www.youtube.com/results?search_query=react+native+app+architecture', 30, 'YouTube'),
+    docs('Expo app structure', 'https://docs.expo.dev/router/basics/core-concepts/', 30, 'Expo'),
+  ],
+  'expo deployment': [
+    youtube('Expo EAS Build and Submit (English)', 'https://www.youtube.com/results?search_query=expo+eas+build+submit+tutorial', 35, 'YouTube'),
+    docs('EAS build introduction', 'https://docs.expo.dev/build/introduction/', 35, 'Expo'),
+  ],
+  'data literacy': [
+    youtube('Data Literacy for Beginners (English)', 'https://www.youtube.com/results?search_query=data+literacy+rows+columns+data+types+beginner', 25, 'YouTube'),
+    docs('IBM: What is data?', 'https://www.ibm.com/think/topics/data', 25, 'IBM'),
+  ],
+  'spreadsheet basics': [
+    youtube('Google Sheets Basics for Data Analysis (English)', 'https://www.youtube.com/results?search_query=google+sheets+basics+formulas+sort+filter+data+analysis', 35, 'YouTube'),
+    docs('Google Sheets: analyze data', 'https://support.google.com/a/users/answer/9330962?hl=en', 30, 'Google Workspace Learning Center'),
+  ],
+  'analytical problem framing': [
+    youtube('Data Analysis Problem Framing (English)', 'https://www.youtube.com/results?search_query=data+analysis+problem+framing+metrics+dimensions', 25, 'YouTube'),
+    docs('Google problem framing guide', 'https://developers.google.com/machine-learning/problem-framing/ml-framing', 30, 'Google for Developers'),
+  ],
+  'spreadsheet data cleaning': [
+    youtube('Data Cleaning in Spreadsheets (English)', 'https://www.youtube.com/results?search_query=data+cleaning+spreadsheets+tutorial', 35, 'YouTube'),
+    docs('Google Sheets data cleanup', 'https://support.google.com/a/users/answer/9604139?hl=en', 25, 'Google Workspace Learning Center'),
+  ],
+  'data quality': [
+    youtube('Data Quality Basics (English)', 'https://www.youtube.com/results?search_query=data+quality+missing+duplicates+validation', 25, 'YouTube'),
+    docs('Great Expectations data quality concepts', 'https://docs.greatexpectations.io/docs/core/introduction/', 30, 'Great Expectations'),
+  ],
+  'sql filtering': [
+    youtube('SQL WHERE and ORDER BY (English)', 'https://www.youtube.com/watch?v=HXV3zeQKqGY', 35, 'freeCodeCamp.org'),
+    docs('PostgreSQL querying a table', 'https://www.postgresql.org/docs/current/tutorial-select.html', 30, 'PostgreSQL'),
+  ],
+  'sql aggregation': [
+    youtube('SQL GROUP BY and Aggregates (English)', 'https://www.youtube.com/watch?v=HXV3zeQKqGY', 35, 'freeCodeCamp.org'),
+    docs('PostgreSQL aggregate functions', 'https://www.postgresql.org/docs/current/functions-aggregate.html', 30, 'PostgreSQL'),
+  ],
+  'sql joins': [
+    youtube('SQL Joins (English)', 'https://www.youtube.com/watch?v=9yeOJ0ZMUYw', 20, 'Socratica'),
+    docs('PostgreSQL joins tutorial', 'https://www.postgresql.org/docs/current/tutorial-join.html', 30, 'PostgreSQL'),
+  ],
+  'sql analysis': [
+    youtube('SQL for Data Analysis (English)', 'https://www.youtube.com/watch?v=7S_tz1z_5bA', 80, 'Programming with Mosh'),
+    docs('PostgreSQL queries', 'https://www.postgresql.org/docs/current/queries.html', 35, 'PostgreSQL'),
+  ],
+  'sql window functions': [
+    youtube('SQL Window Functions (English)', 'https://www.youtube.com/results?search_query=sql+window+functions+tutorial', 35, 'YouTube'),
+    docs('PostgreSQL window functions', 'https://www.postgresql.org/docs/current/tutorial-window.html', 35, 'PostgreSQL'),
+  ],
+  'python basics': [
+    youtube('Python for Beginners (English)', 'https://www.youtube.com/watch?v=rfscVS0vtbw', 240, 'freeCodeCamp.org'),
+    docs('Python tutorial', 'https://docs.python.org/3/tutorial/', 45, 'Python'),
+  ],
+  'pandas dataframes': [
+    youtube('Pandas Tutorial (English)', 'https://www.youtube.com/watch?v=vmEHCJofslg', 60, 'freeCodeCamp.org'),
+    docs('pandas getting started', 'https://pandas.pydata.org/docs/getting_started/intro_tutorials/', 40, 'pandas'),
+  ],
+  'pandas cleaning': [
+    youtube('Data Cleaning with pandas (English)', 'https://www.youtube.com/results?search_query=pandas+data+cleaning+tutorial', 40, 'YouTube'),
+    docs('pandas missing data guide', 'https://pandas.pydata.org/docs/user_guide/missing_data.html', 35, 'pandas'),
+  ],
+  'exploratory data analysis': [
+    youtube('Exploratory Data Analysis with Python (English)', 'https://www.youtube.com/results?search_query=exploratory+data+analysis+python+pandas', 45, 'YouTube'),
+    docs('pandas visualization', 'https://pandas.pydata.org/docs/user_guide/visualization.html', 35, 'pandas'),
+  ],
+  'data visualization': [
+    youtube('Data Visualization with Python (English)', 'https://www.youtube.com/results?search_query=data+visualization+python+matplotlib+seaborn', 50, 'YouTube'),
+    docs('seaborn tutorial', 'https://seaborn.pydata.org/tutorial.html', 40, 'seaborn'),
+  ],
+  'chart selection': [
+    youtube('Choose the Right Chart (English)', 'https://www.youtube.com/results?search_query=how+to+choose+the+right+chart+data+visualization', 25, 'YouTube'),
+    docs('Datawrapper chart creation guide', 'https://www.datawrapper.de/academy/how-to-create-your-first-datawrapper-chart', 35, 'Datawrapper'),
+  ],
+  'descriptive statistics': [
+    youtube('Descriptive Statistics (English)', 'https://www.youtube.com/watch?v=xxpc-HPKN28', 30, 'freeCodeCamp.org'),
+    docs('SciPy descriptive statistics', 'https://docs.scipy.org/doc/scipy/tutorial/stats.html', 35, 'SciPy'),
+  ],
+  'dashboard storytelling': [
+    youtube('Data Storytelling (English)', 'https://www.youtube.com/results?search_query=data+storytelling+dashboard+tutorial', 30, 'YouTube'),
+    docs('Microsoft Power BI storytelling guidance', 'https://learn.microsoft.com/en-us/power-bi/create-reports/service-dashboards-design-tips', 35, 'Microsoft Learn'),
+  ],
+  'data insight writing': [
+    youtube('Writing Data Insights (English)', 'https://www.youtube.com/results?search_query=writing+data+analysis+insights+recommendations', 25, 'YouTube'),
+    docs('Google good data analysis guide', 'https://developers.google.com/machine-learning/guides/good-data-analysis', 30, 'Google for Developers'),
+  ],
+  'data project architecture': [
+    youtube('Data Analysis Project Workflow (English)', 'https://www.youtube.com/results?search_query=data+analysis+portfolio+project+workflow', 30, 'YouTube'),
+    docs('Cookiecutter Data Science structure', 'https://cookiecutter-data-science.drivendata.org/', 30, 'DrivenData'),
+  ],
 }
 
 const FRONTEND_ONLY_HINTS = [
@@ -393,7 +654,6 @@ const BACKEND_HINTS = [
   'controller',
   'migration',
   'prisma',
-  'deployment',
 ]
 
 type BackendTopicKey =
@@ -427,14 +687,12 @@ type BackendTopicKey =
   | 'backend-deployment'
 
 const BACKEND_TASK_TOPIC_MAP: Record<string, BackendTopicKey> = {
-  'backend-1-1': 'backend-js-typescript',
-  'backend-1-2': 'http-basics',
-  'backend-1-3': 'json-parsing',
-  'backend-1-4': 'git-terminal',
-  'backend-2-1': 'node-runtime-npm',
-  'backend-2-2': 'backend-folder-structure',
+  'backend-1-5': 'http-basics',
+  'backend-2-1': 'git-terminal',
+  'backend-2-2': 'node-runtime-npm',
   'backend-2-3': 'environment-variables',
   'backend-2-4': 'node-basic-server',
+  'backend-2-5': 'backend-folder-structure',
   'backend-3-1': 'express-routing',
   'backend-3-2': 'express-controllers-services',
   'backend-3-3': 'express-middleware',
@@ -455,37 +713,6 @@ const BACKEND_TASK_TOPIC_MAP: Record<string, BackendTopicKey> = {
   'backend-6-3': 'api-documentation',
   'backend-6-4': 'environment-config',
   'backend-6-5': 'backend-deployment',
-}
-
-const BACKEND_TOPIC_KEYWORDS: Record<BackendTopicKey, string[]> = {
-  'backend-js-typescript': ['javascript', 'typescript', 'backend'],
-  'http-basics': ['http', 'request', 'response', 'status code', 'headers'],
-  'json-parsing': ['json', 'parse', 'payload'],
-  'git-terminal': ['git', 'terminal', 'github'],
-  'node-runtime-npm': ['node.js', 'node', 'npm', 'runtime'],
-  'backend-folder-structure': ['folder structure', 'project structure', 'architecture', 'backend structure'],
-  'environment-variables': ['environment variable', '.env', 'dotenv', 'configuration'],
-  'node-basic-server': ['node.js server', 'http server', 'create server'],
-  'express-routing': ['express routing', 'express route', 'router'],
-  'express-controllers-services': ['controller', 'service', 'express mvc'],
-  'express-middleware': ['middleware', 'express middleware'],
-  'rest-crud': ['crud', 'rest api', 'endpoint'],
-  'express-error-handling': ['error handling', 'express error'],
-  'sql-basics': ['sql', 'query', 'select', 'insert', 'update', 'delete'],
-  'postgres-tables': ['postgresql', 'postgres', 'table', 'constraint'],
-  'database-relationships': ['relationship', 'foreign key', 'one-to-many', 'schema'],
-  'prisma-migrations': ['prisma', 'migration', 'orm'],
-  'database-crud': ['database crud', 'postgresql crud', 'repository', 'data access'],
-  'auth-register-login': ['register', 'login', 'authentication flow', 'auth api'],
-  'bcrypt-password-hashing': ['bcrypt', 'password hashing'],
-  'jwt-session-auth': ['jwt', 'session', 'token', 'authentication'],
-  'protected-routes': ['protected route', 'authorization middleware', 'guard'],
-  'input-validation': ['validation', 'input validation', 'zod', 'joi'],
-  'postman-thunder-client': ['postman', 'thunder client', 'api testing'],
-  'jest-supertest': ['jest', 'supertest', 'integration test'],
-  'api-documentation': ['openapi', 'swagger', 'api documentation'],
-  'environment-config': ['environment config', '.env', 'configuration'],
-  'backend-deployment': ['render', 'railway', 'deploy node', 'deployment'],
 }
 
 const BACKEND_TOPIC_RESOURCE_MAP: Record<BackendTopicKey, RoadmapResourceSeed[]> = {
@@ -669,7 +896,11 @@ function inferRoleTrack(
 ): 'backend' | 'frontend' | 'mixed' {
   if (targetRole === 'backend-developer') return 'backend'
   if (targetRole === 'frontend-developer' || targetRole === 'ui-engineer') return 'frontend'
-  if (targetRole === 'fullstack-developer') return 'mixed'
+  if (
+    targetRole === 'fullstack-developer' ||
+    targetRole === 'mobile-developer' ||
+    targetRole === 'data-analyst'
+  ) return 'mixed'
 
   const source = normalizeText(
     `${task.id} ${task.title} ${task.description} ${task.deliverable} ${week.title} ${week.goal} ${week.focusSkills.join(' ')}`
@@ -726,9 +957,19 @@ function deriveBackendTopicKey(task: RoadmapTask, week: RoadmapWeek): BackendTop
   return null
 }
 
+function isBackendTaskKey(task: RoadmapTask) {
+  const taskKey = task.taskKey ?? task.id
+  return taskKey.startsWith('backend-')
+}
+
 function inferResourceKeys(task: RoadmapTask, week: RoadmapWeek): string[] {
+  const contractedKeys = getTaskResourceKeys(task)
+  if (contractedKeys) {
+    return contractedKeys
+  }
+
   const source = normalizeText(
-    `${task.title} ${task.description} ${task.deliverable} ${week.title} ${week.goal} ${week.focusSkills.join(' ')}`
+    `${task.title} ${task.description} ${task.deliverable}`
   )
 
   const fromAliases = Object.entries(KEY_ALIASES)
@@ -766,7 +1007,7 @@ function isTrackCompatible(
 
 function hasSemanticOverlap(task: RoadmapTask, week: RoadmapWeek, key: string, title: string) {
   const source = normalizeText(
-    `${task.title} ${task.description} ${task.deliverable} ${week.title} ${week.goal} ${week.focusSkills.join(' ')}`
+    `${task.title} ${task.description} ${task.deliverable}`
   )
   const keyTokens = normalizeSkill(key).split(/\s+/).filter((token) => token.length > 2)
   const titleTokens = normalizeSkill(title).split(/\s+/).filter((token) => token.length > 2)
@@ -778,24 +1019,38 @@ function hasSemanticOverlap(task: RoadmapTask, week: RoadmapWeek, key: string, t
 export function isResourceLikelyRelevant(
   task: RoadmapTask,
   week: RoadmapWeek,
-  resource: Pick<RoadmapResourceSeed, 'title' | 'resourceType'> & { provider?: string },
+  resource: Pick<RoadmapResourceSeed, 'title' | 'resourceType'> & { provider?: string; url?: string },
   targetRole?: TargetRole | null
 ) {
   const track = inferRoleTrack(task, week, targetRole)
   const backendTopicKey = deriveBackendTopicKey(task, week)
-  const source = normalizeText(
-    `${task.title} ${task.description} ${task.deliverable} ${week.title} ${week.goal} ${week.focusSkills.join(' ')}`
-  )
   const resourceTitle = normalizeText(resource.title)
-  const resourceSource = normalizeText(`${resource.title} ${resource.provider ?? ''}`)
+  const contractedKeys = getTaskResourceKeys(task)
+
+  if (contractedKeys) {
+    return contractedKeys.some((key) =>
+      (RESOURCE_LIBRARY[key] ?? []).some((entry) =>
+        entry.resourceType === resource.resourceType &&
+        (
+          (Boolean(resource.url) && entry.url === resource.url) ||
+          normalizeText(entry.title) === resourceTitle
+        )
+      )
+    )
+  }
+
+  if (backendTopicKey && (track === 'backend' || isBackendTaskKey(task))) {
+    return (BACKEND_TOPIC_RESOURCE_MAP[backendTopicKey] ?? []).some((entry) =>
+      entry.resourceType === resource.resourceType &&
+      (
+        (Boolean(resource.url) && entry.url === resource.url) ||
+        normalizeText(entry.title) === resourceTitle
+      )
+    )
+  }
 
   const frontendHit = FRONTEND_ONLY_HINTS.some((keyword) => resourceTitle.includes(keyword))
   const backendHit = BACKEND_HINTS.some((keyword) => resourceTitle.includes(keyword))
-
-  if (backendTopicKey && track !== 'frontend') {
-    const keywords = BACKEND_TOPIC_KEYWORDS[backendTopicKey]
-    return keywords.some((keyword) => resourceSource.includes(keyword))
-  }
 
   if (track === 'backend' && frontendHit && !backendHit) {
     return false
@@ -807,7 +1062,7 @@ export function isResourceLikelyRelevant(
   const keys = inferResourceKeys(task, week)
   if (keys.length === 0) return false
 
-  return keys.some((key) => hasSemanticOverlap(task, week, key, resource.title) || source.includes(key))
+  return keys.some((key) => hasSemanticOverlap(task, week, key, resource.title))
 }
 
 function selectDeterministicBackendResource(
@@ -850,8 +1105,8 @@ function selectResourceByType(
 
     const entries = (RESOURCE_LIBRARY[key] ?? []).filter((entry) => entry.resourceType === resourceType)
     for (const entry of entries) {
-      if (!entry.url || usedUrls.has(entry.url)) continue
-      if (!hasSemanticOverlap(task, week, key, entry.title)) continue
+      if (!entry.url) continue
+      if (!getTaskResourceKeys(task) && !hasSemanticOverlap(task, week, key, entry.title)) continue
       usedUrls.add(entry.url)
       return entry
     }
@@ -869,8 +1124,19 @@ export function getCuratedResourcesForTask(
   const backendTopicKey = deriveBackendTopicKey(task, week)
   const keys = inferResourceKeys(task, week)
   const usedUrls = options?.usedUrls ?? new Set<string>()
+  const contractedKeys = getTaskResourceKeys(task)
 
-  if (track === 'backend' || backendTopicKey) {
+  if (contractedKeys) {
+    const selectedVideo = selectResourceByType('youtube', contractedKeys, task, week, track, usedUrls)
+    const selectedDocs = selectResourceByType('docs', contractedKeys, task, week, track, usedUrls)
+
+    return [
+      selectedVideo ?? buildUnavailableResource('youtube', 'missing_video_match'),
+      selectedDocs ?? buildUnavailableResource('docs', 'missing_docs_match'),
+    ]
+  }
+
+  if (track === 'backend' || (backendTopicKey && isBackendTaskKey(task))) {
     if (!backendTopicKey) {
       return [
         buildUnavailableResource('youtube', 'missing_backend_topic_key'),

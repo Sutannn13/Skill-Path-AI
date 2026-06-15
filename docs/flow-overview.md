@@ -89,7 +89,15 @@ sequenceDiagram
   Page->>DB: Load latest active roadmap and tasks
   alt Roadmap exists
     DB-->>Page: Roadmap, tasks, resources, progress
-    Page->>DB: Insert missing curated task resources with UUID rows when persisted resources are absent
+    Page->>Page: Validate curriculum version, role alignment, and beginner prerequisite order
+    alt Current content version
+      Page->>DB: Insert missing relevant video or documentation rows
+      Page->>Page: Filter stale unrelated resources
+    else Legacy content version
+      Page-->>User: Show explicit repair action
+      User->>Page: Confirm repair
+      Page->>DB: Archive legacy roadmap and create current version
+    end
   else No roadmap
     Page->>DB: Load profile and skills
     Page->>API: Request generated roadmap
@@ -119,7 +127,7 @@ sequenceDiagram
   Map-->>User: Show task state, gated actions, and locked final project state
   User->>QuizPage: Start/continue quiz
   QuizPage->>QuizStart: POST task context
-  QuizStart->>DB: Validate ownership and load seeded quiz
+  QuizStart->>DB: Validate ownership and reconcile quiz topic metadata
   DB-->>QuizPage: Questions + latest attempt summary
   User->>QuizPage: Submit answers
   QuizPage->>QuizSubmit: POST answers

@@ -21,6 +21,7 @@ const startSchema = z.object({
 
 interface TaskOwnershipRow {
   id: string
+  task_key: string | null
   title: string
   description: string | null
   focus_skills: string[] | null
@@ -54,6 +55,7 @@ function createLocalQuizPayload(input: {
   focusSkills: string[]
 }) {
   const skill = inferQuizSkillFromTask({
+    id: input.taskId,
     title: input.title,
     description: input.description,
     focusSkills: input.focusSkills,
@@ -88,6 +90,7 @@ function createLocalQuizPayload(input: {
 async function ensureQuizForTask(input: {
   admin: ReturnType<typeof createSupabaseAdminClient>
   taskId: string
+  taskKey?: string | null
   title: string
   description: string
   focusSkills: string[]
@@ -130,21 +133,40 @@ async function ensureQuizForTask(input: {
 
   const { data: existingQuestions, error: existingQuestionsError } = await admin
     .from('roadmap_quiz_questions')
-    .select('id')
+    .select('id, related_skill')
     .eq('quiz_id', quizId)
-    .limit(1)
 
   if (existingQuestionsError) {
     return { quizId: null, error: existingQuestionsError.message }
   }
 
-  if ((existingQuestions ?? []).length === 0) {
-    const skill = inferQuizSkillFromTask({
-      title: input.title,
-      description: input.description,
-      focusSkills: input.focusSkills,
-    })
-    const questions = getCuratedQuizQuestions(skill, QUIZ_QUESTION_COUNT)
+  const skill = inferQuizSkillFromTask({
+    id: input.taskId,
+    taskKey: input.taskKey ?? undefined,
+    title: input.title,
+    description: input.description,
+    focusSkills: input.focusSkills,
+  })
+  const questions = getCuratedQuizQuestions(skill, QUIZ_QUESTION_COUNT)
+  const expectedRelatedSkill = questions[0]?.relatedSkill.trim().toLowerCase() ?? ''
+  const shouldReplaceQuestions =
+    (existingQuestions ?? []).length !== questions.length ||
+    (existingQuestions ?? []).some((question) =>
+      String(question.related_skill ?? '').trim().toLowerCase() !== expectedRelatedSkill
+    )
+
+  if (shouldReplaceQuestions && (existingQuestions ?? []).length > 0) {
+    const { error: questionDeleteError } = await admin
+      .from('roadmap_quiz_questions')
+      .delete()
+      .eq('quiz_id', quizId)
+
+    if (questionDeleteError) {
+      return { quizId: null, error: questionDeleteError.message }
+    }
+  }
+
+  if (shouldReplaceQuestions) {
     const questionRows = questions.map((question, index) => ({
       quiz_id: quizId,
       question_text: question.questionText,
@@ -202,7 +224,7 @@ export async function POST(request: NextRequest) {
 
   const { data: taskRow, error: taskError } = await supabase
     .from('roadmap_tasks')
-    .select('id, title, description, focus_skills, roadmaps!inner(user_id)')
+    .select('id, task_key, title, description, focus_skills, roadmaps!inner(user_id)')
     .eq('id', taskId)
     .eq('roadmaps.user_id', user.id)
     .maybeSingle()
@@ -215,6 +237,7 @@ export async function POST(request: NextRequest) {
   const quizResult = await ensureQuizForTask({
     admin,
     taskId: typedTask.id,
+    taskKey: typedTask.task_key,
     title: typedTask.title,
     description: typedTask.description ?? '',
     focusSkills: typedTask.focus_skills ?? [],

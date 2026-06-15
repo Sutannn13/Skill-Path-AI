@@ -5,6 +5,7 @@ export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
   const next = searchParams.get('next') ?? '/dashboard'
+  const safeNext = next.startsWith('/') && !next.startsWith('//') ? next : '/dashboard'
 
   // If there's no code, redirect to login with error
   if (!code) {
@@ -34,21 +35,8 @@ export async function GET(request: NextRequest) {
       .single()
 
     // Determine redirect based on onboarding status
-    const redirectTo = profile?.onboarding_completed ? '/dashboard' : '/onboarding'
-
-    // Create response with redirect
-    const response = NextResponse.redirect(`${origin}${redirectTo}`)
-
-    // Set user ID cookie for middleware session management
-    response.cookies.set('sb-auth-token', 'valid', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7, // 1 week
-      path: '/',
-    })
-
-    return response
+    const redirectTo = profile?.onboarding_completed ? safeNext : '/onboarding'
+    return NextResponse.redirect(`${origin}${redirectTo}`)
   } catch (err) {
     console.error('Auth callback exception:', err)
     return NextResponse.redirect(`${origin}/login?error=auth_callback_exception`)

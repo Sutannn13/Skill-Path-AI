@@ -8,7 +8,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "validate:roadmap": "node scripts/validate-roadmap-content.mjs",
+    "audit:roadmap-matrix": "node scripts/validate-roadmap-content.mjs --print-matrix",
+    "audit:roadmap-links": "node scripts/validate-roadmap-content.mjs --check-links",
+    "validate": "node scripts/validate.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^9.88.0",

@@ -13,6 +13,7 @@ import { JobPost } from './types'
 
 // Import Supabase client
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { GEMINI_MODEL } from '@/lib/ai/gemini-config'
 
 export interface AnalysisResult {
   jobId: string
@@ -75,7 +76,7 @@ export async function analyzeJob(job: JobPost): Promise<AnalysisResult> {
       .from('ai_job_analyses')
       .upsert({
         job_id: job.id,
-        model: 'gemini-2.0-flash',
+        model: GEMINI_MODEL,
         normalized_title: classification.normalizedTitle,
         category: classification.category,
         role: classification.role,

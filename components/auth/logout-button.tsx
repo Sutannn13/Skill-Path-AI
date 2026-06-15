@@ -6,6 +6,7 @@ import { LogOut } from 'lucide-react'
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser'
 import { BrutalButton } from '@/components/brutal'
 import { cn } from '@/lib/utils'
+import { clearUserProfile } from '@/lib/user/profile'
 
 interface LogoutButtonProps {
   variant?: 'button' | 'link'
@@ -42,10 +43,9 @@ export function LogoutButton({
       }
 
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('skillpath_profile')
-        localStorage.removeItem('skillpath_user_skills')
-        localStorage.removeItem('skillpath_onboarding_completed')
-        localStorage.removeItem('skillpath_user_profile')
+        clearUserProfile()
+        localStorage.removeItem('skillpath_notes')
+        localStorage.removeItem('skillpath_checklist')
       }
 
       router.push(redirectTo)

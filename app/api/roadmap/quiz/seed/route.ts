@@ -15,6 +15,7 @@ const seedSchema = z.object({
   roadmapId: z.string().uuid(),
   tasks: z.array(z.object({
     id: z.string().uuid(),
+    taskKey: z.string().trim().min(1).max(120).optional(),
     title: z.string(),
     description: z.string().optional().default(''),
     focusSkills: z.array(z.string()).optional().default([]),
@@ -87,6 +88,8 @@ export async function POST(request: NextRequest) {
     }
 
     const skill = inferQuizSkillFromTask({
+      id: task.id,
+      taskKey: task.taskKey,
       title: task.title,
       description: task.description,
       focusSkills: task.focusSkills,
@@ -114,9 +117,8 @@ export async function POST(request: NextRequest) {
     const quizId = (quizRow as { id: string }).id
     const { data: existingQuestions, error: existingQuestionsError } = await admin
       .from('roadmap_quiz_questions')
-      .select('id')
+      .select('id, related_skill')
       .eq('quiz_id', quizId)
-      .limit(1)
 
     if (existingQuestionsError) {
       return NextResponse.json(
@@ -125,7 +127,28 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if ((existingQuestions ?? []).length === 0) {
+    const expectedRelatedSkill = questions[0]?.relatedSkill.trim().toLowerCase() ?? ''
+    const shouldReplaceQuestions =
+      (existingQuestions ?? []).length !== questions.length ||
+      (existingQuestions ?? []).some((question) =>
+        String(question.related_skill ?? '').trim().toLowerCase() !== expectedRelatedSkill
+      )
+
+    if (shouldReplaceQuestions && (existingQuestions ?? []).length > 0) {
+      const { error: questionDeleteError } = await admin
+        .from('roadmap_quiz_questions')
+        .delete()
+        .eq('quiz_id', quizId)
+
+      if (questionDeleteError) {
+        return NextResponse.json(
+          { error: `Failed to replace mismatched quiz questions: ${questionDeleteError.message}` },
+          { status: 500 }
+        )
+      }
+    }
+
+    if (shouldReplaceQuestions) {
       const questionRows = questions.map((question, index) => ({
         quiz_id: quizId,
         question_text: question.questionText,

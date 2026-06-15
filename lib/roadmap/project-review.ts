@@ -1,4 +1,8 @@
 import { RoadmapProjectReviewStatus } from '@/types'
+import {
+  GEMINI_GENERATE_CONTENT_URL,
+  getGeminiRequestHeaders,
+} from '@/lib/ai/gemini-config'
 
 const GITHUB_API_URL = 'https://api.github.com'
 const OUTBOUND_TIMEOUT_MS = 10000
@@ -380,12 +384,10 @@ Do not include markdown.`
 
   try {
     response = await fetchWithRetry(
-      'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=' + input.geminiApiKey,
+      GEMINI_GENERATE_CONTENT_URL,
       {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getGeminiRequestHeaders(input.geminiApiKey),
         body: JSON.stringify({
           contents: [{
             parts: [{ text: prompt }],

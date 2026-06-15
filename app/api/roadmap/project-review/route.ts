@@ -143,13 +143,12 @@ export async function POST(request: NextRequest) {
     quiz_required: boolean | null
     quiz_passed: boolean | null
     project_required: boolean | null
-    mini_project: Record<string, unknown> | null
   } | null = null
 
   if (input.roadmapTaskId) {
     const { data: taskOwned, error: taskError } = await supabase
       .from('roadmap_tasks')
-      .select('id, roadmap_id, quiz_required, quiz_passed, project_required, mini_project')
+      .select('id, roadmap_id, quiz_required, quiz_passed, project_required')
       .eq('id', input.roadmapTaskId)
       .eq('roadmap_id', input.roadmapId)
       .maybeSingle()
@@ -164,7 +163,6 @@ export async function POST(request: NextRequest) {
       quiz_required: boolean | null
       quiz_passed: boolean | null
       project_required: boolean | null
-      mini_project: Record<string, unknown> | null
     }
   }
 
@@ -176,8 +174,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const hasProjectRequirement = taskGuard.project_required === true || Boolean(taskGuard.mini_project)
-    if (!hasProjectRequirement) {
+    if (taskGuard.project_required !== true) {
       return NextResponse.json(
         { error: 'This task does not require a mini project submission.' },
         { status: 422 }
@@ -342,7 +339,7 @@ export async function POST(request: NextRequest) {
     const requirementState = deriveRequirementState({
       resourcesComplete,
       quizPassed: (taskRow as { quiz_passed: boolean | null }).quiz_passed === true,
-      projectRequired: (taskRow as { project_required: boolean | null }).project_required !== false,
+      projectRequired: (taskRow as { project_required: boolean | null }).project_required === true,
       projectPassed: finalStatus === 'passed',
     })
     const isCompleted = requirementState === 'completed'

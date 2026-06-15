@@ -28,10 +28,12 @@ Current scope:
 - GitHub portfolio analysis.
 - User dashboard and admin dashboard separation.
 - Supabase Auth and Row Level Security foundation.
+- Email, Google, and GitHub authentication UI with provider availability checks.
+- Role-specific curriculum, learning resources, quizzes, and module project gates.
+- Beginner-first sequencing: language and data foundations must appear before runtimes, frameworks, ORMs, or advanced tools.
 
 Out of scope for the current phase:
 
-- Complete sign-in and sign-out UI.
 - Admin write actions for moderation or role management.
 - Payment, subscription, or public multi-tenant organization features.
 

@@ -10,9 +10,12 @@
  */
 
 import { JobPost } from './types'
+import {
+  GEMINI_GENERATE_CONTENT_URL,
+  getGeminiRequestHeaders,
+} from '@/lib/ai/gemini-config'
 
 // Gemini API configuration
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent'
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY
 
 export interface JobClassificationResult {
@@ -331,11 +334,9 @@ export async function analyzeJobWithGemini(job: JobPost): Promise<{
   }
 
   try {
-    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+    const response = await fetch(GEMINI_GENERATE_CONTENT_URL, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getGeminiRequestHeaders(GEMINI_API_KEY),
       body: JSON.stringify({
         contents: [{
           parts: [{

@@ -521,6 +521,7 @@ export default function DashboardPage() {
         : { label: 'Save a job', href: '/jobs', icon: Briefcase, hint: 'Track a role that fits your current skills.' }
 
   const savedJobsCount = state.isDemoMode && state.jobMatchScore ? Math.max(0, Math.round(state.jobMatchScore / 20)) : 0
+  const recentActivities = state.isDemoMode ? mockActivities : []
 
   if (state.isLoading) {
     return (
@@ -909,7 +910,7 @@ export default function DashboardPage() {
 
             <Section title="Recent Activity">
               <div className="space-y-3">
-                {mockActivities.map((activity, i) => (
+                {recentActivities.map((activity, i) => (
                   <motion.div
                     key={activity.id}
                     initial={false}
@@ -928,6 +929,14 @@ export default function DashboardPage() {
                     </BrutalCard>
                   </motion.div>
                 ))}
+                {recentActivities.length === 0 && (
+                  <BrutalCard color="white" shadow="sm">
+                    <p className="font-bold">No activity recorded yet</p>
+                    <p className="mt-1 text-sm text-black/60">
+                      Complete a roadmap task or save a job to build your activity history.
+                    </p>
+                  </BrutalCard>
+                )}
               </div>
             </Section>
           </div>

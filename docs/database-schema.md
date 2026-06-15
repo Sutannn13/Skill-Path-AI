@@ -106,6 +106,7 @@ Production rollback should be forward-only unless profile role reads are removed
 `005_roadmap_persistence.sql` is additive:
 
 - Adds `roadmaps.is_active`, `roadmaps.archived_at`, and `roadmaps.context`.
+- `roadmaps.context.contentVersion` stores the application curriculum contract version without requiring a schema column.
 - Adds task ordering, week metadata, mini exercise state, deliverable state, and task `updated_at`.
 - Adds `roadmap_resources` and `roadmap_resource_progress`.
 - Enables RLS for public job source/post reads and admin ingestion-run reads.
@@ -138,3 +139,11 @@ Rollback plan for local development:
 3. Drop additive task/roadmap columns only after app code no longer references them.
 
 Production rollback should be forward-only; prefer soft migration corrections over destructive rollback.
+
+`008_quiz_answer_security.sql` is additive:
+
+- Removes authenticated client access to quiz correct answers.
+- Keeps answer-key reads inside trusted server routes.
+- Does not change roadmap ownership policies.
+
+Roadmap content repair does not delete legacy roadmap rows. It archives the previous active roadmap and creates a new active roadmap with current task keys, resources, quiz topics, and project gates.

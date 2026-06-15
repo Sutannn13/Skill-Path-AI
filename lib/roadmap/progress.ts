@@ -192,16 +192,17 @@ export function calculateTaskProgress(task: RoadmapTask) {
   if (deriveRequirementState(task) === 'completed') return 100
 
   const gate = getLearningResourceGate(task)
-  const quizDone = task.quizRequired === false || task.quizPassed === true
-  const projectDone = task.projectRequired !== true || task.projectPassed === true
+  const quizRequired = task.quizRequired !== false
+  const projectRequired = task.projectRequired === true
+  const totalWeight = 50 + (quizRequired ? 30 : 0) + (projectRequired ? 20 : 0)
 
-  let progress = 0
-  if (gate.completedVideos >= 1) progress += 25
-  if (gate.completedDocs >= 1) progress += 25
-  if (quizDone) progress += 30
-  if (projectDone) progress += 20
+  let completedWeight = 0
+  if (gate.completedVideos >= 1) completedWeight += 25
+  if (gate.completedDocs >= 1) completedWeight += 25
+  if (quizRequired && task.quizPassed === true) completedWeight += 30
+  if (projectRequired && task.projectPassed === true) completedWeight += 20
 
-  return Math.min(100, Math.max(0, Math.round(progress)))
+  return Math.min(100, Math.max(0, Math.round((completedWeight / totalWeight) * 100)))
 }
 
 export function calculateWeekProgress(week: RoadmapWeek) {

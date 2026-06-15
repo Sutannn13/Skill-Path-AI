@@ -6,6 +6,11 @@ import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { Target, Mail, Lock, User, AlertCircle, CheckCircle, ArrowRight, Eye, EyeOff, ArrowLeft, Rocket, Star, Github } from 'lucide-react'
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser'
+import {
+  getDisabledOAuthProviderMessage,
+  getOAuthProviderAvailability,
+  isOAuthProviderConfigured,
+} from '@/lib/supabase/oauth-providers'
 import { BrutalCard, BrutalButton, StickerBadge } from '@/components/brutal'
 import { cn } from '@/lib/utils'
 import { AnimatedBrutalBackground, BrutalBackgroundStyles } from '@/components/illustrations/animated-brutal-background'
@@ -137,6 +142,13 @@ export default function RegisterPage() {
     setOauthLoading(provider)
     setError(null)
     try {
+      const availability = await getOAuthProviderAvailability(provider)
+      if (availability === 'disabled') {
+        setError(getDisabledOAuthProviderMessage(provider))
+        setOauthLoading(null)
+        return
+      }
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
@@ -472,11 +484,11 @@ export default function RegisterPage() {
                         variant="outline" color="black" 
                         className="w-full shadow-brutal-sm hover:shadow-brutal active:translate-y-[2px] active:translate-x-[2px] active:shadow-none"
                         onClick={() => handleOAuthLogin('github')}
-                        disabled={oauthLoading !== null}
+                        disabled={oauthLoading !== null || !isOAuthProviderConfigured('github')}
                         loading={oauthLoading === 'github'}
                       >
                         <Github className="w-5 h-5 mr-2" />
-                        GitHub
+                        {isOAuthProviderConfigured('github') ? 'GitHub' : 'GitHub unavailable'}
                       </BrutalButton>
                       <BrutalButton 
                         variant="outline" color="black" 

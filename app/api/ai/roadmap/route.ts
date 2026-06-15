@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { generateFallbackRoadmap } from '@/lib/ai'
+import { ROADMAP_CONTENT_VERSION } from '@/lib/roadmap/content-contract'
+import {
+  GEMINI_GENERATE_CONTENT_URL,
+  getGeminiRequestHeaders,
+} from '@/lib/ai/gemini-config'
 import { z } from 'zod'
 import { TargetRole } from '@/types'
 
@@ -24,6 +29,7 @@ const roadmapRequestSchema = z.object({
 
 const roadmapResponseSchema = z.object({
   id: z.string(),
+  contentVersion: z.number().int().positive().optional(),
   title: z.string(),
   summary: z.string(),
   durationWeeks: z.number(),
@@ -98,6 +104,69 @@ const BACKEND_CURRICULUM_CLUSTERS: string[][] = [
   ['postman', 'thunder client', 'jest', 'supertest', 'documentation', 'deployment'],
 ]
 
+interface OrderedMilestone {
+  label: string
+  keywords: string[]
+}
+
+const ROLE_ORDERED_MILESTONES: Record<TargetRole, OrderedMilestone[]> = {
+  'frontend-developer': [
+    { label: 'HTML foundation', keywords: ['semantic html', 'html fundamentals'] },
+    { label: 'CSS foundation', keywords: ['css selectors', 'box model', 'css fundamentals'] },
+    { label: 'JavaScript foundation', keywords: ['javascript variables', 'javascript functions', 'control flow'] },
+    { label: 'TypeScript foundation', keywords: ['typescript primitives', 'typescript fundamentals', 'object types'] },
+    { label: 'React foundation', keywords: ['react components', 'components and props'] },
+    { label: 'Next.js or deployment', keywords: ['next.js app router', 'deployment readiness', 'deploy frontend'] },
+  ],
+  'backend-developer': [
+    { label: 'JavaScript foundation', keywords: ['javascript variables', 'javascript fundamentals', 'control flow'] },
+    { label: 'TypeScript foundation', keywords: ['typescript fundamentals', 'typescript for javascript', 'object types'] },
+    { label: 'Node.js runtime', keywords: ['node.js runtime', 'node runtime', 'basic node.js server'] },
+    { label: 'Express API', keywords: ['express routing', 'express api', 'express.js'] },
+    { label: 'SQL and PostgreSQL', keywords: ['sql basics', 'postgresql tables', 'database with postgresql'] },
+    { label: 'Authentication', keywords: ['register and login', 'password hashing', 'authentication'] },
+    { label: 'Testing and deployment', keywords: ['jest', 'supertest', 'deploy backend', 'backend deployment'] },
+  ],
+  'fullstack-developer': [
+    { label: 'HTML and CSS foundation', keywords: ['semantic html', 'html fundamentals', 'css selectors'] },
+    { label: 'JavaScript foundation', keywords: ['javascript functions', 'javascript fundamentals', 'control flow'] },
+    { label: 'TypeScript foundation', keywords: ['typescript fundamentals', 'typescript primitives'] },
+    { label: 'React foundation', keywords: ['react components', 'components and props'] },
+    { label: 'Node.js runtime', keywords: ['node.js runtime', 'node runtime', 'basic node.js server'] },
+    { label: 'Express API', keywords: ['express routing', 'express api', 'express.js'] },
+    { label: 'SQL and PostgreSQL', keywords: ['sql basics', 'postgresql', 'relational table'] },
+    { label: 'Authentication', keywords: ['registration and password', 'authentication', 'protected resources'] },
+    { label: 'Testing and deployment', keywords: ['critical fullstack flow', 'fullstack testing', 'deploy and document'] },
+  ],
+  'ui-engineer': [
+    { label: 'HTML and CSS foundation', keywords: ['semantic html', 'html fundamentals', 'css selectors'] },
+    { label: 'JavaScript foundation', keywords: ['javascript functions', 'javascript fundamentals', 'control flow'] },
+    { label: 'TypeScript foundation', keywords: ['typescript types', 'typescript fundamentals', 'typescript primitives'] },
+    { label: 'React foundation', keywords: ['react components', 'components, props, and state'] },
+    { label: 'Accessibility', keywords: ['keyboard paths', 'accessibility', 'semantic interaction'] },
+    { label: 'Design systems', keywords: ['design systems', 'design tokens', 'component documentation'] },
+    { label: 'Testing and performance', keywords: ['test component', 'rendering performance', 'ui testing'] },
+  ],
+  'mobile-developer': [
+    { label: 'JavaScript foundation', keywords: ['javascript variables', 'javascript fundamentals', 'control flow'] },
+    { label: 'TypeScript foundation', keywords: ['typescript fundamentals', 'typescript for app data'] },
+    { label: 'React foundation', keywords: ['react components', 'components, props, and state'] },
+    { label: 'Expo and React Native', keywords: ['create and run an expo', 'react native core components', 'expo project'] },
+    { label: 'Navigation', keywords: ['expo router', 'file-based navigation', 'mobile navigation'] },
+    { label: 'Networking and storage', keywords: ['fetch api data', 'mobile networking', 'async storage'] },
+    { label: 'Testing and distribution', keywords: ['test screens', 'mobile testing', 'release build with eas'] },
+  ],
+  'data-analyst': [
+    { label: 'Data literacy', keywords: ['rows, columns', 'data literacy', 'tidy tables'] },
+    { label: 'Spreadsheet foundation', keywords: ['spreadsheet formulas', 'spreadsheet basics', 'sorting and filtering'] },
+    { label: 'Analysis framing', keywords: ['analytical question', 'problem framing', 'data quality'] },
+    { label: 'SQL foundation', keywords: ['select and column', 'sql basics', 'sql foundations'] },
+    { label: 'Python foundation', keywords: ['python basics', 'python fundamentals'] },
+    { label: 'pandas', keywords: ['pandas dataframe', 'pandas fundamentals'] },
+    { label: 'Visualization and reporting', keywords: ['data visualizations', 'dashboard story', 'portfolio report'] },
+  ],
+}
+
 function normalizeText(input: string | null | undefined) {
   return (input ?? '').toLowerCase()
 }
@@ -119,6 +188,29 @@ function collectRoadmapText(roadmap: z.infer<typeof roadmapResponseSchema>) {
   return normalizeText(`${roadmap.title} ${roadmap.summary} ${weekText} ${finalProjectText}`)
 }
 
+function hasOrderedBeginnerMilestones(
+  roadmap: z.infer<typeof roadmapResponseSchema>,
+  role: TargetRole
+) {
+  const taskSegments = roadmap.weeks.flatMap((week) =>
+    week.tasks.map((task) =>
+      normalizeText(`${task.title} ${task.description} ${task.deliverable}`)
+    )
+  )
+  let previousIndex = -1
+
+  return ROLE_ORDERED_MILESTONES[role].every((milestone) => {
+    const milestoneIndex = taskSegments.findIndex((segment, index) =>
+      index > previousIndex &&
+      milestone.keywords.some((keyword) => segment.includes(keyword))
+    )
+
+    if (milestoneIndex === -1) return false
+    previousIndex = milestoneIndex
+    return true
+  })
+}
+
 function isBackendRoadmapAligned(roadmap: z.infer<typeof roadmapResponseSchema>) {
   const fullText = collectRoadmapText(roadmap)
   const frontendHits = FRONTEND_HEAVY_KEYWORDS.filter((keyword) => fullText.includes(keyword)).length
@@ -137,7 +229,95 @@ function isBackendRoadmapAligned(roadmap: z.infer<typeof roadmapResponseSchema>)
     (finalProjectText.includes('auth') || finalProjectText.includes('authorization')) &&
     finalProjectText.includes('postgres')
 
-  return hasEnoughWeeks && clusterHits >= BACKEND_CURRICULUM_CLUSTERS.length && frontendHits <= 3 && finalProjectAligned
+  return (
+    hasEnoughWeeks &&
+    clusterHits >= BACKEND_CURRICULUM_CLUSTERS.length &&
+    frontendHits <= 3 &&
+    finalProjectAligned &&
+    hasOrderedBeginnerMilestones(roadmap, 'backend-developer')
+  )
+}
+
+const ROLE_ALIGNMENT_RULES: Record<Exclude<TargetRole, 'backend-developer'>, {
+  requiredClusters: string[][]
+  forbiddenKeywords: string[]
+  maxForbiddenHits: number
+}> = {
+  'frontend-developer': {
+    requiredClusters: [
+      ['html', 'css', 'semantic'],
+      ['javascript', 'typescript'],
+      ['react', 'component', 'state'],
+      ['next.js', 'app router', 'deployment'],
+    ],
+    forbiddenKeywords: ['bcrypt', 'prisma migration', 'express controller', 'postgresql schema'],
+    maxForbiddenHits: 1,
+  },
+  'fullstack-developer': {
+    requiredClusters: [
+      ['html', 'css', 'javascript', 'typescript'],
+      ['react', 'frontend'],
+      ['node', 'express', 'rest api'],
+      ['postgres', 'sql', 'database'],
+      ['auth', 'authorization', 'session'],
+      ['test', 'deployment'],
+    ],
+    forbiddenKeywords: [],
+    maxForbiddenHits: 0,
+  },
+  'ui-engineer': {
+    requiredClusters: [
+      ['react', 'component'],
+      ['accessibility', 'keyboard', 'focus'],
+      ['design system', 'design token', 'storybook'],
+      ['testing', 'performance'],
+    ],
+    forbiddenKeywords: ['bcrypt', 'prisma', 'express routing', 'postgresql crud'],
+    maxForbiddenHits: 0,
+  },
+  'mobile-developer': {
+    requiredClusters: [
+      ['react native', 'expo'],
+      ['navigation', 'expo router'],
+      ['api', 'network', 'storage', 'offline'],
+      ['testing', 'eas', 'build'],
+    ],
+    forbiddenKeywords: ['next.js', 'express server', 'postgresql schema', 'css grid'],
+    maxForbiddenHits: 0,
+  },
+  'data-analyst': {
+    requiredClusters: [
+      ['sql', 'postgres'],
+      ['python', 'pandas'],
+      ['data cleaning', 'data quality'],
+      ['visualization', 'dashboard', 'chart'],
+    ],
+    forbiddenKeywords: ['react component', 'next.js', 'express routing', 'node.js server', 'html form'],
+    maxForbiddenHits: 0,
+  },
+}
+
+function isRoadmapAlignedForRole(
+  roadmap: z.infer<typeof roadmapResponseSchema>,
+  role: TargetRole
+) {
+  if (role === 'backend-developer') {
+    return isBackendRoadmapAligned(roadmap)
+  }
+
+  const rules = ROLE_ALIGNMENT_RULES[role]
+  const fullText = collectRoadmapText(roadmap)
+  const requiredHits = rules.requiredClusters.filter((cluster) =>
+    cluster.some((keyword) => fullText.includes(keyword))
+  ).length
+  const forbiddenHits = rules.forbiddenKeywords.filter((keyword) => fullText.includes(keyword)).length
+
+  return (
+    roadmap.weeks.length >= 6 &&
+    requiredHits === rules.requiredClusters.length &&
+    forbiddenHits <= rules.maxForbiddenHits &&
+    hasOrderedBeginnerMilestones(roadmap, role)
+  )
 }
 
 function getRoleSpecificPrompt(role: TargetRole) {
@@ -145,49 +325,86 @@ function getRoleSpecificPrompt(role: TargetRole) {
     case 'backend-developer':
       return `Backend-specific constraints (must follow):
 - Use this 6-module sequence in order:
-  1) Programming & Web Foundation (JS/TS basics, HTTP, JSON, Git)
-  2) Node.js Backend Fundamentals
+  1) JavaScript and Web Foundations
+     - JavaScript variables, data types, control flow
+     - functions, arrays, and objects
+     - async JavaScript, modules, and errors
+     - TypeScript fundamentals only after those JavaScript tasks
+     - HTTP request/response, status codes, and JSON
+  2) Node.js Backend Fundamentals (terminal, Git, npm, Node runtime, environment, basic server, project structure)
   3) Express.js & REST API
   4) Database with PostgreSQL (Prisma)
   5) Authentication & Authorization (JWT, Bcrypt)
   6) Testing, Documentation, and Deployment
+- Never combine JavaScript and TypeScript into the first task.
+- Teach the programming language before Node.js, and teach a basic Node.js server before Express.
 - Include mini project per module and make the final project an E-commerce Backend API.
 - Do NOT use frontend-heavy modules as core topics (React fundamentals, CSS mastery, UI components, React state management, Next.js frontend deployment).
 - Frontend can appear only as optional context, never as the main weekly objective.`
 
     case 'frontend-developer':
-    case 'ui-engineer':
       return `Frontend-specific constraints (must follow):
 - Use this 6-module sequence in order:
-  1) Web Fundamentals (HTML, CSS, DOM)
-  2) JavaScript & Async JS
-  3) React Fundamentals (Components, Props, State)
-  4) Advanced React (Hooks, Context, Routing)
-  5) Next.js App Router Basics
-  6) API Integration & Deployment
+  1) HTML and CSS Foundations
+  2) JavaScript functions, data, DOM, and async JavaScript
+  3) TypeScript first, then React components, props, and state
+  4) React data flow and API integration
+  5) Next.js, testing, and deployment
+  6) Portfolio capstone
+- Keep JavaScript tasks before TypeScript and React tasks.
 - Do NOT include backend-heavy modules (Node.js servers, PostgreSQL, Database schema, Express routing, Bcrypt password hashing).
 - Backend concepts should only be mentioned in the context of "fetching from an API".`
 
+    case 'ui-engineer':
+      return `UI Engineer-specific constraints (must follow):
+- Use this 6-module sequence in order:
+  1) Semantic HTML and CSS layout foundations
+  2) JavaScript functions/data/async behavior, then TypeScript, then React
+  3) Accessible interaction and responsive component patterns
+  4) Design systems, tokens, and component documentation
+  5) UI behavior testing, accessibility verification, and measured performance
+  6) Accessible UI system portfolio
+- Do not introduce React before JavaScript and TypeScript foundation tasks.
+- Do not include backend implementation topics such as Express, PostgreSQL, Prisma, Bcrypt, or JWT.`
+
     case 'fullstack-developer':
       return `Fullstack-specific constraints (must follow):
-- Blend frontend and backend logically across weeks:
-  1) Web & JS/TS Fundamentals
-  2) Frontend with React
-  3) Node.js & Express Basics
-  4) Database Integration (PostgreSQL)
-  5) Fullstack Auth (JWT & React Context)
-  6) Next.js Fullstack & Deployment
+- Use this beginner sequence:
+  1) HTML, CSS, and basic JavaScript
+  2) JavaScript functions/data/DOM/async, then TypeScript
+  3) React components, state, forms, and API data
+  4) Node.js runtime and basic server, then Express REST API
+  5) SQL/PostgreSQL persistence, then authentication and ownership
+  6) Fullstack integration, tests, documentation, and deployment
+- Never jump from one JavaScript basics task directly into TypeScript/React.
+- Build a basic Node.js server before introducing Express.
 - Keep a balance. Do not skew too heavily into one side.`
 
     case 'mobile-developer':
       return `Mobile-specific constraints (must follow):
-- Focus entirely on mobile app development (React Native or Flutter).
+- Use React Native with Expo for this curriculum.
+- Use this beginner sequence:
+  1) JavaScript fundamentals, async JavaScript, TypeScript, then React components/state
+  2) Create the Expo project, then learn React Native core components, styling, forms, and accessibility
+  3) Navigation and application state
+  4) Networking, storage, permissions, and offline behavior
+  5) Testing, errors, performance, and accessibility
+  6) EAS build and mobile portfolio
+- Never introduce React Native components before the Expo project exists.
 - Do NOT include deep backend development (Express, PostgreSQL) or deep web frontend (Next.js, complex CSS grids).
 - API integration is fine, but building the API is out of scope.`
 
     case 'data-analyst':
       return `Data Analyst-specific constraints (must follow):
-- Focus entirely on data skills (SQL, Python/Pandas, Data Visualization).
+- Use this beginner sequence:
+  1) Rows, columns, data types, tidy tables, spreadsheet formulas, sorting, filtering, problem framing, and data quality
+  2) SQL SELECT, filtering, aggregation, and JOIN
+  3) Intermediate SQL and evidence-based insight writing
+  4) Python fundamentals before pandas, then data cleaning and EDA
+  5) Visualization, descriptive statistics, and dashboard storytelling
+  6) Reproducible portfolio analysis
+- Do not introduce SQL before basic tabular data and spreadsheet operations.
+- Do not introduce pandas before a Python fundamentals task.
 - Do NOT include Web Development (React, Express, Node.js, HTML/CSS).`
 
     default:
@@ -200,7 +417,6 @@ function getRoleSpecificPrompt(role: TargetRole) {
 
 // Gemini API configuration
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent'
 const GEMINI_TIMEOUT_MS = 12000
 const GEMINI_MAX_ATTEMPTS = 3
 const GEMINI_BASE_BACKOFF_MS = 300
@@ -325,12 +541,10 @@ Requirements:
 
       try {
         response = await fetch(
-          `${GEMINI_API_URL}?key=${GEMINI_API_KEY}`,
+          GEMINI_GENERATE_CONTENT_URL,
           {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
+            headers: getGeminiRequestHeaders(GEMINI_API_KEY),
             body: JSON.stringify({
               contents: [{
                 parts: [{
@@ -385,11 +599,14 @@ Requirements:
     const parsed = JSON.parse(cleanedText)
     const validated = roadmapResponseSchema.parse(parsed)
 
-    if (input.targetRole === 'backend-developer' && !isBackendRoadmapAligned(validated)) {
+    if (!isRoadmapAlignedForRole(validated, input.targetRole)) {
       return null
     }
 
-    return validated
+    return {
+      ...validated,
+      contentVersion: ROADMAP_CONTENT_VERSION,
+    }
   } catch (error) {
     console.error('Gemini generation error:', error)
     return null

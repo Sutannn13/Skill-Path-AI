@@ -287,7 +287,6 @@ export default function OnboardingPage() {
           }
         }
 
-        syncLocalProfile(formData)
         setStatusMessage({ type: 'success', text: 'Career profile saved successfully. Redirecting to dashboard...' })
         setTimeout(() => {
           router.push('/dashboard')

@@ -1,7 +1,7 @@
 'use client'
 
 import { cn } from '@/lib/utils'
-import { DesktopSidebar } from './app-sidebar'
+import { DesktopSidebar, type SidebarUserProfile } from './app-sidebar'
 import { MobileBottomNav } from './mobile-bottom-nav'
 
 interface AppShellProps {
@@ -9,12 +9,7 @@ interface AppShellProps {
   className?: string
   showBottomNav?: boolean
   showSidebar?: boolean
-  userProfile?: {
-    roleLabel?: string
-    level?: number
-    progress?: number
-    streak?: number
-  }
+  userProfile?: SidebarUserProfile
 }
 
 export function AppShell({

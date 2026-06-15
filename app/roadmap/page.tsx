@@ -10,6 +10,10 @@ import { BrutalCard, BrutalButton, SkillBadge, ScoreBar } from '@/components/bru
 import { CatMascot } from '@/components/illustrations/cat-mascot'
 import { PageScene } from '@/components/illustrations/page-scene'
 import { generateFallbackRoadmap } from '@/lib/ai'
+import {
+  ROADMAP_CONTENT_VERSION,
+  taskRequiresModuleProject,
+} from '@/lib/roadmap/content-contract'
 import { getCuratedResourcesForTask, isResourceLikelyRelevant } from '@/lib/roadmap/resources'
 import {
   calculateOverallProgress,
@@ -98,6 +102,7 @@ interface RoadmapRow {
     studyTime?: string | null
     missingSkills?: string[] | null
     finalPortfolioProject?: Roadmap['finalPortfolioProject']
+    contentVersion?: number | null
   } | null
   created_at: string
 }
@@ -227,7 +232,8 @@ function withGeneratedResources(roadmap: Roadmap, targetRole?: TargetRole | null
 }
 
 function resolveRoadmapContext(profile?: ProfileRow | null) {
-  const localProfile = typeof window !== 'undefined' ? initializeUserProfile() : null
+  const useLocalProfile = profile === undefined
+  const localProfile = useLocalProfile && typeof window !== 'undefined' ? initializeUserProfile() : null
   const targetRole = profile?.target_role ?? localProfile?.targetRole ?? DEFAULT_TARGET_ROLE
 
   return {
@@ -338,8 +344,12 @@ async function ensurePersistedResourcesForTasks(input: {
     const relevantResources = uniqueLoadedResources.filter((resource) =>
       isResourceRelevantForTask(task, week, resource, targetRole)
     )
+    const hasRelevantVideo = relevantResources.some((resource) => resource.resourceType === 'youtube')
+    const hasRelevantDocs = relevantResources.some((resource) =>
+      resource.resourceType === 'docs' || resource.resourceType === 'article'
+    )
 
-    if (relevantResources.length > 0) continue
+    if (hasRelevantVideo && hasRelevantDocs) continue
 
     const existingTaskResourceKeys = new Set(
       loadedRows.map((resource) => `${resource.resource_type}:${resource.url.trim() || resource.title.trim().toLowerCase()}`)
@@ -347,6 +357,9 @@ async function ensurePersistedResourcesForTasks(input: {
     const generatedResources = getCuratedResourcesForTask(task, week, { targetRole, usedUrls })
 
     generatedResources.forEach((resource, index) => {
+      if (resource.resourceType === 'youtube' && hasRelevantVideo) return
+      if ((resource.resourceType === 'docs' || resource.resourceType === 'article') && hasRelevantDocs) return
+
       const resourceKey = `${resource.resourceType}:${resource.url.trim() || resource.title.trim().toLowerCase()}`
       if (existingTaskResourceKeys.has(resourceKey)) return
       existingTaskResourceKeys.add(resourceKey)
@@ -424,29 +437,26 @@ function getNextActionLabel(roadmap: Roadmap, weekIndex: number, taskId: string)
   return getNextActionText(task, gate)
 }
 
-function isBackendRoadmapMismatch(roadmap: Roadmap) {
-  const title = roadmap.title.toLowerCase()
-  if (!title.includes('backend')) {
-    return false
+function getRoadmapRepairReason(roadmap: Roadmap) {
+  if (roadmap.contentVersion !== ROADMAP_CONTENT_VERSION) {
+    return 'This roadmap uses an older curriculum version that can contain mismatched modules, resources, or quizzes.'
   }
 
-  const source = roadmap.weeks
-    .flatMap((week) => [
-      week.title,
-      week.goal,
-      ...week.focusSkills,
-      ...week.tasks.map((task) => `${task.title} ${task.description} ${task.deliverable}`),
-    ])
-    .join(' ')
-    .toLowerCase()
+  const hasIncompleteResourceSet = roadmap.weeks.some((week) =>
+    week.tasks.some((task) => {
+      const resources = task.resources ?? []
+      const hasVideo = resources.some((resource) => resource.resourceType === 'youtube' && !isResourceUnavailable(resource))
+      const hasDocs = resources.some((resource) =>
+        (resource.resourceType === 'docs' || resource.resourceType === 'article') &&
+        !isResourceUnavailable(resource)
+      )
+      return !hasVideo || !hasDocs
+    })
+  )
 
-  const frontendHints = ['react', 'next.js', 'nextjs', 'css', 'html', 'tailwind', 'state management', 'ui component']
-  const backendHints = ['node', 'express', 'rest api', 'postgres', 'sql', 'auth', 'jwt', 'bcrypt', 'middleware', 'prisma']
-
-  const frontendHits = frontendHints.filter((hint) => source.includes(hint)).length
-  const backendHits = backendHints.filter((hint) => source.includes(hint)).length
-
-  return frontendHits >= 3 && frontendHits >= backendHits
+  return hasIncompleteResourceSet
+    ? 'One or more tasks do not have a validated video and documentation pair.'
+    : null
 }
 
 function findTask(roadmap: Roadmap, taskId: string) {
@@ -558,6 +568,7 @@ function buildRoadmapFromRows(
 
   return {
     id: roadmapRow.id,
+    contentVersion: roadmapRow.context?.contentVersion ?? undefined,
     title: roadmapRow.title,
     summary: roadmapRow.summary ?? '',
     durationWeeks: roadmapRow.duration_weeks ?? weeks.size,
@@ -691,11 +702,11 @@ export default function RoadmapPage() {
 
   const seedRoadmapAssessments = async (roadmapId: string, taskRows: Array<{
     id: string
+    task_key: string | null
     title: string
     description: string
     focus_skills: string[] | null
-    mini_project: RoadmapWeek['miniProject'] | null
-    deliverable: string
+    project_required: boolean | null
   }>) => {
     const response = await fetch('/api/roadmap/quiz/seed', {
       method: 'POST',
@@ -706,10 +717,11 @@ export default function RoadmapPage() {
         roadmapId,
         tasks: taskRows.map((task) => ({
           id: task.id,
+          taskKey: task.task_key ?? undefined,
           title: task.title,
           description: task.description,
           focusSkills: task.focus_skills ?? [],
-          requiresProject: Boolean(task.mini_project) || /project|deploy|portfolio/i.test(`${task.title} ${task.deliverable}`),
+          requiresProject: task.project_required === true,
         })),
       }),
     })
@@ -725,7 +737,7 @@ export default function RoadmapPage() {
     let isActive = true
 
     const loadLatestRoadmap = async (userId: string) => {
-      if (!supabase) return null
+      if (!supabase) return undefined
 
       const { data: roadmapRow, error: roadmapError } = await supabase
         .from('roadmaps')
@@ -744,7 +756,7 @@ export default function RoadmapPage() {
         if (isActive) {
           setFinalProjectStatus(null)
         }
-        return null
+        return undefined
       }
 
       const typedRoadmap = roadmapRow as RoadmapRow
@@ -919,6 +931,7 @@ export default function RoadmapPage() {
             studyTime,
             targetRoleLabel: getRoleById(targetRole)?.label ?? targetRole,
             finalPortfolioProject: roadmapWithResources.finalPortfolioProject ?? null,
+            contentVersion: ROADMAP_CONTENT_VERSION,
           },
         })
         .select('id, title, summary, duration_weeks, source, context, final_project_status, created_at')
@@ -949,7 +962,7 @@ export default function RoadmapPage() {
           mini_project: week.miniProject ?? null,
           quiz_required: true,
           quiz_passed: false,
-          project_required: false,
+          project_required: taskRequiresModuleProject(taskIndex, week.tasks.length, Boolean(week.miniProject)),
           project_passed: false,
           requirement_state: 'resources_pending',
         }))
@@ -997,11 +1010,11 @@ export default function RoadmapPage() {
       try {
         await seedRoadmapAssessments(inserted.id, taskRows.map((task) => ({
           id: task.id,
+          task_key: task.task_key,
           title: task.title,
           description: task.description ?? '',
           focus_skills: task.focus_skills ?? [],
-          mini_project: task.mini_project ?? null,
-          deliverable: task.deliverable ?? '',
+          project_required: task.project_required,
         })))
       } catch (seedError) {
         if (IS_DEVELOPMENT) {
@@ -1060,11 +1073,12 @@ export default function RoadmapPage() {
         }
 
         if (savedRoadmap) {
-          if (isBackendRoadmapMismatch(savedRoadmap)) {
+          const repairReason = getRoadmapRepairReason(savedRoadmap)
+          if (repairReason) {
             if (isActive) {
               setRoadmap(null)
               setMode('repair')
-              setStatusMessage('Detected roadmap-role mismatch for Backend Developer. Click repair to regenerate backend-aligned modules and resources.')
+              setStatusMessage(`${repairReason} Repair it to generate role-aligned modules, resources, quizzes, and project gates.`)
             }
             return
           }
@@ -1345,26 +1359,6 @@ export default function RoadmapPage() {
     setSaveState('saving')
     setSaveMessage('Generating new roadmap...')
 
-    // Archive current active roadmap before regenerating
-    try {
-      const { error: archiveError } = await supabase
-        .from('roadmaps')
-        .update({
-          is_active: false,
-          archived_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq('user_id', currentUserId)
-        .eq('is_active', true)
-
-      if (archiveError) {
-        // Non-fatal - continue with generation
-        console.warn('[Roadmap] Failed to archive old roadmap:', archiveError.message)
-      }
-    } catch (archiveWarning) {
-      console.warn('[Roadmap] Archive warning:', archiveWarning instanceof Error ? archiveWarning.message : archiveWarning)
-    }
-
     try {
       const generated = await (async () => {
         const generateAndSave = async () => {
@@ -1444,6 +1438,7 @@ export default function RoadmapPage() {
                 studyTime,
                 targetRoleLabel: getRoleById(targetRole)?.label ?? targetRole,
                 finalPortfolioProject: roadmapWithResources.finalPortfolioProject ?? null,
+                contentVersion: ROADMAP_CONTENT_VERSION,
               },
             })
             .select('id, title, summary, duration_weeks, source, context, final_project_status, created_at')
@@ -1474,7 +1469,7 @@ export default function RoadmapPage() {
               mini_project: week.miniProject ?? null,
               quiz_required: true,
               quiz_passed: false,
-              project_required: false,
+              project_required: taskRequiresModuleProject(taskIndex, week.tasks.length, Boolean(week.miniProject)),
               project_passed: false,
               requirement_state: 'resources_pending',
             }))
@@ -1522,11 +1517,11 @@ export default function RoadmapPage() {
           try {
             await seedRoadmapAssessments(inserted.id, taskRows.map((task) => ({
               id: task.id,
+              task_key: task.task_key,
               title: task.title,
               description: task.description ?? '',
               focus_skills: task.focus_skills ?? [],
-              mini_project: task.mini_project ?? null,
-              deliverable: task.deliverable ?? '',
+              project_required: task.project_required,
             })))
           } catch (seedError) {
             if (IS_DEVELOPMENT) {
@@ -1889,7 +1884,6 @@ export default function RoadmapPage() {
                                         taskNumber={taskIndex + 1}
                                         isFocused={isCurrentTask}
                                         isLocked={taskLocked}
-                                        hasMiniProject={Boolean(week.miniProject)}
                                         onFocus={() => {
                                           setFocusedTaskByWeek((previous) => ({
                                             ...previous,
@@ -2072,15 +2066,15 @@ function getRequirementBadgeStyles(state: RoadmapTaskRequirementState) {
   return styles[state]
 }
 
-function getTaskProgressSnapshot(task: RoadmapTask, hasMiniProject: boolean) {
+function getTaskProgressSnapshot(task: RoadmapTask) {
   const resourceGate = getLearningResourceGate(task)
   const quizRequired = task.quizRequired !== false
-  const projectRequired = task.projectRequired === true || hasMiniProject
-  const checklistTotal = projectRequired ? 3 : 2
+  const projectRequired = task.projectRequired === true
+  const checklistTotal = 1 + (quizRequired ? 1 : 0) + (projectRequired ? 1 : 0)
   const checklistDone = [
     resourceGate.resourcesComplete,
-    !quizRequired || task.quizPassed === true,
-    !projectRequired || task.projectPassed === true,
+    quizRequired && task.quizPassed === true,
+    projectRequired && task.projectPassed === true,
   ].filter(Boolean).length
 
   return {
@@ -2095,7 +2089,6 @@ function CompactTaskRow({
   taskNumber,
   isFocused,
   isLocked,
-  hasMiniProject,
   onFocus,
   onOpenWorkspace,
 }: {
@@ -2103,12 +2096,11 @@ function CompactTaskRow({
   taskNumber: number
   isFocused: boolean
   isLocked: boolean
-  hasMiniProject: boolean
   onFocus: () => void
   onOpenWorkspace?: () => void
 }) {
   const requirementState = task.requirementState ?? deriveRequirementState(task)
-  const { progressPercent, checklistDone, checklistTotal } = getTaskProgressSnapshot(task, hasMiniProject)
+  const { progressPercent, checklistDone, checklistTotal } = getTaskProgressSnapshot(task)
   const difficultyStyles: Record<RoadmapTask['difficulty'], string> = {
     easy: 'text-green',
     medium: 'text-yellow',
@@ -2214,7 +2206,7 @@ function TaskDetailPanel({
   const resourceGate = getLearningResourceGate(task)
   const requirementHint = getRequirementHint(task)
   const requirementState = task.requirementState ?? deriveRequirementState(task)
-  const hasMiniProject = task.projectRequired === true || Boolean(week.miniProject)
+  const hasMiniProject = task.projectRequired === true
   const quizLockReason = task.quizPassed ? null : getQuizLockReason(task)
   const projectLockReason = task.projectPassed ? null : getProjectLockReason(task, hasMiniProject)
   const canOpenQuiz = !isTaskLocked && (task.quizPassed || quizLockReason === null)

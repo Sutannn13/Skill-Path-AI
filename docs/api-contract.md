@@ -92,6 +92,8 @@ Generates a structured learning roadmap from user goals and skill context.
 Behavior:
 
 - Uses Gemini when `GEMINI_API_KEY` is configured.
+- Uses the server-only `GEMINI_MODEL` setting, defaulting to `gemini-3.5-flash`.
+- Validates semantic role alignment for all supported roles before accepting AI output.
 - Falls back to deterministic templates when AI is unavailable.
 - Validates input on the server.
 
@@ -129,8 +131,9 @@ Seeds deterministic quiz metadata and 10 curated multiple-choice questions per r
 Behavior:
 
 - Requires authenticated user and roadmap ownership.
-- Uses server-side skill inference and curated question bank.
+- Uses task-key contracts first and task-local inference only for non-template AI tasks.
 - Stores quiz metadata in `roadmap_quizzes` and answer keys in `roadmap_quiz_questions`.
+- Replaces existing questions when their topic metadata or question count no longer matches the task contract.
 - Updates task requirement flags (`quiz_required`, `project_required`, `requirement_state`).
 
 ## `POST /api/roadmap/quiz/start`
@@ -163,7 +166,7 @@ Submits mini/final project URLs and runs rule-first review with optional Gemini 
 Behavior:
 
 - Requires authenticated user and roadmap ownership.
-- For `mini_project`, requires `roadmapTaskId`, task ownership in the same roadmap, passed quiz (when required), and an actual project requirement (`project_required` or `mini_project` context).
+- For `mini_project`, requires `roadmapTaskId`, task ownership in the same roadmap, passed quiz (when required), and `project_required=true`.
 - Performs deterministic checks first (URL validity, repo accessibility, README/activity signals).
 - Uses Gemini only after rule checks and within a daily guard.
 - Falls back to rule-only review if AI is unavailable.
@@ -181,7 +184,7 @@ Loads the latest mini or final project submission + review summary for the curre
 | `/dashboard` | `user` | User learning dashboard. Admin sessions redirect to `/admin`. Signed-in users with an active roadmap see roadmap-derived progress, completed task counts, and the next task instead of demo-derived progress numbers. |
 | `/admin` | `admin` | Admin operations dashboard. Non-admin users see an admin-only state. |
 | `/onboarding` | `user` or demo | Career setup flow. Middleware redirects logged-out users to `/login` when Supabase is configured. |
-| `/roadmap` | `user` or demo | Loads latest active Supabase roadmap, creates one when missing, persists task/resource progress, and asks before regeneration. When an existing roadmap has no usable resource rows for a task, the page inserts curated `roadmap_resources` rows with real UUIDs before saving `roadmap_resource_progress`. Task cards show learning map states, resource/checklist gates, and navigation actions only (no inline quiz or inline project submission form). The final project CTA is locked on the roadmap screen until all learning tasks are complete, while existing submissions remain viewable. |
+| `/roadmap` | `user` or demo | Loads the current user's latest active roadmap, validates its content version, filters unrelated persisted resources, inserts any missing relevant video/documentation pair, and asks before archiving and repairing a legacy roadmap. Only the final task in each module requires the module mini project. |
 | `/roadmap/tasks/[taskId]/quiz` | `user` | Focused quiz workflow per task. Reads ownership/resource gates, starts quiz from `/api/roadmap/quiz/start`, submits answers to `/api/roadmap/quiz/submit`, and surfaces feedback. |
 | `/roadmap/tasks/[taskId]/project` | `user` | Focused mini project submission/review workflow. Reads latest review with `/api/roadmap/project-review` `GET` and submits with `POST`. |
 | `/roadmap/final-project` | `user` | Focused final portfolio submission/review workflow backed by `/api/roadmap/project-review` with `projectType=final_project`. |
@@ -189,5 +192,7 @@ Loads the latest mini or final project submission + review summary for the curre
 | `/github` | `user` or demo | Calls `/api/github/analyze` and renders only the requested username's result unless demo is explicitly chosen. |
 | `/skills`, `/sprint`, `/settings`, `/projects` | `user` or demo | Protected app surfaces when Supabase is configured; demo mode remains available when Supabase env vars are missing. |
 | `/login`, `/register`, `/forgot-password`, `/reset-password` | Public auth | Logged-in users visiting `/login` or `/register` are redirected to `/dashboard`. |
+
+Login and register check Supabase Auth provider settings before OAuth redirect. Disabled providers return a local user-facing setup message.
 
 Authorization must be enforced on the server. UI-only role checks are not security boundaries.

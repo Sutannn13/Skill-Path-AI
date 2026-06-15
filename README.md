@@ -26,6 +26,7 @@ Phase 0 and Phase 1 establish the security and auth foundation:
 - Middleware keeps app surfaces inside the authenticated flow when Supabase is configured.
 - `/github` calls the real GitHub analysis route and keeps mock data behind an explicit demo action.
 - `/roadmap` persists active roadmaps, task gates, learning resources, and resource progress in Supabase.
+- Roadmap curriculum version 3 enforces beginner-first prerequisites, then maps every task to deterministic role-specific resources and quizzes.
 - `/roadmap/tasks/[taskId]/quiz`, `/roadmap/tasks/[taskId]/project`, and `/roadmap/final-project` handle focused assessment and submission flows outside the roadmap map screen.
 - `/jobs` reads durable `job_posts`, adds explicit Indonesia curated top-up data when the result set is short, ranks jobs by the user's career profile, logs cron runs, applies freshness rules, and persists `saved_jobs`.
 
@@ -45,8 +46,10 @@ Open `http://localhost:3000`.
 | --- | --- | --- |
 | `NEXT_PUBLIC_SUPABASE_URL` | Auth and persistence | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Auth and persistence | Supabase anonymous key |
+| `NEXT_PUBLIC_SUPABASE_OAUTH_PROVIDERS` | Recommended | Comma-separated provider allowlist; defaults to `google` |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server admin work | Trusted server-side admin operations only |
 | `GEMINI_API_KEY` | Optional | AI roadmap and job analysis |
+| `GEMINI_MODEL` | Optional | Server-side Gemini model override; defaults to `gemini-3.5-flash` |
 | `GITHUB_TOKEN` | Optional | Higher GitHub REST API rate limits |
 | `ADZUNA_APP_ID` | Optional | Adzuna job source |
 | `ADZUNA_APP_KEY` | Optional | Adzuna job source |
@@ -61,7 +64,18 @@ Apply migrations in order:
 supabase db push
 ```
 
-The latest additive migration is `supabase/migrations/006_learning_assessment_system.sql`. It adds roadmap quizzes, quiz attempts, mini/final project submissions, project reviews, and assessment state fields. Run migrations in order so `005_roadmap_persistence.sql` is applied before `006_learning_assessment_system.sql`.
+The latest additive migration is `supabase/migrations/008_quiz_answer_security.sql`. Run all migrations in order. Roadmap persistence starts in `005`, learning assessment starts in `006`, job radar additions are in `007`, and quiz answer visibility is hardened in `008`.
+
+## OAuth Providers
+
+Enable each social provider in Supabase Auth before exposing it to users:
+
+1. Open Supabase Dashboard, then Authentication, Providers.
+2. Enable Google and/or GitHub.
+3. Add the provider client ID and client secret.
+4. Add `http://localhost:3000/auth/callback` for local development and the deployed `/auth/callback` URL for production.
+
+The login and register pages check `/auth/v1/settings` before redirecting. A disabled provider now shows a local setup message instead of navigating to a raw Supabase `Unsupported provider` response.
 
 To promote an admin, run a trusted SQL update after the user's profile exists:
 
@@ -79,6 +93,9 @@ Do not allow users to update `profiles.role` from client code.
 npm run dev
 npm run lint
 npm run typecheck
+npm run validate
+npm run audit:roadmap-matrix
+npm run audit:roadmap-links
 npm run build
 ```
 

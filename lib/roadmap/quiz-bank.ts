@@ -1,3 +1,6 @@
+import { getTaskQuizSkill } from '@/lib/roadmap/content-contract'
+import { SPECIALIZED_QUIZ_BANK } from '@/lib/roadmap/specialized-quiz-bank'
+
 export const QUIZ_PASSING_SCORE = 80
 export const QUIZ_QUESTION_COUNT = 10
 
@@ -11,6 +14,7 @@ export interface QuizQuestionSeed {
 }
 
 const QUIZ_BANK: Record<string, QuizQuestionSeed[]> = {
+  ...SPECIALIZED_QUIZ_BANK,
   html: [
     {
       questionText: 'Which HTML element is best for the main content area of a page?',
@@ -943,6 +947,20 @@ const SKILL_ALIASES: Record<string, string> = {
   git: 'git',
   github: 'git',
   'git/github': 'git',
+  accessibility: 'accessibility',
+  a11y: 'accessibility',
+  'design systems': 'design systems',
+  'design system': 'design systems',
+  'react native': 'react native',
+  expo: 'react native',
+  python: 'python',
+  pandas: 'python',
+  'data analysis': 'data analysis',
+  'data visualization': 'data analysis',
+  statistics: 'data analysis',
+  deployment: 'deployment',
+  documentation: 'documentation',
+  docs: 'documentation',
 }
 
 function normalize(value: string) {
@@ -966,26 +984,39 @@ export function getCuratedQuizQuestions(skill: string, count = QUIZ_QUESTION_COU
   return bank.slice(0, count)
 }
 
-export function inferQuizSkillFromTask(task: { title: string; description: string; focusSkills?: string[] }) {
-  const candidates = [
-    ...(task.focusSkills ?? []),
-    task.title,
-    task.description,
-  ]
+export function inferQuizSkillFromTask(task: {
+  id?: string
+  taskKey?: string
+  title: string
+  description: string
+  focusSkills?: string[]
+}) {
+  const contractedSkill = getTaskQuizSkill({
+    id: task.id ?? task.taskKey ?? '',
+    taskKey: task.taskKey,
+  })
+  if (contractedSkill) return contractedSkill
 
-  const combined = candidates.join(' ').toLowerCase()
+  const taskText = `${task.title} ${task.description}`.toLowerCase()
 
-  if (combined.includes('html')) return 'html'
-  if (combined.includes('css')) return 'css'
-  if (combined.includes('typescript')) return 'typescript'
-  if (combined.includes('javascript')) return 'javascript'
-  if (combined.includes('react')) return 'react'
-  if (combined.includes('postgres') || combined.includes('sql') || combined.includes('database')) return 'database'
-  if (combined.includes('auth') || combined.includes('ownership') || combined.includes('validation') || combined.includes('security')) return 'security'
-  if (combined.includes('test')) return 'testing'
-  if (combined.includes('express') || combined.includes('middleware') || combined.includes('http') || combined.includes('rest') || combined.includes('api')) return 'rest api'
-  if (combined.includes('node')) return 'node.js'
-  if (combined.includes('git') || combined.includes('github')) return 'git'
+  if (taskText.includes('react native') || taskText.includes('expo')) return 'react native'
+  if (taskText.includes('accessib') || taskText.includes('keyboard') || taskText.includes('screen reader')) return 'accessibility'
+  if (taskText.includes('design system') || taskText.includes('design token') || taskText.includes('storybook')) return 'design systems'
+  if (taskText.includes('python') || taskText.includes('pandas') || taskText.includes('dataframe')) return 'python'
+  if (taskText.includes('visualization') || taskText.includes('dashboard') || taskText.includes('statistic') || taskText.includes('analysis') || taskText.includes('insight')) return 'data analysis'
+  if (taskText.includes('html') || taskText.includes('landmark') || taskText.includes('semantic')) return 'html'
+  if (taskText.includes('css') || taskText.includes('flexbox') || taskText.includes('grid') || taskText.includes('responsive')) return 'css'
+  if (taskText.includes('typescript')) return 'typescript'
+  if (taskText.includes('react')) return 'react'
+  if (taskText.includes('postgres') || taskText.includes('sql') || taskText.includes('database')) return 'database'
+  if (taskText.includes('auth') || taskText.includes('ownership') || taskText.includes('validation') || taskText.includes('security') || taskText.includes('permission')) return 'security'
+  if (taskText.includes('test')) return 'testing'
+  if (taskText.includes('express') || taskText.includes('middleware') || taskText.includes('http') || taskText.includes('rest') || taskText.includes('api')) return 'rest api'
+  if (taskText.includes('node')) return 'node.js'
+  if (taskText.includes('git') || taskText.includes('github')) return 'git'
+  if (taskText.includes('deploy') || taskText.includes('release') || taskText.includes('build')) return 'deployment'
+  if (taskText.includes('document') || taskText.includes('readme') || taskText.includes('case study')) return 'documentation'
+  if (taskText.includes('javascript') || taskText.includes('async') || taskText.includes('function') || taskText.includes('array') || taskText.includes('dom')) return 'javascript'
 
-  return resolveQuizSkill(candidates)
+  return resolveQuizSkill(task.focusSkills ?? [])
 }

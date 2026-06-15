@@ -3,13 +3,16 @@ import { z } from 'zod'
 import { JobPost } from '@/lib/jobs/types'
 import { assessJobValidity } from '@/lib/jobs/validity'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import {
+  GEMINI_GENERATE_CONTENT_URL,
+  GEMINI_MODEL,
+  getGeminiRequestHeaders,
+} from '@/lib/ai/gemini-config'
 
 export const dynamic = 'force-dynamic'
 
 // Gemini API configuration
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent'
-const GEMINI_MODEL = 'gemini-1.5-flash'
 
 // In-memory cache for AI analysis
 const analysisCache = new Map<string, {
@@ -216,12 +219,10 @@ Provide a concise analysis in JSON format with these fields:
 Return ONLY JSON, no markdown or explanation.`
 
     const response = await fetch(
-      `${GEMINI_API_URL}?key=${GEMINI_API_KEY}`,
+      GEMINI_GENERATE_CONTENT_URL,
       {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getGeminiRequestHeaders(GEMINI_API_KEY),
         body: JSON.stringify({
           contents: [{
             parts: [{

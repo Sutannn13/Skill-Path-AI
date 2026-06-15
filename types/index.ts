@@ -173,6 +173,7 @@ export interface MiniProject {
 
 export interface Roadmap {
   id: string
+  contentVersion?: number
   title: string
   summary: string
   durationWeeks: number

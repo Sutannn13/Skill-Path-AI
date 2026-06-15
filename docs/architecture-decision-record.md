@@ -48,3 +48,18 @@ Consequences:
 - Admin UI reuses `AppShell`, `DashboardHeader`, `BrutalCard`, and `BrutalButton`.
 - No broad redesign is included in Phase 0 or Phase 1.
 - Future UI work should update `docs/design-intent.json` before a major redesign.
+
+## ADR-005: Versioned Deterministic Roadmap Content
+
+Status: Accepted
+
+Roadmap content uses a versioned task contract. Fallback task keys map to explicit resource topics and quiz skills. AI roadmaps are accepted only after role-alignment validation and otherwise fall back to the deterministic curriculum.
+
+Curriculum version 3 adds ordered beginner milestones. JavaScript precedes TypeScript, Node.js precedes Express, Python precedes pandas, and Expo project setup precedes React Native platform work. Existing active roadmaps with older content versions enter the repair flow instead of silently mixing old and new task contracts.
+
+Consequences:
+
+- Existing active roadmaps without the current content version enter an explicit repair flow.
+- Repair archives the old roadmap instead of deleting progress history.
+- Persisted stale resources are filtered and missing relevant video/documentation pairs are inserted.
+- One task per module, the final task, owns the module mini-project requirement.

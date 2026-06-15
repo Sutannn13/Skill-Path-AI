@@ -1,4 +1,5 @@
 import { Roadmap, RoadmapTask, RoadmapWeek, TargetRole } from '@/types'
+import { ROADMAP_CONTENT_VERSION } from '@/lib/roadmap/content-contract'
 
 interface FallbackRoadmapOptions {
   targetRole: TargetRole
@@ -199,42 +200,44 @@ const FRONTEND_FALLBACK: RoadmapWeek[] = [
 const BACKEND_FALLBACK: RoadmapWeek[] = [
   week(
     1,
-    'Web & Programming Foundation',
-    'Build the basic web and programming foundation needed before backend work.',
-    ['JavaScript', 'TypeScript', 'HTTP', 'JSON', 'Git'],
+    'JavaScript and Web Foundations',
+    'Learn JavaScript as the programming foundation before adding TypeScript, Node.js, or a backend framework.',
+    ['JavaScript', 'TypeScript', 'HTTP', 'JSON'],
     [
-      task('backend-1-1', 'JavaScript and TypeScript basics for backend', 'Practice variables, functions, modules, async/await, and basic TypeScript types for API code.', '75 minutes', 'easy', 'Typed utility module for request handling'),
-      task('backend-1-2', 'HTTP request, response, headers, and status codes', 'Understand request methods, headers, status code classes, and safe response patterns.', '55 minutes', 'easy', 'HTTP response behavior notes'),
-      task('backend-1-3', 'JSON structure and parsing', 'Work with JSON request/response bodies and validate input/output shape consistency.', '50 minutes', 'easy', 'JSON contract examples'),
-      task('backend-1-4', 'Git and terminal basics', 'Use branch, commit, push, and pull request flow for backend feature delivery.', '45 minutes', 'easy', 'Backend starter repository history'),
+      task('backend-1-1', 'JavaScript variables, data types, and control flow', 'Practice values, let and const, operators, conditionals, loops, and small programming decisions without framework code.', '60 minutes', 'easy', 'JavaScript decision-making exercises'),
+      task('backend-1-2', 'JavaScript functions, arrays, and objects', 'Use parameters, return values, array operations, object properties, and small reusable functions.', '70 minutes', 'easy', 'JavaScript data-processing utilities'),
+      task('backend-1-3', 'Asynchronous JavaScript and error handling', 'Learn promises, async/await, try/catch, and predictable error handling before server-side APIs.', '75 minutes', 'medium', 'Async JavaScript utility module'),
+      task('backend-1-4', 'TypeScript fundamentals for JavaScript programmers', 'Add primitive types, object types, unions, function types, and narrowing to JavaScript code you already understand.', '70 minutes', 'medium', 'JavaScript utilities converted to TypeScript'),
+      task('backend-1-5', 'HTTP requests, responses, status codes, and JSON', 'Understand methods, headers, status codes, request/response bodies, and JSON contracts before building a server.', '70 minutes', 'easy', 'HTTP and JSON contract notes'),
     ],
     {
-      title: 'Simple HTTP Request Demo',
-      description: 'Build a small script that sends HTTP requests, parses JSON responses, and handles error status codes.',
-      skillsCovered: ['JavaScript', 'TypeScript', 'HTTP', 'JSON', 'Git'],
+      title: 'Typed Request Data Simulator',
+      description: 'Build JavaScript utilities, convert them to TypeScript, and simulate validated HTTP request and response objects.',
+      skillsCovered: ['JavaScript', 'TypeScript', 'HTTP', 'JSON'],
       acceptanceCriteria: [
-        'Reads endpoint URL from configuration',
-        'Shows success and error response output clearly',
-        'Parses JSON safely',
-        'Repository has clear run instructions',
+        'Uses functions, arrays, and objects clearly',
+        'Handles one asynchronous failure with try/catch',
+        'Adds TypeScript types after the JavaScript behavior works',
+        'Explains request, response, status code, and JSON shape',
       ],
     }
   ),
   week(
     2,
     'Node.js Backend Fundamentals',
-    'Learn how JavaScript runs on the server and how backend apps are structured.',
-    ['Node.js', 'npm', 'Environment Variables', 'Project Structure'],
+    'Run the JavaScript and TypeScript foundation on the server before introducing Express.',
+    ['Git', 'Terminal', 'Node.js', 'npm', 'Environment Variables', 'Project Structure'],
     [
-      task('backend-2-1', 'Node.js runtime and npm', 'Understand event loop basics, module system, file IO boundaries, npm packages, and script workflow.', '65 minutes', 'easy', 'Runtime behavior notes'),
-      task('backend-2-2', 'Backend folder structure', 'Split routes, controllers, services, and data access into readable backend layers.', '55 minutes', 'easy', 'Backend starter architecture'),
-      task('backend-2-3', 'Environment variables', 'Load .env values safely, separate public/private config, and avoid secret leaks.', '60 minutes', 'medium', 'Typed config module'),
-      task('backend-2-4', 'Basic Node.js server', 'Set up a simple Node.js HTTP server and return structured JSON responses.', '70 minutes', 'medium', 'Backend npm script setup'),
+      task('backend-2-1', 'Terminal and Git workflow', 'Navigate files, initialize a repository, inspect changes, create focused commits, and work with branches safely.', '60 minutes', 'easy', 'Versioned starter repository'),
+      task('backend-2-2', 'Node.js runtime, modules, npm, and file system', 'Run JavaScript outside the browser, install packages, use npm scripts, and practice modules, process arguments, and bounded file reads.', '75 minutes', 'easy', 'Node.js command-line utility'),
+      task('backend-2-3', 'Environment variables and typed configuration', 'Load environment values safely, validate required config, and avoid exposing secrets.', '65 minutes', 'medium', 'Validated TypeScript config module'),
+      task('backend-2-4', 'Basic Node.js HTTP server', 'Create a server with the built-in HTTP module and return structured JSON responses.', '75 minutes', 'medium', 'Working Node.js JSON server'),
+      task('backend-2-5', 'Backend project structure', 'Separate configuration, HTTP handlers, services, and data access by responsibility.', '60 minutes', 'medium', 'Layered backend starter structure'),
     ],
     {
       title: 'Simple Node.js Server',
       description: 'Build a Node.js server with clean project structure, script commands, and environment-based configuration.',
-      skillsCovered: ['Node.js', 'npm', 'Environment Variables', 'Project Structure'],
+      skillsCovered: ['Git', 'Node.js', 'npm', 'Environment Variables', 'Project Structure'],
       acceptanceCriteria: [
         'Server starts from npm script',
         'Configuration uses environment variables',
@@ -343,16 +346,111 @@ const BACKEND_FALLBACK: RoadmapWeek[] = [
 
 const FULLSTACK_FALLBACK: RoadmapWeek[] = [
   FRONTEND_FALLBACK[0],
-  FRONTEND_FALLBACK[1],
-  BACKEND_FALLBACK[2],
-  BACKEND_FALLBACK[4],
-  FRONTEND_FALLBACK[5],
-  {
-    ...BACKEND_FALLBACK[5],
-    title: 'Fullstack Capstone and Deployment',
-    goal: 'Ship one integrated frontend and backend product with clear auth, data, UI, and deployment boundaries.',
-    focusSkills: ['React', 'Node.js', 'PostgreSQL', 'Deployment'],
-    miniProject: {
+  week(
+    2,
+    'JavaScript and TypeScript Foundations',
+    'Learn JavaScript behavior completely enough before adding TypeScript and React.',
+    ['JavaScript', 'DOM', 'Async JavaScript', 'TypeScript'],
+    [
+      task('fullstack-2-1', 'JavaScript functions, scope, arrays, and objects', 'Practice reusable functions, scope, array methods, and object updates with small data exercises.', '75 minutes', 'easy', 'JavaScript data utility module'),
+      task('fullstack-2-2', 'DOM events and form behavior', 'Handle click, input, and submit events with validation and clear user feedback.', '65 minutes', 'medium', 'Validated interactive form'),
+      task('fullstack-2-3', 'Asynchronous JavaScript and fetch', 'Use promises, async/await, fetch, loading states, and error handling.', '75 minutes', 'medium', 'API-powered vanilla JavaScript page'),
+      task('fullstack-2-4', 'TypeScript fundamentals after JavaScript', 'Add primitive, object, union, and function types to working JavaScript code.', '70 minutes', 'medium', 'JavaScript module converted to TypeScript'),
+    ],
+    {
+      title: 'Typed JavaScript Data Explorer',
+      description: 'Build a small browser app that validates a form, fetches public data, and then converts its data model to TypeScript.',
+      skillsCovered: ['JavaScript', 'DOM', 'Async JavaScript', 'TypeScript'],
+      acceptanceCriteria: [
+        'Uses functions, arrays, and objects',
+        'Handles loading and request errors',
+        'Validates user input',
+        'Adds TypeScript only after JavaScript behavior works',
+      ],
+    }
+  ),
+  week(
+    3,
+    'React Frontend Fundamentals',
+    'Build typed component interfaces after the JavaScript and TypeScript foundation is established.',
+    ['React', 'TypeScript', 'State Management', 'API Integration'],
+    [
+      task('fullstack-3-1', 'React components and props', 'Build small typed components, pass props, and compose children.', '60 minutes', 'easy', 'Reusable typed component set'),
+      task('fullstack-3-2', 'React state, events, and forms', 'Manage controlled inputs, local state, derived state, and validation messages.', '70 minutes', 'medium', 'Interactive React form flow'),
+      task('fullstack-3-3', 'React lists and conditional UI', 'Render stable lists and explicit loading, empty, error, and success states.', '70 minutes', 'medium', 'State-complete React list'),
+      task('fullstack-3-4', 'React API integration', 'Fetch API data, cancel stale work, and keep server data states visible.', '75 minutes', 'medium', 'API-backed React feature'),
+    ],
+    {
+      title: 'Frontend Task Dashboard',
+      description: 'Build a typed React dashboard with forms, filters, API data, and complete user-facing states.',
+      skillsCovered: ['React', 'TypeScript', 'State Management', 'API Integration'],
+      acceptanceCriteria: [
+        'Components and data models are typed',
+        'Forms are controlled and validated',
+        'Lists use stable keys',
+        'Loading, empty, error, and success states are distinct',
+      ],
+    }
+  ),
+  week(
+    4,
+    'Node.js and Express API Fundamentals',
+    'Move the same language foundation to Node.js, then add Express only after a basic server works.',
+    ['Node.js', 'npm', 'Express.js', 'REST API', 'Error Handling'],
+    [
+      task('fullstack-4-1', 'Node.js runtime, modules, npm, and file system', 'Run JavaScript outside the browser, use npm scripts, and practice modules and bounded file access.', '75 minutes', 'easy', 'Node.js command-line utility'),
+      task('fullstack-4-2', 'Environment variables and configuration', 'Load environment values safely, validate required configuration, and keep secrets outside source code.', '60 minutes', 'medium', 'Validated server configuration'),
+      task('fullstack-4-3', 'Basic Node.js HTTP server', 'Create a server with the built-in HTTP module before using a framework.', '70 minutes', 'medium', 'Node.js JSON server'),
+      task('fullstack-4-4', 'Express routing and middleware', 'Introduce Express routes, middleware, validation, and controller boundaries.', '80 minutes', 'medium', 'Express API foundation'),
+      task('fullstack-4-5', 'REST CRUD and safe errors', 'Build CRUD endpoints with stable responses and centralized error handling.', '90 minutes', 'hard', 'In-memory CRUD API'),
+    ],
+    {
+      title: 'Task REST API',
+      description: 'Build a Node.js and Express API with validated CRUD operations and safe errors.',
+      skillsCovered: ['Node.js', 'Express.js', 'REST API', 'Error Handling'],
+      acceptanceCriteria: [
+        'A basic Node.js server is built before Express',
+        'Routes and business logic are separated',
+        'Invalid input returns safe 4xx responses',
+        'Unhandled errors use centralized middleware',
+      ],
+    }
+  ),
+  week(
+    5,
+    'PostgreSQL and Authentication',
+    'Persist API data first, then add authentication and ownership checks on top of the database model.',
+    ['SQL', 'PostgreSQL', 'Authentication', 'Authorization', 'Validation'],
+    [
+      task('fullstack-5-1', 'SQL and relational table basics', 'Practice SQL CRUD, primary keys, foreign keys, constraints, and simple joins.', '85 minutes', 'medium', 'SQL schema and query exercises'),
+      task('fullstack-5-2', 'Connect PostgreSQL to the API', 'Create migrations and replace in-memory records with a data access layer.', '95 minutes', 'hard', 'Database-backed CRUD API'),
+      task('fullstack-5-3', 'Registration and password security', 'Validate registration input and store securely hashed passwords.', '85 minutes', 'hard', 'Secure registration endpoint'),
+      task('fullstack-5-4', 'Sessions or JWT and protected resources', 'Authenticate requests and enforce user ownership on private records.', '90 minutes', 'hard', 'Ownership-protected API flow'),
+    ],
+    {
+      title: 'Authenticated Task API',
+      description: 'Persist tasks in PostgreSQL and protect user-owned CRUD routes with validated authentication.',
+      skillsCovered: ['SQL', 'PostgreSQL', 'Authentication', 'Authorization'],
+      acceptanceCriteria: [
+        'Schema and migrations are reproducible',
+        'Passwords are hashed and never returned',
+        'Private records enforce ownership',
+        'Invalid payloads return stable errors',
+      ],
+    }
+  ),
+  week(
+    6,
+    'Fullstack Integration, Auth, and Deployment',
+    'Ship one integrated frontend and backend product with clear auth, data, UI, and deployment boundaries.',
+    ['React', 'Node.js', 'PostgreSQL', 'Authentication', 'Deployment'],
+    [
+      task('fullstack-6-1', 'Connect authentication to frontend state', 'Implement login, logout, protected UI, and ownership-aware session handling across frontend and backend.', '90 minutes', 'hard', 'Authenticated fullstack flow'),
+      task('fullstack-6-2', 'Connect frontend, API, and database', 'Wire validated UI requests to API handlers and persistent user-owned database records.', '100 minutes', 'hard', 'End-to-end CRUD feature'),
+      task('fullstack-6-3', 'Test the critical fullstack flow', 'Cover validation, authorization, API failures, loading states, and the primary user journey.', '90 minutes', 'hard', 'Critical-flow test evidence'),
+      task('fullstack-6-4', 'Deploy and document the integrated app', 'Configure environments, deploy both runtime boundaries, and document setup and recovery steps.', '90 minutes', 'hard', 'Live fullstack app and README'),
+    ],
+    {
       title: 'Fullstack Career Tracker',
       description: 'Build a complete app with auth, user-owned data, API routes, responsive UI, tests, and deployment notes.',
       skillsCovered: ['React', 'Node.js', 'PostgreSQL', 'Deployment'],
@@ -362,84 +460,290 @@ const FULLSTACK_FALLBACK: RoadmapWeek[] = [
         'Database schema is documented',
         'Build and setup commands are documented',
       ],
-    },
-  },
+    }
+  ),
 ]
 
 const UI_ENGINEER_FALLBACK: RoadmapWeek[] = [
   FRONTEND_FALLBACK[0],
-  {
-    ...FRONTEND_FALLBACK[2],
-    title: 'Component Systems and State',
-    goal: 'Build UI components that stay accessible, reusable, and state-aware.',
-    focusSkills: ['React', 'TypeScript', 'Accessibility'],
-  },
-  FRONTEND_FALLBACK[3],
-  {
-    ...FRONTEND_FALLBACK[4],
-    title: 'Design Systems, Testing, and Performance',
-    goal: 'Turn components into a tested, documented, performant interface system.',
-    focusSkills: ['Design Systems', 'Testing', 'Performance'],
-  },
-  FRONTEND_FALLBACK[5],
-  {
-    ...FRONTEND_FALLBACK[5],
-    title: 'UI Engineer Portfolio',
-    goal: 'Ship a polished interaction-heavy portfolio surface with accessibility and performance notes.',
-    focusSkills: ['UI/UX Basic', 'Accessibility', 'Performance'],
-  },
+  week(
+    2,
+    'JavaScript, TypeScript, and React Foundations',
+    'Build the language and component foundation required before advanced UI engineering.',
+    ['JavaScript', 'TypeScript', 'React', 'UI Behavior'],
+    [
+      task('ui-2-1', 'JavaScript functions and scope', 'Learn parameters, return values, arrow functions, closures, and reusable UI utilities.', '55 minutes', 'easy', 'Reusable JavaScript UI utilities'),
+      task('ui-2-2', 'Arrays and objects for interface data', 'Transform lists and update object state without mutating source data.', '65 minutes', 'easy', 'Interface data transformation module'),
+      task('ui-2-3', 'DOM events and asynchronous UI behavior', 'Handle user events, promises, async/await, loading feedback, and recoverable errors.', '70 minutes', 'medium', 'Asynchronous DOM interaction'),
+      task('ui-2-4', 'TypeScript types for component data', 'Type props, variants, state values, events, and nullable interface data.', '65 minutes', 'medium', 'Typed component data models'),
+      task('ui-2-5', 'React components, props, and state', 'Build typed components and manage local interaction state after the language foundation.', '75 minutes', 'medium', 'Typed interactive component set'),
+    ],
+    {
+      title: 'Typed Interactive Profile Editor',
+      description: 'Build a typed React profile editor from earlier JavaScript utilities and explicit UI states.',
+      skillsCovered: ['JavaScript', 'TypeScript', 'React', 'UI Behavior'],
+      acceptanceCriteria: [
+        'JavaScript functions and data transformations are clear',
+        'Async states include loading and failure feedback',
+        'Props and state are typed',
+        'Component boundaries remain small and reusable',
+      ],
+    }
+  ),
+  week(
+    3,
+    'Accessible Interaction Patterns',
+    'Build interaction states that remain clear with keyboard, touch, assistive technology, and reduced motion.',
+    ['Accessibility', 'Responsive Design', 'Interaction Design'],
+    [
+      task('ui-3-1', 'Semantic interaction and keyboard paths', 'Use correct interactive elements, visible focus, logical tab order, and keyboard activation.', '60 minutes', 'medium', 'Keyboard-accessible interaction set'),
+      task('ui-3-2', 'Loading, empty, error, disabled, and success states', 'Design explicit states with clear status messages and recovery actions.', '65 minutes', 'medium', 'State-complete component flow'),
+      task('ui-3-3', 'Responsive component composition', 'Recompose navigation, forms, cards, and dense data for narrow and wide viewports.', '70 minutes', 'medium', 'Responsive component variants'),
+      task('ui-3-4', 'Motion with reduced-motion fallback', 'Use motion to explain state changes while respecting user motion preferences.', '55 minutes', 'medium', 'Accessible motion prototype'),
+    ],
+    {
+      title: 'Accessible Account Settings Flow',
+      description: 'Build a responsive settings flow with keyboard navigation, complete UI states, and reduced-motion behavior.',
+      skillsCovered: ['Accessibility', 'Responsive Design', 'Interaction Design'],
+      acceptanceCriteria: [
+        'All controls work with keyboard only',
+        'Loading, error, disabled, and success states are distinct',
+        'Layout recomposes on narrow screens',
+        'Reduced-motion mode keeps the flow understandable',
+      ],
+    }
+  ),
+  week(
+    4,
+    'Design Systems and Component Documentation',
+    'Turn isolated components into a consistent, documented interface system.',
+    ['Design Systems', 'Design Tokens', 'Storybook'],
+    [
+      task('ui-4-1', 'Define component anatomy and variants', 'Specify component parts, supported variants, states, and composition boundaries.', '60 minutes', 'medium', 'Component anatomy specification'),
+      task('ui-4-2', 'Create semantic design tokens', 'Define color, typography, spacing, radius, shadow, and motion tokens by semantic role.', '70 minutes', 'medium', 'Typed design token set'),
+      task('ui-4-3', 'Document components with stories', 'Create representative stories for default, edge, responsive, and failure states.', '80 minutes', 'hard', 'Component story catalog'),
+      task('ui-4-4', 'Audit component accessibility', 'Check names, roles, states, contrast, focus, and keyboard behavior for each component.', '70 minutes', 'hard', 'Component accessibility report'),
+    ],
+    {
+      title: 'Documented Component Library',
+      description: 'Build a small component library with semantic tokens, documented variants, and accessibility evidence.',
+      skillsCovered: ['Design Systems', 'Design Tokens', 'Storybook'],
+      acceptanceCriteria: [
+        'Tokens use semantic names',
+        'Stories include edge and failure states',
+        'Components expose accessible names and states',
+        'Documentation explains composition boundaries',
+      ],
+    }
+  ),
+  week(
+    5,
+    'UI Testing, Performance, and Quality',
+    'Verify user behavior and keep interface performance measurable.',
+    ['Testing', 'Performance', 'Accessibility'],
+    [
+      task('ui-5-1', 'Test component behavior', 'Test rendering, keyboard input, validation, and state transitions from the user perspective.', '75 minutes', 'hard', 'Behavior-focused component tests'),
+      task('ui-5-2', 'Measure and improve rendering performance', 'Inspect rerenders, list rendering, assets, and bundle impact before optimizing.', '70 minutes', 'hard', 'Measured performance fixes'),
+      task('ui-5-3', 'Run an accessibility verification pass', 'Use keyboard checks, automated scans, and manual screen-reader-oriented inspection.', '70 minutes', 'hard', 'Accessibility verification evidence'),
+      task('ui-5-4', 'Document UI quality decisions', 'Record tradeoffs, responsive behavior, accessibility decisions, and verification results.', '50 minutes', 'medium', 'UI quality notes'),
+    ],
+    {
+      title: 'Production UI Quality Pass',
+      description: 'Take an existing interface through behavior tests, accessibility checks, and measured performance improvements.',
+      skillsCovered: ['Testing', 'Performance', 'Accessibility'],
+      acceptanceCriteria: [
+        'Tests cover keyboard and failure states',
+        'Performance changes cite before and after evidence',
+        'Accessibility issues have concrete fixes',
+        'Quality notes match the implemented UI',
+      ],
+    }
+  ),
+  week(
+    6,
+    'UI Engineer Portfolio',
+    'Ship a polished interaction-heavy portfolio surface with accessibility and performance evidence.',
+    ['React', 'Accessibility', 'Performance', 'Documentation'],
+    [
+      task('ui-6-1', 'Plan the UI capstone system', 'Define flows, component boundaries, states, responsive behavior, and verification criteria.', '60 minutes', 'medium', 'UI capstone plan'),
+      task('ui-6-2', 'Build the UI capstone', 'Implement the primary flow using the documented component system and realistic data states.', '6 hours', 'hard', 'Complete UI capstone'),
+      task('ui-6-3', 'Polish accessibility and performance', 'Resolve keyboard, contrast, motion, overflow, rendering, and asset issues.', '100 minutes', 'hard', 'Verified UI quality fixes'),
+      task('ui-6-4', 'Deploy and present the system', 'Publish the project and document decisions, tradeoffs, screenshots, and verification.', '90 minutes', 'medium', 'Live portfolio and case study'),
+    ],
+    {
+      title: 'Accessible UI System Showcase',
+      description: 'Ship a responsive product flow backed by a documented component system, tests, and accessibility evidence.',
+      skillsCovered: ['React', 'Accessibility', 'Performance', 'Documentation'],
+      acceptanceCriteria: [
+        'Primary flow works with keyboard and touch',
+        'Component states are documented',
+        'Core behavior has tests',
+        'Live project includes a technical case study',
+      ],
+    }
+  ),
 ]
 
 const MOBILE_FALLBACK: RoadmapWeek[] = [
   week(
     1,
-    'JavaScript and Mobile UI Foundations',
-    'Prepare JavaScript, component thinking, and responsive interface basics.',
-    ['JavaScript', 'React', 'Responsive Design'],
+    'JavaScript, TypeScript, and React Foundations',
+    'Learn JavaScript first, then TypeScript and React, before starting an Expo or React Native project.',
+    ['JavaScript', 'TypeScript', 'React'],
     [
-      task('mobile-1-1', 'JavaScript functions and async basics', 'Practice functions, promises, async/await, and error states for mobile data flows.', '70 minutes', 'easy', 'Async utility module'),
-      task('mobile-1-2', 'React component basics', 'Build small components, pass props, and keep UI state local when possible.', '60 minutes', 'easy', 'Reusable mobile card component'),
-      task('mobile-1-3', 'Mobile-first layout and touch targets', 'Design narrow screens, tap targets, spacing, and readable content density.', '60 minutes', 'medium', 'Mobile-first layout prototype'),
+      task('mobile-1-1', 'JavaScript variables, data types, and control flow', 'Practice values, operators, conditions, loops, and small application decisions.', '55 minutes', 'easy', 'JavaScript logic exercises'),
+      task('mobile-1-2', 'JavaScript functions, arrays, and objects', 'Build reusable functions and transform array and object data for interface state.', '65 minutes', 'easy', 'JavaScript data utility module'),
+      task('mobile-1-3', 'Asynchronous JavaScript and error handling', 'Use promises, async/await, and try/catch before fetching mobile data.', '70 minutes', 'medium', 'Async JavaScript utility module'),
+      task('mobile-1-4', 'TypeScript fundamentals for app data', 'Type object models, function inputs, unions, nullable values, and API results.', '65 minutes', 'medium', 'Typed app data models'),
+      task('mobile-1-5', 'React components, props, and state', 'Compose typed components and manage local and derived UI state before React Native.', '70 minutes', 'medium', 'Interactive typed React component set'),
     ],
     {
-      title: 'Mobile UI Prototype',
-      description: 'Build a mobile-first React prototype with touch-friendly controls and async data loading.',
-      skillsCovered: ['JavaScript', 'React', 'Responsive Design'],
+      title: 'Typed React Logic Prototype',
+      description: 'Build a small typed React flow that proves language, async, component, and state fundamentals before mobile APIs.',
+      skillsCovered: ['JavaScript', 'TypeScript', 'React'],
       acceptanceCriteria: [
-        'Touch targets are comfortable',
-        'Layout works on narrow screens',
-        'Shows loading and error states',
-        'Components are reusable',
+        'Uses JavaScript functions, arrays, and objects',
+        'Handles one asynchronous success and failure path',
+        'Props and data models are typed',
+        'Interactive state is explicit',
       ],
     }
   ),
-  FRONTEND_FALLBACK[2],
-  FRONTEND_FALLBACK[3],
-  FRONTEND_FALLBACK[4],
-  BACKEND_FALLBACK[1],
-  {
-    ...FRONTEND_FALLBACK[5],
-    title: 'Mobile Portfolio Capstone',
-    goal: 'Ship a mobile-focused app with API data, persistence plan, and deployment notes.',
-    focusSkills: ['React', 'REST API', 'Testing', 'Deployment'],
-  },
+  week(
+    2,
+    'Expo UI and Mobile Layout',
+    'Build touch-friendly screens with platform-aware layout and accessibility.',
+    ['Expo', 'React Native', 'Mobile Accessibility'],
+    [
+      task('mobile-2-1', 'Create and run an Expo project', 'Set up a supported Expo app, understand the project structure, and run it on device or simulator.', '60 minutes', 'easy', 'Working Expo starter app'),
+      task('mobile-2-2', 'React Native core components', 'Use View, Text, Pressable, Image, ScrollView, and platform-safe component behavior inside Expo.', '70 minutes', 'easy', 'Core component practice screen'),
+      task('mobile-2-3', 'Style mobile screens with Flexbox', 'Use StyleSheet, spacing, safe areas, and Flexbox for multiple device sizes.', '70 minutes', 'medium', 'Responsive mobile layout'),
+      task('mobile-2-4', 'Build lists and forms for touch', 'Use FlatList, controlled inputs, validation feedback, keyboard avoidance, and comfortable targets.', '80 minutes', 'medium', 'Validated mobile list form'),
+      task('mobile-2-5', 'Apply mobile accessibility basics', 'Add accessible labels, roles, hints, focus behavior, and screen-reader-friendly content.', '60 minutes', 'medium', 'Accessible mobile screen'),
+    ],
+    {
+      title: 'Accessible Mobile Task List',
+      description: 'Build a touch-friendly task list with a validated form, responsive layout, and accessibility labels.',
+      skillsCovered: ['Expo', 'React Native', 'Mobile Accessibility'],
+      acceptanceCriteria: [
+        'FlatList uses stable keys',
+        'Form handles keyboard and validation states',
+        'Touch targets are comfortable',
+        'Important controls have accessible labels',
+      ],
+    }
+  ),
+  week(
+    3,
+    'Navigation and Application State',
+    'Create predictable multi-screen navigation and shared state.',
+    ['Expo Router', 'Navigation', 'State Management'],
+    [
+      task('mobile-3-1', 'File-based navigation with Expo Router', 'Create stack and tab routes with clear screen ownership.', '75 minutes', 'medium', 'Multi-screen router structure'),
+      task('mobile-3-2', 'Navigation params and guarded flows', 'Pass typed route params and redirect users based on explicit app state.', '75 minutes', 'medium', 'Typed detail and guarded routes'),
+      task('mobile-3-3', 'Shared state with context and reducer', 'Model app actions and shared state without duplicating screen state.', '75 minutes', 'medium', 'Shared state module'),
+      task('mobile-3-4', 'Deep links and not-found handling', 'Handle external links, unknown routes, and safe navigation fallbacks.', '60 minutes', 'hard', 'Deep-link verification flow'),
+    ],
+    {
+      title: 'Multi-Screen Habit Tracker',
+      description: 'Build a tab-based habit tracker with typed detail routes, shared state, and deep-link handling.',
+      skillsCovered: ['Expo Router', 'Navigation', 'State Management'],
+      acceptanceCriteria: [
+        'Tabs and stack routes are separated clearly',
+        'Route params are typed',
+        'Shared state updates predictably',
+        'Unknown links have a safe fallback',
+      ],
+    }
+  ),
+  week(
+    4,
+    'API Data, Storage, and Device Boundaries',
+    'Load remote data safely and persist only appropriate local state.',
+    ['Networking', 'Async Storage', 'Permissions', 'Offline UX'],
+    [
+      task('mobile-4-1', 'Fetch API data with complete states', 'Handle request cancellation, loading, empty, error, retry, and success states.', '80 minutes', 'medium', 'API-backed mobile screen'),
+      task('mobile-4-2', 'Persist preferences with Async Storage', 'Store versioned non-sensitive preferences and handle read/write failures.', '65 minutes', 'medium', 'Persistent app preferences'),
+      task('mobile-4-3', 'Request device permissions safely', 'Ask for permissions at the point of need and explain denied or restricted states.', '60 minutes', 'hard', 'Permission-aware feature'),
+      task('mobile-4-4', 'Design offline-aware behavior', 'Detect connectivity changes and preserve clear stale, retry, and offline states.', '70 minutes', 'hard', 'Offline-aware data flow'),
+    ],
+    {
+      title: 'Offline-Aware Content Browser',
+      description: 'Build an API-backed mobile browser with persisted preferences, retry behavior, and an optional permission flow.',
+      skillsCovered: ['Networking', 'Async Storage', 'Permissions', 'Offline UX'],
+      acceptanceCriteria: [
+        'All network states are visible',
+        'Stored data is non-sensitive and versioned',
+        'Denied permissions have a recovery path',
+        'Offline content is labeled clearly',
+      ],
+    }
+  ),
+  week(
+    5,
+    'Mobile Testing and Production Quality',
+    'Verify behavior, performance, errors, and accessibility on realistic devices.',
+    ['Testing', 'Performance', 'Error Handling', 'Accessibility'],
+    [
+      task('mobile-5-1', 'Test screens and user interactions', 'Test rendering, input, navigation, loading, and failure states using React Native Testing Library.', '85 minutes', 'hard', 'Mobile behavior test suite'),
+      task('mobile-5-2', 'Profile list and render performance', 'Measure slow renders, large lists, images, and unnecessary state updates.', '70 minutes', 'hard', 'Measured mobile performance fixes'),
+      task('mobile-5-3', 'Handle runtime and network failures', 'Add safe error boundaries, recoverable request errors, and diagnostic logging boundaries.', '65 minutes', 'hard', 'Failure recovery flow'),
+      task('mobile-5-4', 'Run device accessibility checks', 'Verify labels, reading order, font scaling, contrast, and touch targets on device.', '65 minutes', 'hard', 'Mobile accessibility report'),
+    ],
+    {
+      title: 'Mobile Quality Audit',
+      description: 'Test and improve a mobile flow using behavior tests, device checks, performance evidence, and failure recovery.',
+      skillsCovered: ['Testing', 'Performance', 'Error Handling', 'Accessibility'],
+      acceptanceCriteria: [
+        'Tests cover success and failure paths',
+        'Performance fixes cite measured symptoms',
+        'Runtime failures have user-facing recovery',
+        'Accessibility is checked on a device or emulator',
+      ],
+    }
+  ),
+  week(
+    6,
+    'Mobile Portfolio and Distribution',
+    'Build, package, and present a complete mobile app.',
+    ['React Native', 'Expo', 'EAS Build', 'Documentation'],
+    [
+      task('mobile-6-1', 'Plan mobile app architecture', 'Define routes, state ownership, data boundaries, offline behavior, and release checks.', '60 minutes', 'medium', 'Mobile architecture note'),
+      task('mobile-6-2', 'Build the mobile capstone', 'Implement the complete app with realistic data, navigation, persistence, and device-safe states.', '7 hours', 'hard', 'Complete mobile capstone'),
+      task('mobile-6-3', 'Create a release build with EAS', 'Configure app metadata, environment values, build profiles, and installable release output.', '100 minutes', 'hard', 'Installable release build'),
+      task('mobile-6-4', 'Document setup and demonstration', 'Write setup, architecture, testing, screenshots, and known limitations for reviewers.', '90 minutes', 'medium', 'Portfolio README and demo evidence'),
+    ],
+    {
+      title: 'Expo Mobile Portfolio App',
+      description: 'Ship an installable Expo app with navigation, API data, persistence, tests, accessibility checks, and release documentation.',
+      skillsCovered: ['React Native', 'Expo', 'Testing', 'EAS Build'],
+      acceptanceCriteria: [
+        'Primary flow works on a real device or emulator',
+        'Release build is installable',
+        'Critical behavior has tests',
+        'README explains setup, architecture, and limitations',
+      ],
+    }
+  ),
 ]
 
 const DATA_ANALYST_FALLBACK: RoadmapWeek[] = [
   week(
     1,
-    'Data Foundations and Problem Framing',
-    'Learn how to turn questions into measurable data tasks.',
-    ['Problem Solving', 'Documentation', 'Git'],
+    'Data Literacy and Spreadsheet Foundations',
+    'Understand tabular data and spreadsheet operations before writing SQL or Python.',
+    ['Data Literacy', 'Spreadsheets', 'Problem Framing', 'Data Quality', 'Documentation'],
     [
-      task('data-1-1', 'Analytical question framing', 'Turn a broad business question into metrics, dimensions, filters, and assumptions.', '45 minutes', 'easy', 'Analysis question brief'),
-      task('data-1-2', 'Spreadsheet and CSV cleanup basics', 'Practice data types, missing values, duplicates, and simple validation rules.', '60 minutes', 'easy', 'Cleaned sample dataset'),
-      task('data-1-3', 'Git and documentation for analysis', 'Track analysis files and explain assumptions in a concise README.', '45 minutes', 'easy', 'Analysis repository'),
+      task('data-1-1', 'Rows, columns, data types, and tidy tables', 'Recognize records, fields, identifiers, categorical and numerical values, missing values, and consistent table structure.', '50 minutes', 'easy', 'Annotated tabular dataset'),
+      task('data-1-2', 'Spreadsheet formulas, sorting, and filtering', 'Use cell references, simple formulas, sorting, filtering, and bounded ranges to inspect data.', '60 minutes', 'easy', 'Spreadsheet exploration worksheet'),
+      task('data-1-3', 'Analytical question framing', 'Turn a broad business question into metrics, dimensions, filters, and assumptions.', '50 minutes', 'easy', 'Analysis question brief'),
+      task('data-1-4', 'CSV cleanup and data quality checks', 'Handle types, missing values, duplicates, validity, consistency, and raw-versus-cleaned files.', '70 minutes', 'medium', 'Cleaned dataset and quality checklist'),
+      task('data-1-5', 'Reproducible analysis files and documentation', 'Organize source, processed, and output files and document assumptions and repeatable steps.', '50 minutes', 'easy', 'Documented analysis workspace'),
     ],
     {
       title: 'Data Cleaning Mini Report',
       description: 'Clean a small dataset and document the data quality decisions.',
-      skillsCovered: ['Problem Solving', 'Documentation', 'Git'],
+      skillsCovered: ['Data Literacy', 'Problem Framing', 'Spreadsheets', 'Data Quality', 'Documentation'],
       acceptanceCriteria: [
         'Documents assumptions',
         'Handles missing or invalid rows',
@@ -448,37 +752,121 @@ const DATA_ANALYST_FALLBACK: RoadmapWeek[] = [
       ],
     }
   ),
-  BACKEND_FALLBACK[2],
   week(
-    3,
-    'SQL Analysis Queries',
-    'Use SQL to answer questions with filters, joins, groups, and aggregates.',
-    ['SQL', 'PostgreSQL', 'Data Visualization'],
+    2,
+    'SQL Foundations for Analysis',
+    'Query relational data with filters, ordering, aggregates, and joins.',
+    ['SQL', 'PostgreSQL'],
     [
-      task('data-3-1', 'SELECT, WHERE, ORDER BY, and LIMIT', 'Write bounded queries that answer specific questions.', '60 minutes', 'easy', 'Query file with 8 basic queries'),
-      task('data-3-2', 'JOIN and GROUP BY analysis', 'Combine tables and summarize grouped data.', '75 minutes', 'medium', 'Join and aggregate query set'),
-      task('data-3-3', 'Charts and insight summaries', 'Convert query outputs into readable charts and written findings.', '75 minutes', 'medium', 'Chart-backed insight memo'),
+      task('data-2-1', 'SELECT and column expressions', 'Select only required columns and create readable calculated fields.', '55 minutes', 'easy', 'Basic SELECT query set'),
+      task('data-2-2', 'WHERE, ORDER BY, and LIMIT', 'Filter and bound query results to answer focused questions.', '60 minutes', 'easy', 'Filtered analysis queries'),
+      task('data-2-3', 'GROUP BY and aggregate functions', 'Summarize counts, totals, averages, and grouped metrics.', '70 minutes', 'medium', 'Aggregate query set'),
+      task('data-2-4', 'JOIN relational tables', 'Combine related tables while checking row counts and join assumptions.', '75 minutes', 'medium', 'Validated join query set'),
     ],
     {
-      title: 'SQL Insights Report',
-      description: 'Answer a business question using SQL queries, grouped results, charts, and written recommendations.',
-      skillsCovered: ['SQL', 'PostgreSQL', 'Data Visualization'],
+      title: 'SQL Sales Summary',
+      description: 'Answer a focused sales question with filtered, aggregated, and joined SQL queries.',
+      skillsCovered: ['SQL', 'PostgreSQL'],
       acceptanceCriteria: [
         'Queries are saved and named',
-        'Findings cite the exact query output',
-        'Charts are readable',
-        'Recommendations are tied to data',
+        'Result sets are bounded',
+        'Join assumptions are documented',
+        'Metrics are reproducible',
       ],
     }
   ),
-  FRONTEND_FALLBACK[3],
-  FRONTEND_FALLBACK[4],
-  {
-    ...FRONTEND_FALLBACK[5],
-    title: 'Data Analyst Portfolio Report',
-    goal: 'Ship an explainable analysis project with SQL, charts, assumptions, and recommendations.',
-    focusSkills: ['SQL', 'Data Visualization', 'Documentation'],
-  },
+  week(
+    3,
+    'Intermediate SQL Analysis',
+    'Model reusable analysis queries and explain findings from relational data.',
+    ['SQL', 'Data Modeling', 'Insight Writing'],
+    [
+      task('data-3-1', 'Read schemas and data relationships', 'Inspect keys, grain, relationships, and nullability before writing analysis queries.', '60 minutes', 'medium', 'Schema and grain notes'),
+      task('data-3-2', 'Build multi-step analysis queries', 'Use common table expressions and subqueries to keep complex analysis traceable.', '75 minutes', 'medium', 'CTE-based analysis query'),
+      task('data-3-3', 'Use window functions', 'Calculate rankings, running totals, lag, and partitioned metrics.', '80 minutes', 'hard', 'Window function query set'),
+      task('data-3-4', 'Write evidence-based insights', 'Connect each finding to exact query output and state limitations.', '60 minutes', 'medium', 'SQL insight memo'),
+    ],
+    {
+      title: 'Customer Behavior SQL Report',
+      description: 'Analyze customer behavior using documented grain, CTEs, window functions, and evidence-backed findings.',
+      skillsCovered: ['SQL', 'Data Modeling', 'Insight Writing'],
+      acceptanceCriteria: [
+        'Grain and joins are documented',
+        'Queries use readable steps',
+        'Findings cite exact outputs',
+        'Limitations are explicit',
+      ],
+    }
+  ),
+  week(
+    4,
+    'Python and pandas for Analysis',
+    'Clean, transform, and explore datasets in a reproducible Python workflow.',
+    ['Python', 'pandas', 'Exploratory Data Analysis'],
+    [
+      task('data-4-1', 'Python basics for analysts', 'Use variables, collections, functions, loops, conditions, and modules for analysis scripts.', '75 minutes', 'easy', 'Python analysis utilities'),
+      task('data-4-2', 'pandas DataFrame operations', 'Load, inspect, select, filter, sort, group, and merge tabular data.', '90 minutes', 'medium', 'DataFrame transformation notebook'),
+      task('data-4-3', 'Clean missing and invalid data', 'Handle missing values, duplicates, types, categories, and outliers with documented decisions.', '85 minutes', 'medium', 'Cleaned pandas dataset'),
+      task('data-4-4', 'Run exploratory data analysis', 'Summarize distributions, relationships, anomalies, and candidate explanations.', '90 minutes', 'hard', 'EDA notebook'),
+    ],
+    {
+      title: 'Python Data Cleaning Notebook',
+      description: 'Clean and explore a real dataset with reproducible pandas code and documented quality decisions.',
+      skillsCovered: ['Python', 'pandas', 'Exploratory Data Analysis'],
+      acceptanceCriteria: [
+        'Notebook runs from top to bottom',
+        'Cleaning decisions are documented',
+        'Raw data is not overwritten',
+        'EDA separates facts from hypotheses',
+      ],
+    }
+  ),
+  week(
+    5,
+    'Visualization, Statistics, and Dashboards',
+    'Choose honest visual encodings and communicate patterns with appropriate statistics.',
+    ['Data Visualization', 'Statistics', 'Dashboarding'],
+    [
+      task('data-5-1', 'Create clear data visualizations', 'Build readable charts with labels, units, accessible color, and honest scales.', '80 minutes', 'medium', 'Visualization set'),
+      task('data-5-2', 'Choose the right chart', 'Match comparison, trend, distribution, relationship, and composition questions to suitable charts.', '60 minutes', 'medium', 'Chart selection rationale'),
+      task('data-5-3', 'Apply descriptive statistics', 'Use central tendency, spread, percentiles, and distribution shape without overclaiming.', '75 minutes', 'medium', 'Statistical summary'),
+      task('data-5-4', 'Build a focused dashboard story', 'Organize metrics and charts around one decision with filters and explanatory notes.', '95 minutes', 'hard', 'Decision-focused dashboard'),
+    ],
+    {
+      title: 'Operational Metrics Dashboard',
+      description: 'Build a dashboard that combines validated metrics, suitable charts, and concise decision support.',
+      skillsCovered: ['Data Visualization', 'Statistics', 'Dashboarding'],
+      acceptanceCriteria: [
+        'Every chart answers a named question',
+        'Scales and units are honest',
+        'Statistics are interpreted cautiously',
+        'Dashboard hierarchy supports one decision',
+      ],
+    }
+  ),
+  week(
+    6,
+    'Data Analyst Portfolio Report',
+    'Ship an explainable analysis project with SQL, Python, charts, assumptions, and recommendations.',
+    ['SQL', 'Python', 'Data Visualization', 'Documentation'],
+    [
+      task('data-6-1', 'Plan a reproducible analysis project', 'Define question, source data, grain, folder structure, metrics, and verification plan.', '60 minutes', 'medium', 'Analysis project plan'),
+      task('data-6-2', 'Run the complete analysis', 'Clean data, query or transform it, validate outputs, and build visual evidence.', '6 hours', 'hard', 'Complete analysis workflow'),
+      task('data-6-3', 'Write findings and recommendations', 'Separate findings, interpretation, limitations, and actionable recommendations.', '100 minutes', 'hard', 'Portfolio analysis report'),
+      task('data-6-4', 'Document reproducible setup', 'Provide data source notes, environment setup, run steps, outputs, and screenshots.', '80 minutes', 'medium', 'Reproducible portfolio README'),
+    ],
+    {
+      title: 'End-to-End Data Analysis Portfolio',
+      description: 'Ship a reproducible analysis with cleaned data, SQL or pandas transformations, charts, findings, and limitations.',
+      skillsCovered: ['SQL', 'Python', 'Data Visualization', 'Documentation'],
+      acceptanceCriteria: [
+        'Analysis can be reproduced from documented steps',
+        'Metrics trace back to code or queries',
+        'Charts support written findings',
+        'Recommendations include limitations',
+      ],
+    }
+  ),
 ]
 
 const ROLE_FALLBACKS: Record<TargetRole, RoadmapWeek[]> = {
@@ -619,6 +1007,7 @@ export function generateFallbackRoadmap(options: FallbackRoadmapOptions): Roadma
 
   return {
     id: createStableRoadmapId(options, plannedWeeks),
+    contentVersion: ROADMAP_CONTENT_VERSION,
     title: `${roleLabel} Learning Path`,
     summary: `A ${plannedWeeks}-module learning roadmap to become a ${roleLabel}. Focus on: ${focusSummary || 'core development skills'}.`,
     durationWeeks: plannedWeeks,

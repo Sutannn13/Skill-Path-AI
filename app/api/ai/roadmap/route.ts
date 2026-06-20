@@ -111,31 +111,41 @@ interface OrderedMilestone {
 
 const ROLE_ORDERED_MILESTONES: Record<TargetRole, OrderedMilestone[]> = {
   'frontend-developer': [
+    { label: 'Internet foundation', keywords: ['internet, dns', 'how the web works', 'http and browser'] },
     { label: 'HTML foundation', keywords: ['semantic html', 'html fundamentals'] },
     { label: 'CSS foundation', keywords: ['css selectors', 'box model', 'css fundamentals'] },
     { label: 'JavaScript foundation', keywords: ['javascript variables', 'javascript functions', 'control flow'] },
+    { label: 'Git and npm workflow', keywords: ['git, github', 'git and npm', 'package.json'] },
     { label: 'TypeScript foundation', keywords: ['typescript primitives', 'typescript fundamentals', 'object types'] },
     { label: 'React foundation', keywords: ['react components', 'components and props'] },
+    { label: 'Tailwind foundation', keywords: ['tailwind css', 'tailwind utilities'] },
     { label: 'Next.js or deployment', keywords: ['next.js app router', 'deployment readiness', 'deploy frontend'] },
   ],
   'backend-developer': [
     { label: 'JavaScript foundation', keywords: ['javascript variables', 'javascript fundamentals', 'control flow'] },
     { label: 'TypeScript foundation', keywords: ['typescript fundamentals', 'typescript for javascript', 'object types'] },
+    { label: 'Internet and HTTP', keywords: ['internet, dns', 'http request', 'status codes and json'] },
     { label: 'Node.js runtime', keywords: ['node.js runtime', 'node runtime', 'basic node.js server'] },
     { label: 'Express API', keywords: ['express routing', 'express api', 'express.js'] },
     { label: 'SQL and PostgreSQL', keywords: ['sql basics', 'postgresql tables', 'database with postgresql'] },
     { label: 'Authentication', keywords: ['register and login', 'password hashing', 'authentication'] },
+    { label: 'Caching', keywords: ['redis caching', 'cache invalidation'] },
     { label: 'Testing and deployment', keywords: ['jest', 'supertest', 'deploy backend', 'backend deployment'] },
   ],
   'fullstack-developer': [
+    { label: 'Internet foundation', keywords: ['internet, dns', 'how the web works', 'http and browser'] },
     { label: 'HTML and CSS foundation', keywords: ['semantic html', 'html fundamentals', 'css selectors'] },
     { label: 'JavaScript foundation', keywords: ['javascript functions', 'javascript fundamentals', 'control flow'] },
+    { label: 'Git and npm workflow', keywords: ['git, github', 'git and npm', 'package.json'] },
     { label: 'TypeScript foundation', keywords: ['typescript fundamentals', 'typescript primitives'] },
     { label: 'React foundation', keywords: ['react components', 'components and props'] },
+    { label: 'Tailwind foundation', keywords: ['tailwind css', 'tailwind utilities'] },
     { label: 'Node.js runtime', keywords: ['node.js runtime', 'node runtime', 'basic node.js server'] },
     { label: 'Express API', keywords: ['express routing', 'express api', 'express.js'] },
     { label: 'SQL and PostgreSQL', keywords: ['sql basics', 'postgresql', 'relational table'] },
     { label: 'Authentication', keywords: ['registration and password', 'authentication', 'protected resources'] },
+    { label: 'Caching', keywords: ['redis caching', 'cache invalidation'] },
+    { label: 'Linux deployment basics', keywords: ['linux basics', 'linux deployment', 'shell commands'] },
     { label: 'Testing and deployment', keywords: ['critical fullstack flow', 'fullstack testing', 'deploy and document'] },
   ],
   'ui-engineer': [
@@ -245,9 +255,11 @@ const ROLE_ALIGNMENT_RULES: Record<Exclude<TargetRole, 'backend-developer'>, {
 }> = {
   'frontend-developer': {
     requiredClusters: [
+      ['internet', 'dns', 'http'],
       ['html', 'css', 'semantic'],
-      ['javascript', 'typescript'],
+      ['javascript', 'typescript', 'git', 'npm'],
       ['react', 'component', 'state'],
+      ['tailwind'],
       ['next.js', 'app router', 'deployment'],
     ],
     forbiddenKeywords: ['bcrypt', 'prisma migration', 'express controller', 'postgresql schema'],
@@ -255,12 +267,13 @@ const ROLE_ALIGNMENT_RULES: Record<Exclude<TargetRole, 'backend-developer'>, {
   },
   'fullstack-developer': {
     requiredClusters: [
-      ['html', 'css', 'javascript', 'typescript'],
-      ['react', 'frontend'],
+      ['internet', 'dns', 'http'],
+      ['html', 'css', 'javascript', 'typescript', 'git', 'npm'],
+      ['react', 'frontend', 'tailwind'],
       ['node', 'express', 'rest api'],
       ['postgres', 'sql', 'database'],
-      ['auth', 'authorization', 'session'],
-      ['test', 'deployment'],
+      ['auth', 'authorization', 'session', 'redis'],
+      ['test', 'linux', 'deployment'],
     ],
     forbiddenKeywords: [],
     maxForbiddenHits: 0,
@@ -330,12 +343,12 @@ function getRoleSpecificPrompt(role: TargetRole) {
      - functions, arrays, and objects
      - async JavaScript, modules, and errors
      - TypeScript fundamentals only after those JavaScript tasks
-     - HTTP request/response, status codes, and JSON
+     - Internet, DNS, HTTP request/response, status codes, and JSON
   2) Node.js Backend Fundamentals (terminal, Git, npm, Node runtime, environment, basic server, project structure)
   3) Express.js & REST API
   4) Database with PostgreSQL (Prisma)
   5) Authentication & Authorization (JWT, Bcrypt)
-  6) Testing, Documentation, and Deployment
+  6) Testing, Documentation, Redis Caching, and Deployment
 - Never combine JavaScript and TypeScript into the first task.
 - Teach the programming language before Node.js, and teach a basic Node.js server before Express.
 - Include mini project per module and make the final project an E-commerce Backend API.
@@ -345,10 +358,10 @@ function getRoleSpecificPrompt(role: TargetRole) {
     case 'frontend-developer':
       return `Frontend-specific constraints (must follow):
 - Use this 6-module sequence in order:
-  1) HTML and CSS Foundations
-  2) JavaScript functions, data, DOM, and async JavaScript
-  3) TypeScript first, then React components, props, and state
-  4) React data flow and API integration
+  1) Internet/DNS/HTTP basics, then semantic HTML and responsive CSS
+  2) JavaScript functions, data, DOM, async JavaScript, then Git/GitHub and npm
+  3) TypeScript first, then React components, props, state, and Tailwind CSS
+  4) React data flow, API integration, accessibility, and web security
   5) Next.js, testing, and deployment
   6) Portfolio capstone
 - Keep JavaScript tasks before TypeScript and React tasks.
@@ -370,12 +383,12 @@ function getRoleSpecificPrompt(role: TargetRole) {
     case 'fullstack-developer':
       return `Fullstack-specific constraints (must follow):
 - Use this beginner sequence:
-  1) HTML, CSS, and basic JavaScript
-  2) JavaScript functions/data/DOM/async, then TypeScript
-  3) React components, state, forms, and API data
+  1) Internet/DNS/HTTP basics, then HTML, CSS, and basic JavaScript
+  2) JavaScript functions/data/DOM/async, Git/GitHub, npm, then TypeScript
+  3) React components, state, forms, API data, and Tailwind CSS
   4) Node.js runtime and basic server, then Express REST API
-  5) SQL/PostgreSQL persistence, then authentication and ownership
-  6) Fullstack integration, tests, documentation, and deployment
+  5) SQL/PostgreSQL persistence, then authentication, ownership, and Redis caching
+  6) Fullstack integration, tests, Linux basics, documentation, and deployment
 - Never jump from one JavaScript basics task directly into TypeScript/React.
 - Build a basic Node.js server before introducing Express.
 - Keep a balance. Do not skew too heavily into one side.`

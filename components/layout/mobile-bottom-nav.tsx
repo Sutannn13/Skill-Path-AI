@@ -32,6 +32,7 @@ export function MobileBottomNav({ className }: MobileBottomNavProps) {
 
   return (
     <nav
+      aria-label="Primary"
       className={cn(
         'fixed bottom-0 left-0 right-0 z-50 bg-white border-t-3 border-black lg:hidden',
         className
@@ -46,17 +47,14 @@ export function MobileBottomNav({ className }: MobileBottomNavProps) {
             <Link
               key={item.href}
               href={item.href}
+              aria-current={isActive ? 'page' : undefined}
               className={cn(
-                'flex flex-col items-center justify-center px-3 py-2 rounded-xl transition-all duration-150 min-w-[60px]',
-                isActive
-                  ? 'bg-yellow text-black'
-                  : 'text-gray-500 hover:bg-gray-100'
+                'flex flex-col items-center justify-center px-3 py-2 rounded-xl transition-all duration-150 min-w-[60px] min-h-[44px] focus-brutal-ring',
+                isActive ? 'bg-yellow text-black font-bold' : 'text-secondary hover:bg-gray-100'
               )}
             >
-              <Icon className={cn('w-5 h-5', isActive ? 'stroke-[3]' : '')} />
-              <span className={cn('text-xs mt-1 font-medium', isActive && 'font-bold')}>
-                {item.label}
-              </span>
+              <Icon className={cn('w-5 h-5', isActive ? 'stroke-[3]' : '')} aria-hidden="true" />
+              <span className="text-xs mt-1 font-medium">{item.label}</span>
             </Link>
           )
         })}

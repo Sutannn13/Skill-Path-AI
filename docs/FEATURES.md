@@ -180,10 +180,11 @@ Strategic project ideas based on skill gaps.
 - FloatingSticker (animated icons)
 - AppShell, MobileBottomNav, DashboardHeader
 
-### 3D Elements
-- ThreeFloatingScene (React Three Fiber)
-- CSSAnimatedScene (CSS fallback for mobile)
-- Floating objects: laptop, badge, rocket, book, code
+### 3D Elements (Arcade Quest 3D Cabinet)
+- `SceneFrame` (components/three/scene-frame.tsx): SSR-safe mount guard — dynamic `ssr:false` import, IntersectionObserver lazy mount/unmount, and a static "quest screen" poster fallback for reduced-motion / no-WebGL / offscreen.
+- `ArcadeScene` (components/three/arcade-scene.tsx): React Three Fiber scene — low-poly cel-shaded arcade cabinet + floating quest tiles / XP coins / gems, each with hard black `Outlines` (no glass/chrome/PBR, no network HDR).
+- `CSSAnimatedScene` (CSS-only fallback) + `use3DSupport` capability hook.
+- Used on: landing hero, login + register welcome columns (lg+ only).
 
 ### Layout
 - Responsive grid system

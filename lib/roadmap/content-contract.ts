@@ -1,6 +1,6 @@
 import type { RoadmapTask } from '@/types'
 
-export const ROADMAP_CONTENT_VERSION = 3
+export const ROADMAP_CONTENT_VERSION = 4
 
 export type QuizSkillKey =
   | 'html'
@@ -28,23 +28,26 @@ export interface TaskContentContract {
 }
 
 const TASK_CONTENT_CONTRACTS: Record<string, TaskContentContract> = {
-  'frontend-1-1': { resourceKeys: ['semantic html and forms'], quizSkill: 'html' },
-  'frontend-1-2': { resourceKeys: ['css selectors', 'box model'], quizSkill: 'css' },
-  'frontend-1-3': { resourceKeys: ['flexbox'], quizSkill: 'css' },
-  'frontend-1-4': { resourceKeys: ['grid and responsive layout'], quizSkill: 'css' },
+  'frontend-1-1': { resourceKeys: ['internet and web basics'], quizSkill: 'rest api' },
+  'frontend-1-2': { resourceKeys: ['semantic html and forms'], quizSkill: 'html' },
+  'frontend-1-3': { resourceKeys: ['css selectors', 'box model'], quizSkill: 'css' },
+  'frontend-1-4': { resourceKeys: ['flexbox', 'grid and responsive layout'], quizSkill: 'css' },
   'frontend-1-5': { resourceKeys: ['javascript variables', 'control flow'], quizSkill: 'javascript' },
   'frontend-2-1': { resourceKeys: ['javascript functions', 'scope'], quizSkill: 'javascript' },
   'frontend-2-2': { resourceKeys: ['arrays', 'object methods'], quizSkill: 'javascript' },
   'frontend-2-3': { resourceKeys: ['dom and form behavior'], quizSkill: 'javascript' },
   'frontend-2-4': { resourceKeys: ['async fetch workflow'], quizSkill: 'javascript' },
+  'frontend-2-5': { resourceKeys: ['git and npm workflow'], quizSkill: 'git' },
   'frontend-3-1': { resourceKeys: ['typescript primitives', 'object types'], quizSkill: 'typescript' },
   'frontend-3-2': { resourceKeys: ['react components', 'props'], quizSkill: 'react' },
   'frontend-3-3': { resourceKeys: ['react state'], quizSkill: 'react' },
   'frontend-3-4': { resourceKeys: ['react lists forms and states'], quizSkill: 'react' },
+  'frontend-3-5': { resourceKeys: ['tailwind css'], quizSkill: 'css' },
   'frontend-4-1': { resourceKeys: ['react effects and fetching'], quizSkill: 'react' },
   'frontend-4-2': { resourceKeys: ['custom hooks'], quizSkill: 'react' },
   'frontend-4-3': { resourceKeys: ['conditional ui'], quizSkill: 'react' },
   'frontend-4-4': { resourceKeys: ['accessibility'], quizSkill: 'accessibility' },
+  'frontend-4-5': { resourceKeys: ['web security'], quizSkill: 'security' },
   'frontend-5-1': { resourceKeys: ['next.js app router'], quizSkill: 'react' },
   'frontend-5-2': { resourceKeys: ['route handlers'], quizSkill: 'rest api' },
   'frontend-5-3': { resourceKeys: ['testing'], quizSkill: 'testing' },
@@ -58,7 +61,7 @@ const TASK_CONTENT_CONTRACTS: Record<string, TaskContentContract> = {
   'backend-1-2': { resourceKeys: ['javascript functions and collections'], quizSkill: 'javascript' },
   'backend-1-3': { resourceKeys: ['async javascript'], quizSkill: 'javascript' },
   'backend-1-4': { resourceKeys: ['typescript primitives', 'object types'], quizSkill: 'typescript' },
-  'backend-1-5': { resourceKeys: ['http and json exchange'], quizSkill: 'rest api' },
+  'backend-1-5': { resourceKeys: ['internet and web basics', 'http and json exchange'], quizSkill: 'rest api' },
   'backend-2-1': { resourceKeys: ['git basics'], quizSkill: 'git' },
   'backend-2-2': { resourceKeys: ['node.js runtime', 'npm scripts'], quizSkill: 'node.js' },
   'backend-2-3': { resourceKeys: ['environment variables'], quizSkill: 'node.js' },
@@ -82,17 +85,19 @@ const TASK_CONTENT_CONTRACTS: Record<string, TaskContentContract> = {
   'backend-6-1': { resourceKeys: ['postman'], quizSkill: 'testing' },
   'backend-6-2': { resourceKeys: ['jest supertest'], quizSkill: 'testing' },
   'backend-6-3': { resourceKeys: ['api documentation'], quizSkill: 'documentation' },
-  'backend-6-4': { resourceKeys: ['environment variables'], quizSkill: 'deployment' },
+  'backend-6-4': { resourceKeys: ['redis caching'], quizSkill: 'node.js' },
   'backend-6-5': { resourceKeys: ['backend deployment'], quizSkill: 'deployment' },
 
   'fullstack-2-1': { resourceKeys: ['javascript functions and collections'], quizSkill: 'javascript' },
   'fullstack-2-2': { resourceKeys: ['dom and form behavior'], quizSkill: 'javascript' },
   'fullstack-2-3': { resourceKeys: ['async fetch workflow'], quizSkill: 'javascript' },
   'fullstack-2-4': { resourceKeys: ['typescript primitives', 'object types'], quizSkill: 'typescript' },
+  'fullstack-2-5': { resourceKeys: ['git and npm workflow'], quizSkill: 'git' },
   'fullstack-3-1': { resourceKeys: ['react components', 'props'], quizSkill: 'react' },
   'fullstack-3-2': { resourceKeys: ['react state and forms'], quizSkill: 'react' },
   'fullstack-3-3': { resourceKeys: ['react lists', 'conditional ui'], quizSkill: 'react' },
   'fullstack-3-4': { resourceKeys: ['api fetching', 'effects'], quizSkill: 'react' },
+  'fullstack-3-5': { resourceKeys: ['tailwind css'], quizSkill: 'css' },
   'fullstack-4-1': { resourceKeys: ['node.js runtime', 'npm scripts'], quizSkill: 'node.js' },
   'fullstack-4-2': { resourceKeys: ['environment variables'], quizSkill: 'node.js' },
   'fullstack-4-3': { resourceKeys: ['node.js', 'http basics'], quizSkill: 'node.js' },
@@ -102,10 +107,12 @@ const TASK_CONTENT_CONTRACTS: Record<string, TaskContentContract> = {
   'fullstack-5-2': { resourceKeys: ['database access', 'migrations'], quizSkill: 'database' },
   'fullstack-5-3': { resourceKeys: ['registration and password security'], quizSkill: 'security' },
   'fullstack-5-4': { resourceKeys: ['protected authentication and ownership'], quizSkill: 'security' },
+  'fullstack-5-5': { resourceKeys: ['redis caching'], quizSkill: 'node.js' },
   'fullstack-6-1': { resourceKeys: ['frontend authentication state'], quizSkill: 'security' },
   'fullstack-6-2': { resourceKeys: ['fullstack client server integration'], quizSkill: 'rest api' },
   'fullstack-6-3': { resourceKeys: ['fullstack critical testing'], quizSkill: 'testing' },
-  'fullstack-6-4': { resourceKeys: ['deployment and documentation'], quizSkill: 'deployment' },
+  'fullstack-6-4': { resourceKeys: ['linux deployment basics'], quizSkill: 'deployment' },
+  'fullstack-6-5': { resourceKeys: ['deployment and documentation'], quizSkill: 'deployment' },
 
   'ui-2-1': { resourceKeys: ['javascript functions', 'scope'], quizSkill: 'javascript' },
   'ui-2-2': { resourceKeys: ['javascript functions and collections'], quizSkill: 'javascript' },

@@ -1,10 +1,12 @@
 import { generateFallbackRoadmap } from '@/lib/ai'
 import { getRoleById } from '@/lib/constants'
+import { getLearningResourceGateFromResources } from '@/lib/roadmap/progress'
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser'
 import {
   CurrentLevel,
   Roadmap,
   RoadmapProjectReviewStatus,
+  RoadmapResourceType,
   RoadmapTaskRequirementState,
   StudyTime,
   TargetRole,
@@ -50,8 +52,11 @@ interface TaskOwnershipRow {
   roadmaps: RoadmapJoinRow | RoadmapJoinRow[] | null
 }
 
-interface RequiredResourceRow {
+interface LearningResourceRow {
   id: string
+  resource_type: RoadmapResourceType
+  url: string | null
+  completion_rule: string | null
 }
 
 interface ResourceProgressRow {
@@ -183,38 +188,45 @@ export async function loadRoadmapTaskLearningContext(input: {
     return null
   }
 
-  const { data: requiredResources, error: resourcesError } = await supabase
+  const { data: learningResources, error: resourcesError } = await supabase
     .from('roadmap_resources')
-    .select('id')
+    .select('id, resource_type, url, completion_rule')
     .eq('roadmap_task_id', typedTask.id)
-    .eq('is_required', true)
 
   if (resourcesError) {
-    throw new Error(`Failed to load required resources: ${resourcesError.message}`)
+    throw new Error(`Failed to load learning resources: ${resourcesError.message}`)
   }
 
-  const requiredIds = (requiredResources ?? []).map((resource) => (resource as RequiredResourceRow).id)
-  let requiredResourcesComplete = true
+  const resourceRows = (learningResources ?? []) as LearningResourceRow[]
+  const resourceIds = resourceRows.map((resource) => resource.id)
+  let completedIds = new Set<string>()
 
-  if (requiredIds.length > 0) {
+  if (resourceIds.length > 0) {
     const { data: progressRows, error: progressError } = await supabase
       .from('roadmap_resource_progress')
       .select('resource_id, is_completed')
       .eq('user_id', userId)
-      .in('resource_id', requiredIds)
+      .in('resource_id', resourceIds)
 
     if (progressError) {
       throw new Error(`Failed to load resource progress: ${progressError.message}`)
     }
 
-    const completedIds = new Set(
+    completedIds = new Set(
       (progressRows ?? [])
         .filter((row) => (row as ResourceProgressRow).is_completed === true)
         .map((row) => (row as ResourceProgressRow).resource_id)
     )
-
-    requiredResourcesComplete = requiredIds.every((resourceId) => completedIds.has(resourceId))
   }
+
+  const requiredResourcesComplete = getLearningResourceGateFromResources(
+    resourceRows.map((resource) => ({
+      resourceType: resource.resource_type,
+      url: resource.url ?? '',
+      completionRule: resource.completion_rule ?? '',
+      isCompleted: completedIds.has(resource.id),
+    }))
+  ).resourcesComplete
 
   return {
     roadmap: {

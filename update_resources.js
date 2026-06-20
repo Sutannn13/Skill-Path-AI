@@ -36,7 +36,7 @@ const replacements = [
   { match: /postman|thunder client/i, provider: 'Programmer Zaman Now', url: 'https://www.youtube.com/watch?v=WxwG79FtyVw' },
   { match: /documentation/i, provider: 'Programmer Zaman Now', url: 'https://www.youtube.com/watch?v=gT8ZstY8c_U' },
   { match: /deployment/i, provider: 'Dea Afrizal', url: 'https://www.youtube.com/watch?v=2Tz8iP1Hl40' },
-  { match: /performance/i, provider: 'Web Programming UNPAS', url: 'https://www.youtube.com/watch?v=v=kYJheWb6KqI' },
+  { match: /performance/i, provider: 'Web Programming UNPAS', url: 'https://www.youtube.com/watch?v=kYJheWb6KqI' },
   { match: /json/i, provider: 'Programmer Zaman Now', url: 'https://www.youtube.com/watch?v=8b2O06_UItY' },
 ];
 

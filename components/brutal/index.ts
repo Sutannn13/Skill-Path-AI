@@ -5,6 +5,10 @@ export { ScoreMeter, ScoreBar } from './score-meter'
 export { MatchScorePill, ReadinessBadge } from './match-score-pill'
 export { FloatingSticker, StickerGroup } from './floating-sticker'
 
+// Arcade Quest primitives
+export { CabinetCard, LevelChip, XPBar, StatTile } from './arcade'
+export type { AccentColor } from './arcade'
+
 // Brutal UI v2 components
 export {
   StickerBadge,

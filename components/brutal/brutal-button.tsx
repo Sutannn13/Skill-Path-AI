@@ -41,7 +41,9 @@ const colorClasses: Record<ButtonColor, string> = {
 }
 
 const sizeClasses = {
-  sm: 'px-4 py-2 text-sm',
+  // min-h-[44px] keeps the small size at the >=44px target floor (DESIGN.md /
+  // WCAG 2.5.8); without it sm rendered ~42px.
+  sm: 'px-4 py-2 text-sm min-h-[44px]',
   md: 'px-6 py-3 text-base',
   lg: 'px-8 py-4 text-lg',
 }
@@ -70,7 +72,7 @@ export function BrutalButton({
       whileHover={!disabled && !prefersReducedMotion ? { x: -2, y: -2 } : undefined}
       whileTap={!disabled && !prefersReducedMotion ? { x: 0, y: 0 } : undefined}
       className={cn(
-        'brutal-border brutal-radius font-bold transition-all duration-150 flex items-center justify-center gap-2',
+        'brutal-border brutal-radius font-bold transition-all duration-150 flex items-center justify-center gap-2 focus-brutal-ring',
         bgClass,
         isPrimary ? 'shadow-brutal-sm hover:shadow-brutal-lg' : 'shadow-none',
         sizeClasses[size],
@@ -104,8 +106,8 @@ export function BrutalIconButton({
 }) {
   const prefersReducedMotion = useReducedMotion()
   const sizeClasses = {
-    sm: 'w-8 h-8',
-    md: 'w-10 h-10',
+    sm: 'w-9 h-9',
+    md: 'w-11 h-11',
     lg: 'w-12 h-12',
   }
 
@@ -118,7 +120,7 @@ export function BrutalIconButton({
       whileTap={!disabled && !prefersReducedMotion ? { x: 0, y: 0 } : undefined}
       aria-label={ariaLabel}
       className={cn(
-        'brutal-border brutal-radius flex items-center justify-center transition-all duration-150',
+        'brutal-border brutal-radius flex items-center justify-center transition-all duration-150 focus-brutal-ring',
         colorClasses[color],
         sizeClasses[size],
         'shadow-brutal-sm hover:shadow-brutal-lg',

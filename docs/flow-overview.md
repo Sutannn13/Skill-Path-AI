@@ -89,10 +89,10 @@ sequenceDiagram
   Page->>DB: Load latest active roadmap and tasks
   alt Roadmap exists
     DB-->>Page: Roadmap, tasks, resources, progress
-    Page->>Page: Validate curriculum version, role alignment, and beginner prerequisite order
-    alt Current content version
-      Page->>DB: Insert missing relevant video or documentation rows
-      Page->>Page: Filter stale unrelated resources
+      Page->>Page: Validate curriculum version, role alignment, beginner prerequisite order, and bilingual resource contract
+      alt Current content version
+        Page->>DB: Insert missing English, Indonesian, or documentation rows
+        Page->>Page: Filter stale unrelated resources
     else Legacy content version
       Page-->>User: Show explicit repair action
       User->>Page: Confirm repair
@@ -102,8 +102,11 @@ sequenceDiagram
     Page->>DB: Load profile and skills
     Page->>API: Request generated roadmap
     API-->>Page: Gemini roadmap or deterministic fallback
+    Page->>Page: Resolve long-form English video, Indonesian video or English fallback, and topic documentation
     Page->>DB: Insert roadmap, tasks, and resources
   end
+  User->>Page: Switch video language with Previous or Next
+  Page-->>User: Show English by default or Indonesian/fallback slide
   User->>Page: Complete resource, exercise, or deliverable
   Page->>DB: Persist resource progress and task status
   DB-->>Page: Saved state

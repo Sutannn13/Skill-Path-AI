@@ -2,6 +2,30 @@ import type { RoadmapTask, RoadmapWeek, TargetRole } from '@/types'
 import { getTaskResourceKeys } from '@/lib/roadmap/content-contract'
 
 export type RoadmapResourceType = 'youtube' | 'article' | 'docs' | 'project' | 'quiz'
+export type RoadmapVideoLanguage = 'en' | 'id'
+
+type LongFormVideoTrack =
+  | 'internet-http'
+  | 'html-css'
+  | 'javascript'
+  | 'git-npm'
+  | 'typescript'
+  | 'react'
+  | 'tailwind'
+  | 'frontend-quality'
+  | 'web-security'
+  | 'nextjs'
+  | 'frontend-testing'
+  | 'api-testing'
+  | 'backend-testing'
+  | 'fullstack-testing'
+  | 'deployment'
+  | 'node-express'
+  | 'rest-api'
+  | 'postgresql'
+  | 'auth-security'
+  | 'redis'
+  | 'linux'
 
 export interface RoadmapResourceSeed {
   title: string
@@ -18,7 +42,13 @@ export interface GetCuratedResourcesOptions {
   usedUrls?: Set<string>
 }
 
-function youtube(title: string, url: string, estimatedMinutes: number, provider = 'YouTube'): RoadmapResourceSeed {
+function youtube(
+  title: string,
+  url: string,
+  estimatedMinutes: number,
+  provider = 'YouTube',
+  language: RoadmapVideoLanguage = 'en'
+): RoadmapResourceSeed {
   return {
     title,
     resourceType: 'youtube',
@@ -26,7 +56,7 @@ function youtube(title: string, url: string, estimatedMinutes: number, provider 
     provider,
     estimatedMinutes,
     isRequired: true,
-    completionRule: 'manual_watch_confirmation',
+    completionRule: `manual_watch_confirmation;video_language:${language}`,
   }
 }
 
@@ -42,7 +72,459 @@ function docs(title: string, url: string, estimatedMinutes: number, provider: st
   }
 }
 
+const BILINGUAL_TARGET_ROLES = new Set<TargetRole>([
+  'frontend-developer',
+  'backend-developer',
+  'fullstack-developer',
+])
+
+const LONG_FORM_VIDEO_LIBRARY: Record<
+  LongFormVideoTrack,
+  { english: RoadmapResourceSeed; indonesian?: RoadmapResourceSeed }
+> = {
+  'internet-http': {
+    english: youtube(
+      'Full HTTP Networking Course: HTTP, Fetch, and REST APIs (English)',
+      'https://www.youtube.com/watch?v=2JYT5f2isg4',
+      309,
+      'freeCodeCamp.org'
+    ),
+  },
+  'html-css': {
+    english: youtube(
+      'HTML and CSS Full Course (English)',
+      'https://www.youtube.com/watch?v=HGTJBPNC-Gw',
+      243,
+      'Bro Code'
+    ),
+    indonesian: youtube(
+      'Tutorial HTML dan CSS Lengkap dengan Project (Bahasa Indonesia)',
+      'https://www.youtube.com/watch?v=_Ze-eB4gQv8',
+      278,
+      'Kenapa Coding',
+      'id'
+    ),
+  },
+  javascript: {
+    english: youtube(
+      'JavaScript Full Course for Beginners (English)',
+      'https://www.youtube.com/watch?v=lfmg-EJ8gm4',
+      720,
+      'Bro Code'
+    ),
+    indonesian: youtube(
+      'Tutorial JavaScript Dasar 8 Jam (Bahasa Indonesia)',
+      'https://www.youtube.com/watch?v=SDROba_M42g',
+      484,
+      'Programmer Zaman Now',
+      'id'
+    ),
+  },
+  'git-npm': {
+    english: youtube(
+      'Learn Git: Full Course for Beginners (English)',
+      'https://www.youtube.com/watch?v=zTjRZNkhiEU',
+      224,
+      'freeCodeCamp.org'
+    ),
+  },
+  typescript: {
+    english: youtube(
+      'TypeScript Full Course for Beginners (English)',
+      'https://www.youtube.com/watch?v=gieEQFIfgYc',
+      502,
+      'Dave Gray'
+    ),
+    indonesian: youtube(
+      'Tutorial TypeScript Modern Lengkap (Bahasa Indonesia)',
+      'https://www.youtube.com/watch?v=agthXaDpAQU',
+      420,
+      'Kenapa Coding',
+      'id'
+    ),
+  },
+  react: {
+    english: youtube(
+      'Learn React: Full Beginner Course and Practice Projects (English)',
+      'https://www.youtube.com/watch?v=x4rFhThSX04',
+      941,
+      'freeCodeCamp.org'
+    ),
+    indonesian: youtube(
+      'Tutorial React JS Dasar Lengkap (Bahasa Indonesia)',
+      'https://www.youtube.com/watch?v=vezEevIedmM',
+      195,
+      'Belajar Coding',
+      'id'
+    ),
+  },
+  tailwind: {
+    english: youtube(
+      'Tailwind CSS Full Course for Beginners (English)',
+      'https://www.youtube.com/watch?v=lCxcTsOHrjo',
+      180,
+      'Dave Gray'
+    ),
+    indonesian: youtube(
+      'Tutorial Tailwind CSS dalam Satu Video (Bahasa Indonesia)',
+      'https://www.youtube.com/watch?v=4B9XYXCBYkA',
+      77,
+      'Dirumahrafif',
+      'id'
+    ),
+  },
+  'frontend-quality': {
+    english: youtube(
+      'Learn Web Accessibility: Full Course (English)',
+      'https://www.youtube.com/watch?v=e2nkq3h1P68',
+      93,
+      'freeCodeCamp.org'
+    ),
+  },
+  'web-security': {
+    english: youtube(
+      'Web Application Security Full Course (English)',
+      'https://www.youtube.com/watch?v=2lWDPhI5Dwg',
+      257,
+      'SoftFlow Academy'
+    ),
+  },
+  nextjs: {
+    english: youtube(
+      'Next.js App Router Full Course for Beginners (English)',
+      'https://www.youtube.com/watch?v=843nec-IvW0',
+      424,
+      'Dave Gray'
+    ),
+  },
+  'frontend-testing': {
+    english: youtube(
+      'React Testing for Beginners: Full Course (English)',
+      'https://www.youtube.com/watch?v=8Xwq35cPwYg',
+      77,
+      'Programming with Mosh'
+    ),
+  },
+  'api-testing': {
+    english: youtube(
+      'Postman Beginner Course for API Testing (English)',
+      'https://www.youtube.com/watch?v=VywxIQ2ZXw4',
+      130,
+      'freeCodeCamp.org'
+    ),
+    indonesian: youtube(
+      'Automation Testing dengan Postman (Bahasa Indonesia)',
+      'https://www.youtube.com/watch?v=7ao-9pWDRUs',
+      73,
+      'Dicoding Indonesia',
+      'id'
+    ),
+  },
+  'backend-testing': {
+    english: youtube(
+      'Jest and Supertest Integration Testing Course (English)',
+      'https://www.youtube.com/watch?v=IPX0OswHoxg',
+      87,
+      'Degraphe'
+    ),
+    indonesian: youtube(
+      'Node.js Unit Testing Complete Tutorial (Bahasa Indonesia)',
+      'https://www.youtube.com/watch?v=UNaYui-EG_8',
+      69,
+      'Programmer Zaman Now',
+      'id'
+    ),
+  },
+  'fullstack-testing': {
+    english: youtube(
+      'Playwright End-to-End Testing Course (English)',
+      'https://www.youtube.com/watch?v=jydYq7oAtD8',
+      64,
+      'freeCodeCamp.org'
+    ),
+  },
+  deployment: {
+    english: youtube(
+      'Production Web Deployment Course (English)',
+      'https://www.youtube.com/watch?v=gViEtIJ1DCw',
+      183,
+      'Harkirat Singh'
+    ),
+  },
+  'node-express': {
+    english: youtube(
+      'Node.js and Express.js Full Course (English)',
+      'https://www.youtube.com/watch?v=Oe421EPjeBE',
+      497,
+      'freeCodeCamp.org'
+    ),
+    indonesian: youtube(
+      'Belajar Backend Node.js dari Nol Sampai Deploy (Bahasa Indonesia)',
+      'https://www.youtube.com/watch?v=9Vj4vgNtMws',
+      380,
+      'JustKoding',
+      'id'
+    ),
+  },
+  'rest-api': {
+    english: youtube(
+      'CRUD API Tutorial with Node and Express (English)',
+      'https://www.youtube.com/watch?v=_7UQPve99r4',
+      93,
+      'freeCodeCamp.org'
+    ),
+    indonesian: youtube(
+      'Node.js REST API dengan Express, MySQL, dan Prisma (Bahasa Indonesia)',
+      'https://www.youtube.com/watch?v=6v8JXecArqE',
+      267,
+      'Programmer Zaman Now',
+      'id'
+    ),
+  },
+  postgresql: {
+    english: youtube(
+      'PostgreSQL Full Course for Beginners (English)',
+      'https://www.youtube.com/watch?v=qw--VYLpxG4',
+      260,
+      'freeCodeCamp.org'
+    ),
+    indonesian: youtube(
+      'Full Tutorial PostgreSQL dan Database (Bahasa Indonesia)',
+      'https://www.youtube.com/watch?v=EAr5GvF7-dw',
+      266,
+      'HaloTech Academy',
+      'id'
+    ),
+  },
+  'auth-security': {
+    english: youtube(
+      'JWT Authentication with Node and Express: 1.5 Hour Course (English)',
+      'https://www.youtube.com/watch?v=6ZCU4QetVTs',
+      89,
+      'Laiture'
+    ),
+  },
+  redis: {
+    english: youtube(
+      'Redis Course: In-Memory Database and Caching (English)',
+      'https://www.youtube.com/watch?v=XCsS_NVAa1g',
+      87,
+      'freeCodeCamp.org'
+    ),
+  },
+  linux: {
+    english: youtube(
+      'Linux Command Line All-in-One Course (English)',
+      'https://www.youtube.com/watch?v=AOGPtRYaYPA',
+      201,
+      'Caleb Curry'
+    ),
+  },
+}
+
+const VIDEO_TRACK_BY_RESOURCE_KEY: Record<string, LongFormVideoTrack> = {
+  'internet and web basics': 'internet-http',
+  'http and json exchange': 'internet-http',
+  'http basics': 'internet-http',
+  'semantic html and forms': 'html-css',
+  'css selectors': 'html-css',
+  'box model': 'html-css',
+  flexbox: 'html-css',
+  'grid and responsive layout': 'html-css',
+  'javascript variables': 'javascript',
+  'control flow': 'javascript',
+  'javascript functions': 'javascript',
+  scope: 'javascript',
+  arrays: 'javascript',
+  'object methods': 'javascript',
+  'javascript functions and collections': 'javascript',
+  'dom and form behavior': 'javascript',
+  'async fetch workflow': 'javascript',
+  'async javascript': 'javascript',
+  'git basics': 'git-npm',
+  'git and npm workflow': 'git-npm',
+  git: 'git-npm',
+  documentation: 'git-npm',
+  'typescript primitives': 'typescript',
+  'object types': 'typescript',
+  'react components': 'react',
+  props: 'react',
+  'react state': 'react',
+  'react state and forms': 'react',
+  'react lists forms and states': 'react',
+  'react lists': 'react',
+  'conditional ui': 'react',
+  'api fetching': 'react',
+  effects: 'react',
+  'react effects and fetching': 'react',
+  'custom hooks': 'react',
+  'frontend project architecture': 'react',
+  react: 'react',
+  'tailwind css': 'tailwind',
+  accessibility: 'frontend-quality',
+  'web performance and accessibility': 'frontend-quality',
+  'web security': 'web-security',
+  'next.js app router': 'nextjs',
+  'route handlers': 'nextjs',
+  testing: 'frontend-testing',
+  postman: 'api-testing',
+  'jest supertest': 'backend-testing',
+  'fullstack critical testing': 'fullstack-testing',
+  deployment: 'deployment',
+  'backend deployment': 'deployment',
+  'deployment and documentation': 'deployment',
+  'node.js runtime': 'node-express',
+  'npm scripts': 'node-express',
+  'environment variables': 'node-express',
+  'node.js': 'node-express',
+  'backend folder structure': 'node-express',
+  'express routing': 'rest-api',
+  controllers: 'rest-api',
+  middleware: 'rest-api',
+  crud: 'rest-api',
+  'error handling': 'rest-api',
+  'rest crud and error handling': 'rest-api',
+  'fullstack client server integration': 'rest-api',
+  'api documentation': 'rest-api',
+  'sql basics': 'postgresql',
+  'sql tables': 'postgresql',
+  'database schema': 'postgresql',
+  prisma: 'postgresql',
+  migrations: 'postgresql',
+  'database access': 'postgresql',
+  authentication: 'auth-security',
+  bcrypt: 'auth-security',
+  jwt: 'auth-security',
+  session: 'auth-security',
+  'protected routes': 'auth-security',
+  'role-based authorization': 'auth-security',
+  validation: 'auth-security',
+  'registration and password security': 'auth-security',
+  'protected authentication and ownership': 'auth-security',
+  'frontend authentication state': 'auth-security',
+  'redis caching': 'redis',
+  'linux deployment basics': 'linux',
+}
+
+const DEFAULT_DOC_KEY_BY_VIDEO_TRACK: Record<LongFormVideoTrack, string> = {
+  'internet-http': 'internet and web basics',
+  'html-css': 'semantic html and forms',
+  javascript: 'javascript',
+  'git-npm': 'git basics',
+  typescript: 'typescript',
+  react: 'react',
+  tailwind: 'tailwind css',
+  'frontend-quality': 'accessibility',
+  'web-security': 'web security',
+  nextjs: 'next.js app router',
+  'frontend-testing': 'testing',
+  'api-testing': 'postman',
+  'backend-testing': 'jest supertest',
+  'fullstack-testing': 'fullstack critical testing',
+  deployment: 'deployment',
+  'node-express': 'node.js',
+  'rest-api': 'rest api',
+  postgresql: 'sql basics',
+  'auth-security': 'authentication',
+  redis: 'redis caching',
+  linux: 'linux deployment basics',
+}
+
+export function getRoadmapVideoLanguage(
+  resource: Pick<RoadmapResourceSeed, 'completionRule' | 'title'>
+): RoadmapVideoLanguage {
+  const languageMatch = resource.completionRule.match(/video_language:(en|id)/)
+  if (languageMatch?.[1] === 'id') return 'id'
+  if (/\b(bahasa indonesia|indonesian)\b/i.test(resource.title)) return 'id'
+  return 'en'
+}
+
+export interface RoadmapVideoSlide<T> {
+  language: RoadmapVideoLanguage
+  resource: T
+  isFallback: boolean
+}
+
+export function resolveRoadmapVideoSlides<
+  T extends Pick<RoadmapResourceSeed, 'resourceType' | 'completionRule' | 'title'>
+>(resources: T[]): RoadmapVideoSlide<T>[] {
+  const videos = resources.filter((resource) => resource.resourceType === 'youtube')
+  const englishVideo = videos.find((resource) => getRoadmapVideoLanguage(resource) === 'en') ?? videos[0]
+  if (!englishVideo) return []
+
+  const indonesianVideo = videos.find((resource) => getRoadmapVideoLanguage(resource) === 'id')
+  return [
+    { language: 'en', resource: englishVideo, isFallback: false },
+    {
+      language: 'id',
+      resource: indonesianVideo ?? englishVideo,
+      isFallback: !indonesianVideo,
+    },
+  ]
+}
+
+export function getLongFormVideoTrackForTask(
+  task: Pick<RoadmapTask, 'id' | 'taskKey'> &
+    Partial<Pick<RoadmapTask, 'title' | 'description' | 'deliverable'>>
+): LongFormVideoTrack | null {
+  const resourceKeys = getTaskResourceKeys(task) ?? []
+  for (const resourceKey of resourceKeys) {
+    const track = VIDEO_TRACK_BY_RESOURCE_KEY[resourceKey]
+    if (track) return track
+  }
+
+  const source = normalizeText(`${task.title ?? ''} ${task.description ?? ''} ${task.deliverable ?? ''}`)
+  if (source.includes('redis') || source.includes('caching')) return 'redis'
+  if (source.includes('linux') || source.includes('command line deployment')) return 'linux'
+  if (source.includes('next.js') || source.includes('nextjs') || source.includes('app router')) return 'nextjs'
+  if (source.includes('tailwind')) return 'tailwind'
+  if (source.includes('typescript')) return 'typescript'
+  if (source.includes('react')) return 'react'
+  if (source.includes('accessibility') || source.includes('web performance')) return 'frontend-quality'
+  if (source.includes('xss') || source.includes('cors') || source.includes('browser security')) return 'web-security'
+  if (source.includes('html') || source.includes('css') || source.includes('flexbox') || source.includes('grid')) return 'html-css'
+  if (source.includes('javascript') || source.includes('dom') || source.includes('fetch')) return 'javascript'
+  if (source.includes('git') || source.includes('github') || source.includes('package.json') || source.includes('npm workflow')) return 'git-npm'
+  if (source.includes('internet') || source.includes('dns') || source.includes('http request')) return 'internet-http'
+  if (source.includes('postman')) return 'api-testing'
+  if (source.includes('jest') || source.includes('supertest') || source.includes('node.js testing')) return 'backend-testing'
+  if (source.includes('playwright') || source.includes('end-to-end') || (source.includes('fullstack') && source.includes('test'))) return 'fullstack-testing'
+  if (source.includes('testing')) return 'frontend-testing'
+  if (source.includes('deploy') || source.includes('deployment') || source.includes('hosting')) return 'deployment'
+  if (source.includes('postgres') || source.includes('sql') || source.includes('database') || source.includes('prisma') || source.includes('migration')) return 'postgresql'
+  if (source.includes('auth') || source.includes('jwt') || source.includes('bcrypt') || source.includes('password')) return 'auth-security'
+  if (source.includes('express') || source.includes('rest api') || source.includes('controller') || source.includes('middleware') || source.includes('crud')) return 'rest-api'
+  if (source.includes('node.js') || source.includes('node ') || source.includes('environment variable') || source.includes('backend structure')) return 'node-express'
+  return null
+}
+
+function getLongFormVideosForTask(
+  task: Pick<RoadmapTask, 'id' | 'taskKey'> &
+    Partial<Pick<RoadmapTask, 'title' | 'description' | 'deliverable'>>,
+  targetRole?: TargetRole | null
+) {
+  if (!targetRole || !BILINGUAL_TARGET_ROLES.has(targetRole)) return null
+  const track = getLongFormVideoTrackForTask(task)
+  if (!track) return null
+  const course = LONG_FORM_VIDEO_LIBRARY[track]
+  return [course.english, ...(course.indonesian ? [course.indonesian] : [])]
+}
+
+function getLongFormDocsForTask(
+  task: Pick<RoadmapTask, 'id' | 'taskKey'> &
+    Partial<Pick<RoadmapTask, 'title' | 'description' | 'deliverable'>>
+) {
+  const track = getLongFormVideoTrackForTask(task)
+  if (!track) return null
+  const resourceKey = DEFAULT_DOC_KEY_BY_VIDEO_TRACK[track]
+  return (RESOURCE_LIBRARY[resourceKey] ?? []).find((resource) => resource.resourceType === 'docs') ?? null
+}
+
 const RESOURCE_LIBRARY: Record<string, RoadmapResourceSeed[]> = {
+  'internet and web basics': [
+    youtube('How Websites, DNS, and HTTP Work (English)', 'https://www.youtube.com/watch?v=iD2fgC74ZtA', 60, 'Coder Coder'),
+    docs('MDN: How the web works', 'https://developer.mozilla.org/en-US/docs/Learn_web_development/Getting_started/Web_standards/How_the_web_works', 35, 'MDN Web Docs'),
+  ],
   'semantic html': [
     youtube('HTML Crash Course (English)', 'https://www.youtube.com/watch?v=UB1O30fR-EE', 60, 'Traversy Media'),
     docs('MDN HTML basics', 'https://developer.mozilla.org/en-US/docs/Learn/HTML/Introduction_to_HTML/Getting_started', 25, 'MDN Web Docs'),
@@ -82,6 +564,26 @@ const RESOURCE_LIBRARY: Record<string, RoadmapResourceSeed[]> = {
   'grid and responsive layout': [
     youtube('CSS Grid Tutorial (English)', 'https://www.youtube.com/watch?v=jV8B24rSN5o', 25, 'Traversy Media'),
     docs('MDN responsive design', 'https://developer.mozilla.org/en-US/docs/Learn/CSS/CSS_layout/Responsive_Design', 30, 'MDN Web Docs'),
+  ],
+  'git and npm workflow': [
+    youtube('Git and GitHub (English)', 'https://www.youtube.com/watch?v=RGOj5yH7evk', 60, 'freeCodeCamp.org'),
+    docs('npm package.json guide', 'https://docs.npmjs.com/creating-a-package-json-file', 25, 'npm Docs'),
+  ],
+  'tailwind css': [
+    youtube('Tailwind CSS Full Course (English)', 'https://www.youtube.com/watch?v=lCxcTsOHrjo', 180, 'Dave Gray'),
+    docs('Tailwind CSS documentation', 'https://tailwindcss.com/docs/styling-with-utility-classes', 40, 'Tailwind CSS'),
+  ],
+  'web security': [
+    youtube('Web Application Security Full Course (English)', 'https://www.youtube.com/watch?v=2lWDPhI5Dwg', 180, 'SoftFlow Academy'),
+    docs('OWASP Cross Site Scripting Prevention Cheat Sheet', 'https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html', 40, 'OWASP'),
+  ],
+  'redis caching': [
+    youtube('Redis Course (English)', 'https://www.youtube.com/watch?v=XCsS_NVAa1g', 120, 'freeCodeCamp.org'),
+    docs('Redis caching documentation', 'https://redis.io/docs/latest/develop/use/client-side-caching/', 35, 'Redis'),
+  ],
+  'linux deployment basics': [
+    youtube('Linux Command Line Course (English)', 'https://www.youtube.com/watch?v=AOGPtRYaYPA', 180, 'Caleb Curry'),
+    docs('Ubuntu command line for beginners', 'https://ubuntu.com/tutorials/command-line-for-beginners', 40, 'Ubuntu'),
   ],
   css: [
     youtube('CSS Crash Course (English)', 'https://www.youtube.com/watch?v=yfoY53QXEnI', 85, 'Traversy Media'),
@@ -352,7 +854,7 @@ const RESOURCE_LIBRARY: Record<string, RoadmapResourceSeed[]> = {
     docs('OWASP authorization cheat sheet', 'https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html', 30, 'OWASP'),
   ],
   postman: [
-    youtube('Postman API Testing (English)', 'https://www.youtube.com/watch?v=VywxIQ2ZXw4', 25, 'freeCodeCamp.org'),
+    youtube('Postman API Testing (English)', 'https://www.youtube.com/watch?v=VywxIQ2ZXw4', 130, 'freeCodeCamp.org'),
     docs('Postman learning center', 'https://learning.postman.com/docs/getting-started/introduction/', 25, 'Postman'),
   ],
   'thunder client': [
@@ -409,7 +911,7 @@ const RESOURCE_LIBRARY: Record<string, RoadmapResourceSeed[]> = {
   ],
   'fullstack critical testing': [
     youtube('API Testing with Jest (English)', 'https://www.youtube.com/watch?v=FKnzS_icp20', 30, 'freeCodeCamp.org'),
-    docs('React testing overview', 'https://react.dev/learn', 30, 'React'),
+    docs('Playwright writing tests', 'https://playwright.dev/docs/writing-tests', 35, 'Playwright'),
   ],
   'deployment and documentation': [
     youtube('Deploy JavaScript App (English)', 'https://www.youtube.com/watch?v=Kx_1NYYJS7Q', 20, 'Traversy Media'),
@@ -1026,6 +1528,28 @@ export function isResourceLikelyRelevant(
   const backendTopicKey = deriveBackendTopicKey(task, week)
   const resourceTitle = normalizeText(resource.title)
   const contractedKeys = getTaskResourceKeys(task)
+  const longFormVideos = getLongFormVideosForTask(task, targetRole)
+  const longFormDocs = getLongFormDocsForTask(task)
+
+  if (
+    resource.resourceType === 'youtube' &&
+    longFormVideos?.some((entry) =>
+      (Boolean(resource.url) && entry.url === resource.url) ||
+      normalizeText(entry.title) === resourceTitle
+    )
+  ) {
+    return true
+  }
+  if (
+    resource.resourceType === 'docs' &&
+    longFormDocs &&
+    (
+      (Boolean(resource.url) && longFormDocs.url === resource.url) ||
+      normalizeText(longFormDocs.title) === resourceTitle
+    )
+  ) {
+    return true
+  }
 
   if (contractedKeys) {
     return contractedKeys.some((key) =>
@@ -1125,13 +1649,33 @@ export function getCuratedResourcesForTask(
   const keys = inferResourceKeys(task, week)
   const usedUrls = options?.usedUrls ?? new Set<string>()
   const contractedKeys = getTaskResourceKeys(task)
+  const longFormVideos = getLongFormVideosForTask(task, options?.targetRole)
 
   if (contractedKeys) {
-    const selectedVideo = selectResourceByType('youtube', contractedKeys, task, week, track, usedUrls)
     const selectedDocs = selectResourceByType('docs', contractedKeys, task, week, track, usedUrls)
+    if (longFormVideos) {
+      longFormVideos.forEach((resource) => usedUrls.add(resource.url))
+      return [
+        ...longFormVideos,
+        selectedDocs ?? buildUnavailableResource('docs', 'missing_docs_match'),
+      ]
+    }
+
+    const selectedVideo = selectResourceByType('youtube', contractedKeys, task, week, track, usedUrls)
 
     return [
       selectedVideo ?? buildUnavailableResource('youtube', 'missing_video_match'),
+      selectedDocs ?? buildUnavailableResource('docs', 'missing_docs_match'),
+    ]
+  }
+
+  if (longFormVideos) {
+    const selectedDocs = selectResourceByType('docs', keys, task, week, track, usedUrls)
+      ?? getLongFormDocsForTask(task)
+    longFormVideos.forEach((resource) => usedUrls.add(resource.url))
+    if (selectedDocs?.url) usedUrls.add(selectedDocs.url)
+    return [
+      ...longFormVideos,
       selectedDocs ?? buildUnavailableResource('docs', 'missing_docs_match'),
     ]
   }

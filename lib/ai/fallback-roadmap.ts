@@ -59,13 +59,13 @@ const FRONTEND_FALLBACK: RoadmapWeek[] = [
   week(
     1,
     'Web Foundations',
-    'Build the base of a frontend app with semantic HTML, CSS layout, and small JavaScript interactions.',
-    ['HTML', 'CSS', 'JavaScript'],
+    'Understand how the web works, then build the base of a frontend app with semantic HTML, CSS layout, and small JavaScript interactions.',
+    ['Internet', 'HTTP', 'HTML', 'CSS', 'JavaScript'],
     [
-      task('frontend-1-1', 'Semantic HTML landmarks and forms', 'Learn page structure, headings, landmarks, labels, inputs, and accessible form basics.', '45 minutes', 'easy', 'Semantic profile form page'),
-      task('frontend-1-2', 'CSS selectors, box model, and spacing', 'Practice selectors, cascade, box model, spacing, color, and reusable class naming.', '50 minutes', 'easy', 'Styled profile card'),
-      task('frontend-1-3', 'Flexbox layout', 'Use flex containers, alignment, wrapping, gap, and responsive navigation patterns.', '45 minutes', 'easy', 'Responsive navbar and card row'),
-      task('frontend-1-4', 'CSS Grid and responsive breakpoints', 'Build a two-dimensional layout and adjust it for mobile, tablet, and desktop.', '60 minutes', 'medium', 'Responsive dashboard grid'),
+      task('frontend-1-1', 'Internet, DNS, HTTP, and browser basics', 'Understand what happens from entering a URL through DNS lookup, HTTP exchange, browser rendering, and hosting.', '60 minutes', 'easy', 'Web request lifecycle notes'),
+      task('frontend-1-2', 'Semantic HTML landmarks and forms', 'Learn page structure, headings, landmarks, labels, inputs, and accessible form basics.', '60 minutes', 'easy', 'Semantic profile form page'),
+      task('frontend-1-3', 'CSS selectors, box model, and spacing', 'Practice selectors, cascade, box model, spacing, color, and reusable class naming.', '70 minutes', 'easy', 'Styled profile card'),
+      task('frontend-1-4', 'Flexbox, Grid, and responsive breakpoints', 'Use Flexbox and Grid intentionally, then recompose the layout for mobile, tablet, and desktop.', '85 minutes', 'medium', 'Responsive dashboard layout'),
       task('frontend-1-5', 'JavaScript variables and control flow', 'Practice let, const, conditionals, loops, and small UI decisions.', '45 minutes', 'easy', 'Theme toggle logic'),
     ],
     {
@@ -84,12 +84,13 @@ const FRONTEND_FALLBACK: RoadmapWeek[] = [
     2,
     'JavaScript for UI Behavior',
     'Split JavaScript into learnable parts instead of one long crash course.',
-    ['JavaScript', 'DOM', 'Async JavaScript'],
+    ['JavaScript', 'DOM', 'Async JavaScript', 'Git', 'npm'],
     [
       task('frontend-2-1', 'JavaScript functions and scope', 'Learn function declarations, parameters, return values, arrow functions, and scope.', '45 minutes', 'easy', 'Three reusable utility functions'),
       task('frontend-2-2', 'Arrays and object methods', 'Practice map, filter, find, reduce, object access, and immutable updates.', '60 minutes', 'medium', 'Task filter utility module'),
       task('frontend-2-3', 'DOM events and form validation', 'Wire click, input, submit, validation messages, and disabled button states.', '60 minutes', 'medium', 'Validated signup form'),
       task('frontend-2-4', 'Async JavaScript and fetch', 'Use promises, async/await, fetch, loading states, error states, and retry actions.', '70 minutes', 'medium', 'API-powered profile lookup'),
+      task('frontend-2-5', 'Git, GitHub, npm, and package workflow', 'Version the project, work with branches, install packages, understand package.json, and run npm scripts.', '75 minutes', 'easy', 'Versioned npm project'),
     ],
     {
       title: 'Vanilla JavaScript Task Board',
@@ -107,12 +108,13 @@ const FRONTEND_FALLBACK: RoadmapWeek[] = [
     3,
     'TypeScript and React Fundamentals',
     'Move from vanilla UI behavior into typed component-based UI.',
-    ['TypeScript', 'React', 'State Management'],
+    ['TypeScript', 'React', 'State Management', 'Tailwind CSS'],
     [
       task('frontend-3-1', 'TypeScript primitives and object types', 'Type props, arrays, object shapes, unions, optional fields, and event values.', '55 minutes', 'medium', 'Typed data model file'),
       task('frontend-3-2', 'React components and props', 'Build small components, pass props, compose children, and keep component boundaries clear.', '60 minutes', 'easy', 'Reusable card and badge components'),
       task('frontend-3-3', 'React state and events', 'Use useState for form fields, toggles, counters, and derived UI state.', '60 minutes', 'medium', 'Interactive settings panel'),
       task('frontend-3-4', 'React lists, forms, and conditional UI', 'Render lists with stable keys and show loading, empty, error, and success states.', '70 minutes', 'medium', 'Typed task list component'),
+      task('frontend-3-5', 'Tailwind CSS utility workflow', 'Translate the CSS foundation into intentional utility classes without losing responsive structure or accessibility.', '65 minutes', 'medium', 'Responsive Tailwind component set'),
     ],
     {
       title: 'Typed React Task Tracker',
@@ -130,12 +132,13 @@ const FRONTEND_FALLBACK: RoadmapWeek[] = [
     4,
     'React Data Flow and API Integration',
     'Connect React UI to API data while keeping user feedback clear.',
-    ['React', 'REST API', 'Accessibility'],
+    ['React', 'REST API', 'Accessibility', 'Web Security'],
     [
       task('frontend-4-1', 'Effects and API fetching', 'Use useEffect or framework data fetching patterns to load remote data safely.', '60 minutes', 'medium', 'API data loading component'),
       task('frontend-4-2', 'Custom hooks for reusable data logic', 'Extract shared fetching and state transitions into a focused custom hook.', '60 minutes', 'medium', 'useResourceList hook'),
       task('frontend-4-3', 'Loading, empty, error, and success states', 'Design distinct UI states so users know what happened and what to do next.', '50 minutes', 'medium', 'Stateful resource panel'),
       task('frontend-4-4', 'Frontend accessibility basics', 'Check labels, focus-visible styles, keyboard paths, contrast, and status messages.', '55 minutes', 'medium', 'Accessibility fix checklist'),
+      task('frontend-4-5', 'Browser security, CORS, and safe rendering', 'Understand same-origin rules, CORS, XSS risks, safe links, and why untrusted HTML must not be rendered directly.', '65 minutes', 'medium', 'Frontend security checklist'),
     ],
     {
       title: 'Public API Explorer',
@@ -208,7 +211,7 @@ const BACKEND_FALLBACK: RoadmapWeek[] = [
       task('backend-1-2', 'JavaScript functions, arrays, and objects', 'Use parameters, return values, array operations, object properties, and small reusable functions.', '70 minutes', 'easy', 'JavaScript data-processing utilities'),
       task('backend-1-3', 'Asynchronous JavaScript and error handling', 'Learn promises, async/await, try/catch, and predictable error handling before server-side APIs.', '75 minutes', 'medium', 'Async JavaScript utility module'),
       task('backend-1-4', 'TypeScript fundamentals for JavaScript programmers', 'Add primitive types, object types, unions, function types, and narrowing to JavaScript code you already understand.', '70 minutes', 'medium', 'JavaScript utilities converted to TypeScript'),
-      task('backend-1-5', 'HTTP requests, responses, status codes, and JSON', 'Understand methods, headers, status codes, request/response bodies, and JSON contracts before building a server.', '70 minutes', 'easy', 'HTTP and JSON contract notes'),
+      task('backend-1-5', 'Internet, DNS, HTTP, status codes, and JSON', 'Understand how clients find a server, exchange HTTP messages, use status codes and headers, and send JSON contracts before building a server.', '85 minutes', 'easy', 'Internet, HTTP, and JSON contract notes'),
     ],
     {
       title: 'Typed Request Data Simulator',
@@ -322,12 +325,12 @@ const BACKEND_FALLBACK: RoadmapWeek[] = [
     6,
     'Testing, Documentation & Deployment',
     'Prepare backend projects for real-world usage and portfolio review.',
-    ['Postman', 'Jest', 'Supertest', 'API Documentation', 'Deployment'],
+    ['Postman', 'Jest', 'Supertest', 'API Documentation', 'Redis', 'Deployment'],
     [
       task('backend-6-1', 'API testing with Postman or Thunder Client', 'Create request collections for auth, CRUD, validation, and error-path checks.', '70 minutes', 'medium', 'API testing collection'),
       task('backend-6-2', 'Jest and Supertest basics', 'Write integration tests for protected routes, validation failures, and success paths.', '95 minutes', 'hard', 'Jest/Supertest API test suite'),
       task('backend-6-3', 'API documentation', 'Document endpoints and request/response contracts for reproducible setup.', '75 minutes', 'medium', 'API docs + setup guide'),
-      task('backend-6-4', 'Environment config', 'Configure environment variables for local and production deployment safely.', '60 minutes', 'medium', 'Environment config guide'),
+      task('backend-6-4', 'Redis caching fundamentals', 'Cache suitable read responses, choose bounded expiration, invalidate stale data, and keep the database as source of truth.', '75 minutes', 'medium', 'Redis-backed read cache'),
       task('backend-6-5', 'Deploy backend to Render or Railway', 'Deploy API with environment variables, database connection, and health verification.', '90 minutes', 'hard', 'Deployed backend service URL'),
     ],
     {
@@ -350,12 +353,13 @@ const FULLSTACK_FALLBACK: RoadmapWeek[] = [
     2,
     'JavaScript and TypeScript Foundations',
     'Learn JavaScript behavior completely enough before adding TypeScript and React.',
-    ['JavaScript', 'DOM', 'Async JavaScript', 'TypeScript'],
+    ['JavaScript', 'DOM', 'Async JavaScript', 'TypeScript', 'Git', 'npm'],
     [
       task('fullstack-2-1', 'JavaScript functions, scope, arrays, and objects', 'Practice reusable functions, scope, array methods, and object updates with small data exercises.', '75 minutes', 'easy', 'JavaScript data utility module'),
       task('fullstack-2-2', 'DOM events and form behavior', 'Handle click, input, and submit events with validation and clear user feedback.', '65 minutes', 'medium', 'Validated interactive form'),
       task('fullstack-2-3', 'Asynchronous JavaScript and fetch', 'Use promises, async/await, fetch, loading states, and error handling.', '75 minutes', 'medium', 'API-powered vanilla JavaScript page'),
       task('fullstack-2-4', 'TypeScript fundamentals after JavaScript', 'Add primitive, object, union, and function types to working JavaScript code.', '70 minutes', 'medium', 'JavaScript module converted to TypeScript'),
+      task('fullstack-2-5', 'Git, GitHub, npm, and package workflow', 'Version the project, use a branch workflow, install packages, understand package.json, and run npm scripts.', '75 minutes', 'easy', 'Versioned npm project'),
     ],
     {
       title: 'Typed JavaScript Data Explorer',
@@ -373,12 +377,13 @@ const FULLSTACK_FALLBACK: RoadmapWeek[] = [
     3,
     'React Frontend Fundamentals',
     'Build typed component interfaces after the JavaScript and TypeScript foundation is established.',
-    ['React', 'TypeScript', 'State Management', 'API Integration'],
+    ['React', 'TypeScript', 'State Management', 'API Integration', 'Tailwind CSS'],
     [
       task('fullstack-3-1', 'React components and props', 'Build small typed components, pass props, and compose children.', '60 minutes', 'easy', 'Reusable typed component set'),
       task('fullstack-3-2', 'React state, events, and forms', 'Manage controlled inputs, local state, derived state, and validation messages.', '70 minutes', 'medium', 'Interactive React form flow'),
       task('fullstack-3-3', 'React lists and conditional UI', 'Render stable lists and explicit loading, empty, error, and success states.', '70 minutes', 'medium', 'State-complete React list'),
       task('fullstack-3-4', 'React API integration', 'Fetch API data, cancel stale work, and keep server data states visible.', '75 minutes', 'medium', 'API-backed React feature'),
+      task('fullstack-3-5', 'Tailwind CSS for responsive product UI', 'Apply utility classes to the existing CSS foundation while preserving responsive layout and accessible states.', '65 minutes', 'medium', 'Responsive Tailwind dashboard shell'),
     ],
     {
       title: 'Frontend Task Dashboard',
@@ -420,12 +425,13 @@ const FULLSTACK_FALLBACK: RoadmapWeek[] = [
     5,
     'PostgreSQL and Authentication',
     'Persist API data first, then add authentication and ownership checks on top of the database model.',
-    ['SQL', 'PostgreSQL', 'Authentication', 'Authorization', 'Validation'],
+    ['SQL', 'PostgreSQL', 'Authentication', 'Authorization', 'Validation', 'Redis'],
     [
       task('fullstack-5-1', 'SQL and relational table basics', 'Practice SQL CRUD, primary keys, foreign keys, constraints, and simple joins.', '85 minutes', 'medium', 'SQL schema and query exercises'),
       task('fullstack-5-2', 'Connect PostgreSQL to the API', 'Create migrations and replace in-memory records with a data access layer.', '95 minutes', 'hard', 'Database-backed CRUD API'),
       task('fullstack-5-3', 'Registration and password security', 'Validate registration input and store securely hashed passwords.', '85 minutes', 'hard', 'Secure registration endpoint'),
       task('fullstack-5-4', 'Sessions or JWT and protected resources', 'Authenticate requests and enforce user ownership on private records.', '90 minutes', 'hard', 'Ownership-protected API flow'),
+      task('fullstack-5-5', 'Redis caching and invalidation', 'Cache suitable read endpoints with expiration and invalidate cache entries after writes.', '75 minutes', 'hard', 'Cache-aware API endpoint'),
     ],
     {
       title: 'Authenticated Task API',
@@ -448,7 +454,8 @@ const FULLSTACK_FALLBACK: RoadmapWeek[] = [
       task('fullstack-6-1', 'Connect authentication to frontend state', 'Implement login, logout, protected UI, and ownership-aware session handling across frontend and backend.', '90 minutes', 'hard', 'Authenticated fullstack flow'),
       task('fullstack-6-2', 'Connect frontend, API, and database', 'Wire validated UI requests to API handlers and persistent user-owned database records.', '100 minutes', 'hard', 'End-to-end CRUD feature'),
       task('fullstack-6-3', 'Test the critical fullstack flow', 'Cover validation, authorization, API failures, loading states, and the primary user journey.', '90 minutes', 'hard', 'Critical-flow test evidence'),
-      task('fullstack-6-4', 'Deploy and document the integrated app', 'Configure environments, deploy both runtime boundaries, and document setup and recovery steps.', '90 minutes', 'hard', 'Live fullstack app and README'),
+      task('fullstack-6-4', 'Linux basics and deployment workflow', 'Use essential shell commands, process and log inspection, environment configuration, and a repeatable deployment checklist.', '80 minutes', 'medium', 'Linux deployment runbook'),
+      task('fullstack-6-5', 'Deploy and document the integrated app', 'Configure environments, deploy both runtime boundaries, verify health, and document setup and recovery steps.', '100 minutes', 'hard', 'Live fullstack app and README'),
     ],
     {
       title: 'Fullstack Career Tracker',

@@ -8,7 +8,8 @@ import {
   generateGeminiProjectReview,
   parseGitHubRepositoryUrl,
 } from '@/lib/roadmap/project-review'
-import { RoadmapProjectReviewStatus } from '@/types'
+import { getLearningResourceGateFromResources } from '@/lib/roadmap/progress'
+import { RoadmapProjectReviewStatus, RoadmapResourceType } from '@/types'
 
 export const dynamic = 'force-dynamic'
 
@@ -304,37 +305,48 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: `Failed to load task state: ${taskRowError.message}` }, { status: 500 })
     }
 
-    const { data: requiredResources, error: requiredResourcesError } = await supabase
+    const { data: learningResources, error: requiredResourcesError } = await supabase
       .from('roadmap_resources')
-      .select('id')
+      .select('id, resource_type, url, completion_rule')
       .eq('roadmap_task_id', input.roadmapTaskId)
-      .eq('is_required', true)
 
     if (requiredResourcesError) {
-      return NextResponse.json({ error: `Failed to load required resources: ${requiredResourcesError.message}` }, { status: 500 })
+      return NextResponse.json({ error: `Failed to load learning resources: ${requiredResourcesError.message}` }, { status: 500 })
     }
 
-    let resourcesComplete = true
-    if ((requiredResources ?? []).length > 0) {
-      const requiredIds = (requiredResources ?? []).map((resource) => resource.id as string)
+    const resourceRows = (learningResources ?? []) as Array<{
+      id: string
+      resource_type: RoadmapResourceType
+      url: string | null
+      completion_rule: string | null
+    }>
+    const resourceIds = resourceRows.map((resource) => resource.id)
+    let completedIds = new Set<string>()
+    if (resourceIds.length > 0) {
       const { data: progressRows, error: progressError } = await supabase
         .from('roadmap_resource_progress')
         .select('resource_id, is_completed')
         .eq('user_id', user.id)
-        .in('resource_id', requiredIds)
+        .in('resource_id', resourceIds)
 
       if (progressError) {
         return NextResponse.json({ error: `Failed to load resource progress: ${progressError.message}` }, { status: 500 })
       }
 
-      const completedIds = new Set(
+      completedIds = new Set(
         (progressRows ?? [])
           .filter((row) => row.is_completed === true)
           .map((row) => row.resource_id as string)
       )
-
-      resourcesComplete = requiredIds.every((resourceId) => completedIds.has(resourceId))
     }
+    const resourcesComplete = getLearningResourceGateFromResources(
+      resourceRows.map((resource) => ({
+        resourceType: resource.resource_type,
+        url: resource.url ?? '',
+        completionRule: resource.completion_rule ?? '',
+        isCompleted: completedIds.has(resource.id),
+      }))
+    ).resourcesComplete
 
     const requirementState = deriveRequirementState({
       resourcesComplete,

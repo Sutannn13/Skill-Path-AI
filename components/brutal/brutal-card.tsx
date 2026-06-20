@@ -68,21 +68,38 @@ export function BrutalCardHover({
   className,
   color = 'white',
   onClick,
+  ariaLabel,
 }: {
   children: React.ReactNode
   className?: string
   color?: CardColor
   onClick?: () => void
+  ariaLabel?: string
 }) {
   const prefersReducedMotion = useReducedMotion()
+  const interactive = typeof onClick === 'function'
   return (
     <motion.div
       whileHover={prefersReducedMotion ? undefined : { x: -4, y: -4 }}
       whileTap={prefersReducedMotion ? undefined : { x: 0, y: 0 }}
       transition={{ type: 'spring', stiffness: 400, damping: 17 }}
       onClick={onClick}
+      role={interactive ? 'button' : undefined}
+      tabIndex={interactive ? 0 : undefined}
+      aria-label={interactive ? ariaLabel : undefined}
+      onKeyDown={
+        interactive
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                onClick?.()
+              }
+            }
+          : undefined
+      }
       className={cn(
-        'brutal-border brutal-radius border-3 p-6 cursor-pointer',
+        'brutal-border brutal-radius border-3 p-6',
+        interactive && 'cursor-pointer focus-brutal-ring',
         colorClasses[color],
         'shadow-brutal hover:shadow-brutal-lg',
         className

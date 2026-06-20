@@ -8,39 +8,42 @@
   },
   "project": {
     "name": "project gabut",
-    "currentFocus": "Role-aware roadmap learning path with UUID-safe resources, shared progress calculation, dashboard sync, and gated quiz/project actions",
+    "currentFocus": "Arcade Quest 3D Cabinet UI upgrade: real WebGL (R3F) hero on landing + login/register welcome panels, evolving the neobrutalism theme with cel-shaded low-poly 3D under strict SSR/perf/a11y fallbacks",
     "durableFacts": [
       "SkillPath uses Next.js App Router, Supabase Auth/RLS, and a neobrutalism UI system.",
       "User dashboard lives at /dashboard; admin dashboard lives at /admin and is guarded by profiles.role.",
-      "Production cron sync requires CRON_SECRET via Bearer token or x-cron-secret header."
+      "Production cron sync requires CRON_SECRET via Bearer token or x-cron-secret header.",
+      "3D is built with @react-three/fiber v8 + drei + three (React 18); WebGL is isolated behind components/three/scene-frame.tsx via dynamic(ssr:false) + IntersectionObserver lazy mount, with a static poster fallback for reduced-motion/no-WebGL/offscreen/context-loss. Never import the components/three barrel from a server module (it would defeat the three.js code-split).",
+      "Design contract is docs/DESIGN.md (Arcade Quest 3D Cabinet). 3D material law: flat meshToon + black drei <Outlines>, palette fills, cabinet tokens #1A1726/#241F35, no glass/chrome/PBR/network HDR."
     ]
   },
   "progress": {
     "lastAchievements": [
-      "Fixed roadmap resource progress persistence by backfilling missing curated task resources as UUID `roadmap_resources` rows before saving `roadmap_resource_progress`.",
-      "Centralized roadmap resource, quiz, mini project, task, week, and overall progress calculation in `lib/roadmap/progress.ts`.",
-      "Synced `/dashboard` learning progress and next task with the active Supabase roadmap instead of demo-derived score math.",
-      "Cleaned roadmap learning workspace gates so unavailable resources, locked quiz/project states, and final project CTA are user-facing and consistent."
+      "Evolved the design contract (docs/DESIGN.md) to Arcade Quest 3D Cabinet with a binding 3D material law, WebGL performance/resilience gates, and an updated Previous-Directions ledger.",
+      "Built an accessible R3F scene library: components/three/arcade-scene.tsx (cel-shaded low-poly cabinet + floating coins/tiles/gems, hard black Outlines, explicit lights) and components/three/scene-frame.tsx (SSR-safe lazy mount + reduced-motion/no-WebGL/offscreen/context-loss poster fallback).",
+      "Wired the WebGL hero into the landing page and a lg+-only 3D cabinet topper into login/register via AuthFormLayout; three.js is code-split into a separate ~652KB async chunk (not in any page first-load JS).",
+      "Ran a 19-agent adversarial audit (a11y, WebGL/SSR/perf, design-contract, responsive, correctness) and fixed all 14 confirmed findings, including a systemic tailwind border-3 no-op (added borderWidth '3':'3px') and post-mount WebGL context-loss handling."
     ],
     "pendingIssues": [
-      "Verify the roadmap page manually with a signed-in Backend Developer profile against the live Supabase project.",
-      "External learning resource links should be spot-checked in browser before a release demo.",
-      "Run a signed-in resource completion smoke test to confirm the previous non-UUID resource progress error no longer appears in the real Supabase project."
+      "Visually verify the 3D scenes in a real browser (lighting brightness, cabinet readability against the dark frame, mobile landing WebGL perf/INP).",
+      "Spot-check the static poster fallback by forcing prefers-reduced-motion and a no-WebGL context.",
+      "Confirm the restored border-3 / border-b-3 outlines did not alter spacing on dense pre-existing layouts that previously rendered with no border."
     ],
     "nextBestActions": [
-      "Open `/roadmap` as a signed-in user and complete a video/docs resource from a task that previously had generated fallback resources.",
-      "Confirm `/dashboard` updates its roadmap progress and next task after resource completion.",
-      "Smoke-test quiz start/submit, mini project submit, and final project locked/unlocked state."
+      "Run `npm run dev`, open /, /login, /register and confirm the cabinet scene renders, sways to the pointer, and the foreground HUD stays readable.",
+      "Toggle OS reduced-motion and reload to confirm the static Quest Map poster replaces the Canvas.",
+      "Sanity-check small-screen widths for overflow around the landing hero scene frame and HUD strip."
     ],
     "validationState": [
-      "npm run typecheck passed on 2026-06-02 for roadmap UUID/progress/dashboard changes",
-      "npm run lint passed on 2026-06-02 with Next 16 deprecation warning for next lint",
-      "npm run build passed on 2026-06-02"
+      "npm run typecheck passed on 2026-06-20 for the 3D redesign (pre-audit-fix run).",
+      "npm run build passed on 2026-06-20 after clearing a stale .next cache (the /_document collect-page-data crash was stale-cache, not a code error); all target pages prerender static, three.js code-split.",
+      "npm run validate passed on 2026-06-20.",
+      "Re-run of typecheck/build after the 14 audit fixes pending (Bash classifier was briefly unavailable)."
     ]
   },
   "designContinuity": {
     "visualLanguageContinuity": "opt-in-only",
-    "currentConceptualAnchor": "",
+    "currentConceptualAnchor": "Arcade Quest 3D Cabinet — neobrutalism base + real-time cel-shaded WebGL arcade cabinet/collectibles; dark cabinet zones for 3D, cream body for legibility",
     "forbiddenCarryover": [
       "prior-project-style-memory",
       "old-ui-visual-dna-without-user-approval",
@@ -53,5 +56,5 @@
     "redactSensitiveTextBeforeWriting": true
   },
   "generatedAt": "2026-05-26T09:05:08.903Z",
-  "lastUpdatedAt": "2026-06-02T00:00:00.000Z"
+  "lastUpdatedAt": "2026-06-20T00:00:00.000Z"
 }

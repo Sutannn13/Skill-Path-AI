@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { AppShell, Container, GradientBackground } from '@/components/layout'
 import { DashboardHeader } from '@/components/layout/dashboard-header'
-import { BrutalCard, BrutalButton } from '@/components/brutal'
+import { BrutalCard, BrutalButton, ConfirmModal } from '@/components/brutal'
 import { LogoutButton } from '@/components/auth/logout-button'
 import { PageScene } from '@/components/illustrations/page-scene'
 import { cn } from '@/lib/utils'
@@ -44,6 +44,8 @@ interface SettingsStatus {
   message: string
 }
 
+type ResetConfirmationStep = 'onboarding' | 'skills' | null
+
 const initialProfileForm: ProfileFormState = {
   fullName: '',
   email: '',
@@ -64,6 +66,7 @@ export default function SettingsPage() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [profileForm, setProfileForm] = useState<ProfileFormState>(initialProfileForm)
   const [status, setStatus] = useState<SettingsStatus | null>(null)
+  const [resetConfirmationStep, setResetConfirmationStep] = useState<ResetConfirmationStep>(null)
 
   useEffect(() => {
     let isActive = true
@@ -186,12 +189,7 @@ export default function SettingsPage() {
     setIsSaving(false)
   }
 
-  const handleResetOnboarding = async () => {
-    const shouldReset = window.confirm('Reset onboarding status and clear your saved career profile fields?')
-    if (!shouldReset) return
-
-    const shouldDeleteSkills = window.confirm('Also delete all saved skill levels from your account?')
-
+  const handleResetOnboarding = async (shouldDeleteSkills: boolean) => {
     setStatus(null)
     setIsResetting(true)
 
@@ -248,6 +246,22 @@ export default function SettingsPage() {
     setIsResetting(false)
   }
 
+  const closeResetConfirmation = () => setResetConfirmationStep(null)
+
+  const continueResetConfirmation = () => {
+    setResetConfirmationStep('skills')
+  }
+
+  const confirmResetWithSkills = () => {
+    setResetConfirmationStep(null)
+    void handleResetOnboarding(true)
+  }
+
+  const confirmResetKeepingSkills = () => {
+    setResetConfirmationStep(null)
+    void handleResetOnboarding(false)
+  }
+
   const initials =
     profileForm.fullName
       .split(' ')
@@ -259,6 +273,39 @@ export default function SettingsPage() {
   return (
     <AppShell showBottomNav={true}>
       <GradientBackground />
+      <ConfirmModal
+        isOpen={resetConfirmationStep === 'onboarding'}
+        onClose={closeResetConfirmation}
+        onConfirm={continueResetConfirmation}
+        title="Reset onboarding?"
+        eyebrow="Pengaturan akun"
+        message="Profil karier dan pilihan onboarding akan dikosongkan, lalu kamu diarahkan untuk mengisi onboarding lagi."
+        details={[
+          'Role dan preferensi belajar perlu dipilih ulang.',
+          'Roadmap yang sudah ada tidak langsung dihapus.',
+          'Pada langkah berikutnya kamu dapat memilih nasib data skill.',
+        ]}
+        confirmText="Lanjutkan"
+        cancelText="Batal"
+        variant="warning"
+      />
+      <ConfirmModal
+        isOpen={resetConfirmationStep === 'skills'}
+        onClose={closeResetConfirmation}
+        onCancel={confirmResetKeepingSkills}
+        onConfirm={confirmResetWithSkills}
+        title="Hapus level skill juga?"
+        eyebrow="Pilihan data skill"
+        message="Pilih apakah level skill yang tersimpan ikut dihapus saat onboarding direset."
+        details={[
+          'Pertahankan skill: hanya profil onboarding yang direset.',
+          'Hapus skill: seluruh level skill perlu diisi ulang.',
+        ]}
+        confirmText="Hapus skill & reset"
+        cancelText="Pertahankan skill"
+        variant="danger"
+        isLoading={isResetting}
+      />
 
       <div className="flex-1">
         <DashboardHeader
@@ -444,7 +491,7 @@ export default function SettingsPage() {
                         <BrutalButton
                           variant="outline"
                           color="red"
-                          onClick={handleResetOnboarding}
+                          onClick={() => setResetConfirmationStep('onboarding')}
                           loading={isResetting}
                           disabled={isResetting}
                         >

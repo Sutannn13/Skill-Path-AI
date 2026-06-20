@@ -58,7 +58,10 @@ const { generateFallbackRoadmap } = loadTypeScriptModule(
 )
 const {
   getCuratedResourcesForTask,
+  getLongFormVideoTrackForTask,
+  getRoadmapVideoLanguage,
   isResourceLikelyRelevant,
+  resolveRoadmapVideoSlides,
 } = loadTypeScriptModule(path.join(repositoryRoot, 'lib/roadmap/resources.ts'))
 const {
   ROADMAP_CONTENT_VERSION,
@@ -72,6 +75,7 @@ const {
 } = loadTypeScriptModule(path.join(repositoryRoot, 'lib/roadmap/quiz-bank.ts'))
 const {
   calculateTaskProgress,
+  getLearningResourceGateFromResources,
 } = loadTypeScriptModule(path.join(repositoryRoot, 'lib/roadmap/progress.ts'))
 const {
   loadUserRoadmapSummary,
@@ -86,17 +90,23 @@ const roles = [
   'data-analyst',
 ]
 
+const bilingualTargetRoles = new Set([
+  'frontend-developer',
+  'backend-developer',
+  'fullstack-developer',
+])
+
 const roleTextRules = {
   'frontend-developer': {
-    required: ['html', 'react', 'next.js', 'testing'],
+    required: ['internet', 'html', 'git', 'npm', 'react', 'tailwind', 'next.js', 'testing'],
     forbidden: ['bcrypt password', 'postgresql tables', 'express routing'],
   },
   'backend-developer': {
-    required: ['node.js', 'express', 'postgresql', 'authentication'],
+    required: ['internet', 'javascript', 'typescript', 'node.js', 'express', 'postgresql', 'authentication', 'redis'],
     forbidden: ['react state', 'css grid', 'next.js app router'],
   },
   'fullstack-developer': {
-    required: ['react', 'node.js', 'express', 'postgresql', 'authentication', 'deployment'],
+    required: ['internet', 'git', 'npm', 'react', 'tailwind', 'node.js', 'express', 'postgresql', 'authentication', 'redis', 'linux', 'deployment'],
     forbidden: [],
   },
   'ui-engineer': {
@@ -121,8 +131,10 @@ const beginnerSequenceRules = {
       'frontend-1-5',
       'frontend-2-1',
       'frontend-2-4',
+      'frontend-2-5',
       'frontend-3-1',
       'frontend-3-2',
+      'frontend-3-5',
     ],
     firstModuleForbidden: ['react', 'next.js', 'node.js', 'express'],
   },
@@ -139,6 +151,8 @@ const beginnerSequenceRules = {
       'backend-4-1',
       'backend-5-1',
       'backend-6-2',
+      'backend-6-4',
+      'backend-6-5',
     ],
     firstModuleForbidden: ['node.js runtime', 'express', 'prisma', 'react'],
   },
@@ -149,13 +163,18 @@ const beginnerSequenceRules = {
       'fullstack-2-1',
       'fullstack-2-3',
       'fullstack-2-4',
+      'fullstack-2-5',
       'fullstack-3-1',
+      'fullstack-3-5',
       'fullstack-4-1',
       'fullstack-4-3',
       'fullstack-4-4',
       'fullstack-5-1',
       'fullstack-5-3',
+      'fullstack-5-5',
       'fullstack-6-3',
+      'fullstack-6-4',
+      'fullstack-6-5',
     ],
     firstModuleForbidden: ['react components', 'node.js', 'express', 'postgresql'],
   },
@@ -276,21 +295,57 @@ for (const role of roles) {
         `${role}/${task.id}: missing explicit resource and quiz contract`
       )
       const resources = getCuratedResourcesForTask(task, week, { targetRole: role })
-      const video = resources.find((resource) => resource.resourceType === 'youtube')
+      const videos = resources.filter((resource) => resource.resourceType === 'youtube')
+      const videoSlides = resolveRoadmapVideoSlides(resources)
+      const video = videos.find((resource) => getRoadmapVideoLanguage(resource) === 'en')
       const documentation = resources.find((resource) => resource.resourceType === 'docs')
 
       assert.ok(video?.url, `${role}/${task.id}: missing video`)
       assert.ok(documentation?.url, `${role}/${task.id}: missing documentation`)
-      generatedResourceUrls.add(video.url)
+      videos.forEach((resource) => generatedResourceUrls.add(resource.url))
       generatedResourceUrls.add(documentation.url)
-      assert.ok(
-        isResourceLikelyRelevant(task, week, video, role),
-        `${role}/${task.id}: video is not relevant (${video?.title})`
-      )
+      for (const videoResource of videos) {
+        assert.ok(
+          isResourceLikelyRelevant(task, week, videoResource, role),
+          `${role}/${task.id}: video is not relevant (${videoResource.title})`
+        )
+      }
       assert.ok(
         isResourceLikelyRelevant(task, week, documentation, role),
         `${role}/${task.id}: documentation is not relevant (${documentation?.title})`
       )
+
+      if (bilingualTargetRoles.has(role)) {
+        assert.ok(
+          getLongFormVideoTrackForTask(task),
+          `${role}/${task.id}: missing long-form video track`
+        )
+        assert.equal(videoSlides.length, 2, `${role}/${task.id}: expected English and Indonesian slides`)
+        assert.equal(videoSlides[0].language, 'en', `${role}/${task.id}: English must be the default slide`)
+        assert.equal(videoSlides[0].isFallback, false, `${role}/${task.id}: English slide cannot be a fallback`)
+        assert.equal(videoSlides[1].language, 'id', `${role}/${task.id}: second slide must be Indonesian`)
+        assert.ok(
+          videoSlides[0].resource.estimatedMinutes >= 60,
+          `${role}/${task.id}: English video must be long-form`
+        )
+        if (!videoSlides[1].isFallback) {
+          assert.equal(
+            getRoadmapVideoLanguage(videoSlides[1].resource),
+            'id',
+            `${role}/${task.id}: Indonesian slide has the wrong language metadata`
+          )
+          assert.ok(
+            videoSlides[1].resource.estimatedMinutes >= 60,
+            `${role}/${task.id}: Indonesian video must be long-form when available`
+          )
+        } else {
+          assert.equal(
+            videoSlides[1].resource.url,
+            videoSlides[0].resource.url,
+            `${role}/${task.id}: Indonesian fallback must reuse the English video`
+          )
+        }
+      }
 
       const quizSkill = inferQuizSkillFromTask({
         id: task.id,
@@ -315,7 +370,10 @@ for (const role of roles) {
         module: week.week,
         taskId: task.id,
         task: task.title,
-        video: video.title,
+        englishVideo: video.title,
+        indonesianVideo: videoSlides[1]?.isFallback
+          ? 'English fallback'
+          : videoSlides[1]?.resource.title ?? 'Not applicable',
         documentation: documentation.title,
         quizSkill,
       })
@@ -323,6 +381,109 @@ for (const role of roles) {
     }
   }
 }
+
+const syntheticAiWeek = {
+  week: 1,
+  title: 'AI Generated Backend Foundations',
+  goal: 'Learn backend foundations in prerequisite order.',
+  focusSkills: ['JavaScript', 'Internet', 'HTTP'],
+  tasks: [],
+}
+const syntheticAiJavaScriptTask = {
+  id: 'ai-generated-javascript-task',
+  title: 'JavaScript variables, data types, and control flow',
+  description: 'Practice JavaScript fundamentals before Node.js.',
+  estimatedTime: '60 minutes',
+  difficulty: 'easy',
+  deliverable: 'JavaScript exercises',
+  status: 'todo',
+}
+const syntheticAiJavaScriptResources = getCuratedResourcesForTask(
+  syntheticAiJavaScriptTask,
+  syntheticAiWeek,
+  { targetRole: 'backend-developer' }
+)
+const syntheticAiJavaScriptSlides = resolveRoadmapVideoSlides(syntheticAiJavaScriptResources)
+assert.equal(
+  getLongFormVideoTrackForTask(syntheticAiJavaScriptTask),
+  'javascript',
+  'AI-generated JavaScript task must resolve to the JavaScript long-form track'
+)
+assert.equal(
+  syntheticAiJavaScriptSlides.length,
+  2,
+  'AI-generated JavaScript task must receive bilingual video slides'
+)
+assert.equal(
+  syntheticAiJavaScriptSlides[1].isFallback,
+  false,
+  'JavaScript track should have a real Indonesian video'
+)
+
+const syntheticAiInternetTask = {
+  ...syntheticAiJavaScriptTask,
+  id: 'ai-generated-internet-task',
+  title: 'How the internet, DNS, and HTTP requests work',
+  description: 'Trace a request from browser to backend server.',
+  deliverable: 'Internet request lifecycle notes',
+}
+const syntheticAiInternetSlides = resolveRoadmapVideoSlides(
+  getCuratedResourcesForTask(syntheticAiInternetTask, syntheticAiWeek, {
+    targetRole: 'backend-developer',
+  })
+)
+assert.equal(
+  syntheticAiInternetSlides[1].isFallback,
+  true,
+  'Internet track without a curated Indonesian course must reuse the English video'
+)
+assert.equal(
+  syntheticAiInternetSlides[1].resource.url,
+  syntheticAiInternetSlides[0].resource.url,
+  'Indonesian fallback must reuse the English video URL'
+)
+
+const bilingualGateResources = [
+  {
+    resourceType: 'youtube',
+    url: 'https://www.youtube.com/watch?v=english',
+    completionRule: 'manual_watch_confirmation;video_language:en',
+    isCompleted: false,
+  },
+  {
+    resourceType: 'youtube',
+    url: 'https://www.youtube.com/watch?v=indonesian',
+    completionRule: 'manual_watch_confirmation;video_language:id',
+    isCompleted: true,
+  },
+  {
+    resourceType: 'docs',
+    url: 'https://developer.mozilla.org/',
+    completionRule: 'manual_mark_complete',
+    isCompleted: true,
+  },
+]
+assert.equal(
+  getLearningResourceGateFromResources(bilingualGateResources).resourcesComplete,
+  true,
+  'Completing either language video plus documentation must unlock the resource gate'
+)
+assert.equal(
+  getLearningResourceGateFromResources(
+    bilingualGateResources.map((resource) => (
+      resource.resourceType === 'youtube'
+        ? { ...resource, isCompleted: false }
+        : resource
+    ))
+  ).resourcesComplete,
+  false,
+  'Documentation without a completed video must not unlock the resource gate'
+)
+assert.equal(
+  getLearningResourceGateFromResources([]).resourcesComplete,
+  false,
+  'Tasks without learning resources must not unlock the resource gate'
+)
 
 const semanticRoadmap = generateFallbackRoadmap({
   targetRole: 'fullstack-developer',
@@ -332,7 +493,8 @@ const semanticRoadmap = generateFallbackRoadmap({
   durationWeeks: 6,
 })
 const semanticWeek = semanticRoadmap.weeks[0]
-const semanticTask = semanticWeek.tasks[0]
+const semanticTask = semanticWeek.tasks.find((task) => task.id === 'frontend-1-2')
+assert.ok(semanticTask, 'Fullstack roadmap must include the semantic HTML foundation task')
 const semanticResources = getCuratedResourcesForTask(semanticTask, semanticWeek, {
   targetRole: 'fullstack-developer',
 })

@@ -36,12 +36,12 @@ interface StickerBadgeProps {
 
 const variantStyles: Record<StickerBadgeVariant, { bg: string; text: string; border: string }> = {
   completed: { bg: 'bg-green', text: 'text-black', border: 'border-black' },
-  locked: { bg: 'bg-gray-200', text: 'text-gray-500', border: 'border-gray-400' },
+  locked: { bg: 'bg-gray-200', text: 'text-gray-700', border: 'border-gray-500' },
   'in-progress': { bg: 'bg-blue', text: 'text-black', border: 'border-black' },
   'quiz-passed': { bg: 'bg-yellow', text: 'text-black', border: 'border-black' },
   'needs-review': { bg: 'bg-orange', text: 'text-black', border: 'border-black' },
   'great-match': { bg: 'bg-green', text: 'text-black', border: 'border-black' },
-  'low-risk': { bg: 'bg-green/20', text: 'text-green', border: 'border-green' },
+  'low-risk': { bg: 'bg-green', text: 'text-black', border: 'border-black' },
   internship: { bg: 'bg-pink', text: 'text-black', border: 'border-black' },
   'fresh-graduate': { bg: 'bg-blue', text: 'text-black', border: 'border-black' },
   'boss-fight': { bg: 'bg-red', text: 'text-white', border: 'border-black' },
@@ -51,7 +51,7 @@ const variantStyles: Record<StickerBadgeVariant, { bg: string; text: string; bor
   green: { bg: 'bg-green', text: 'text-black', border: 'border-black' },
   orange: { bg: 'bg-orange', text: 'text-black', border: 'border-black' },
   purple: { bg: 'bg-purple', text: 'text-black', border: 'border-black' },
-  gray: { bg: 'bg-gray-200', text: 'text-gray-600', border: 'border-gray-400' },
+  gray: { bg: 'bg-gray-200', text: 'text-gray-700', border: 'border-gray-500' },
 }
 
 const variantLabels: Record<StickerBadgeVariant, string> = {
@@ -149,19 +149,33 @@ export function QuestCard({
   onClick, className, children
 }: QuestCardProps) {
   const prefersReducedMotion = useReducedMotion()
+  const interactive = typeof onClick === 'function'
 
   return (
     <motion.div
-      whileHover={!prefersReducedMotion && onClick ? { x: -4, y: -4 } : undefined}
-      whileTap={!prefersReducedMotion && onClick ? { x: 0, y: 0 } : undefined}
+      whileHover={!prefersReducedMotion && interactive ? { x: -4, y: -4 } : undefined}
+      whileTap={!prefersReducedMotion && interactive ? { x: 0, y: 0 } : undefined}
       transition={{ type: 'spring', stiffness: 400, damping: 17 }}
       onClick={onClick}
+      role={interactive ? 'button' : undefined}
+      tabIndex={interactive ? 0 : undefined}
+      aria-label={interactive ? title : undefined}
+      onKeyDown={
+        interactive
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                onClick?.()
+              }
+            }
+          : undefined
+      }
       className={cn(
         'brutal-border brutal-radius p-4 transition-shadow',
         statusBorderColors[status],
         statusBgColors[status],
-        onClick && 'cursor-pointer hover:shadow-brutal-lg',
-        !onClick && 'cursor-default',
+        interactive && 'cursor-pointer hover:shadow-brutal-lg focus-brutal-ring',
+        !interactive && 'cursor-default',
         className
       )}
     >
@@ -179,7 +193,7 @@ export function QuestCard({
             <h3 className="font-display font-bold truncate">{title}</h3>
             {badge}
           </div>
-          {subtitle && <p className="text-sm text-black/70">{subtitle}</p>}
+          {subtitle && <p className="text-sm text-secondary">{subtitle}</p>}
           {progress !== undefined && (
             <div className="mt-3">
               <div className="flex items-center justify-between text-xs mb-1">
@@ -292,10 +306,10 @@ export function SectionHeader({ label, icon: Icon, helper, action, className }: 
             <Icon className="w-4 h-4" aria-hidden="true" />
           </span>
         )}
-        <h2 className="font-display font-bold text-lg">{label}</h2>
+        <h2 className="font-display font-bold text-heading-sm">{label}</h2>
       </div>
       <div className="flex items-center gap-3">
-        {helper && <span className="text-sm text-black/60 hidden sm:block">{helper}</span>}
+        {helper && <span className="text-sm text-secondary hidden sm:block">{helper}</span>}
         {action}
       </div>
     </div>
@@ -329,7 +343,7 @@ export function EmptyState({ icon: Icon, title, description, action, variant = '
         <DisplayIcon className="h-7 w-7" aria-hidden="true" />
       </div>
       <h3 className="font-display font-bold text-lg mb-2">{title}</h3>
-      {description && <p className="text-sm text-black/60 mb-4">{description}</p>}
+      {description && <p className="text-sm text-secondary mb-4">{description}</p>}
       {action}
     </div>
   )
@@ -350,15 +364,19 @@ export function ErrorState({
   className
 }: ErrorStateProps) {
   return (
-    <div className={cn(
-      'brutal-border brutal-radius p-6 text-center bg-red/10 border-red',
-      className
-    )}>
+    <div
+      role="alert"
+      aria-live="assertive"
+      className={cn(
+        'brutal-border brutal-radius p-6 text-center bg-red/10 border-red',
+        className
+      )}
+    >
       <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center brutal-border brutal-radius bg-red/10">
         <AlertTriangle className="h-7 w-7 text-red" aria-hidden="true" />
       </div>
       <h3 className="font-display font-bold text-lg mb-2">{title}</h3>
-      <p className="text-sm text-black/70 mb-4">{description}</p>
+      <p className="text-sm text-secondary mb-4">{description}</p>
       {action}
     </div>
   )
@@ -381,10 +399,14 @@ export function SuccessState({
   className
 }: SuccessStateProps) {
   return (
-    <div className={cn(
-      'brutal-border brutal-radius p-6 text-center bg-green/10 border-green',
-      className
-    )}>
+    <div
+      role="status"
+      aria-live="polite"
+      className={cn(
+        'brutal-border brutal-radius p-6 text-center bg-green/10 border-green',
+        className
+      )}
+    >
       <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center brutal-border brutal-radius bg-green/20">
         {Icon ? (
           <Icon className="h-7 w-7" aria-hidden="true" />
@@ -393,7 +415,7 @@ export function SuccessState({
         )}
       </div>
       <h3 className="font-display font-bold text-lg mb-2">{title}</h3>
-      {description && <p className="text-sm text-black/70 mb-4">{description}</p>}
+      {description && <p className="text-sm text-secondary mb-4">{description}</p>}
       {action}
     </div>
   )
@@ -430,7 +452,7 @@ export function MascotBubble({
       <div className="relative rounded-brutal border-3 border-black bg-white px-4 py-3 shadow-brutal-sm">
         <div className="absolute -left-2 top-6 h-4 w-4 rotate-45 border-b-3 border-l-3 border-black bg-white" />
         <p className="font-display text-sm font-bold">{title}</p>
-        {message && <p className="text-xs text-black/70">{message}</p>}
+        {message && <p className="text-xs text-secondary">{message}</p>}
       </div>
     </div>
   )
@@ -493,12 +515,12 @@ export function StatCard({
             'w-10 h-10 brutal-border brutal-radius flex items-center justify-center',
             iconBg
           )}>
-            <Icon className="w-5 h-5" />
+            <Icon className="w-5 h-5" aria-hidden="true" />
           </div>
         )}
         <div>
-          <p className="text-xs text-black/60 uppercase tracking-wide">{label}</p>
-          <p className="font-display font-bold text-2xl">{value}</p>
+          <p className="text-xs text-secondary uppercase tracking-wide">{label}</p>
+          <p className="metric-mono font-bold text-2xl">{value}</p>
         </div>
       </div>
       {trend && trendValue && (
@@ -506,7 +528,7 @@ export function StatCard({
           'flex items-center gap-1 text-xs font-medium',
           trend === 'up' && 'text-green',
           trend === 'down' && 'text-red',
-          trend === 'neutral' && 'text-black/60'
+          trend === 'neutral' && 'text-secondary'
         )}>
           {trend === 'up' && <TrendingUp className="h-3 w-3" aria-hidden="true" />}
           {trend === 'down' && <TrendingDown className="h-3 w-3" aria-hidden="true" />}
@@ -528,13 +550,13 @@ interface TagBadgeProps {
 }
 
 const tagColors = {
-  yellow: 'bg-yellow/20 border-yellow text-yellow',
-  blue: 'bg-blue/20 border-blue text-blue',
-  pink: 'bg-pink/20 border-pink text-pink',
-  green: 'bg-green/20 border-green text-green',
-  orange: 'bg-orange/20 border-orange text-orange',
-  purple: 'bg-purple/20 border-purple text-purple',
-  gray: 'bg-gray-200 border-gray-400 text-gray-600',
+  yellow: 'bg-yellow/20 border-yellow-dark text-black',
+  blue: 'bg-blue/20 border-blue-dark text-black',
+  pink: 'bg-pink/20 border-pink-dark text-black',
+  green: 'bg-green/20 border-green-dark text-black',
+  orange: 'bg-orange/20 border-orange-dark text-black',
+  purple: 'bg-purple/20 border-purple-dark text-black',
+  gray: 'bg-gray-200 border-gray-500 text-gray-800',
 }
 
 export function TagBadge({
@@ -552,7 +574,7 @@ export function TagBadge({
       {removable && (
         <button
           onClick={onRemove}
-          className="ml-1 hover:bg-black/10 rounded-full p-0.5"
+          className="ml-1 hover:bg-black/10 rounded-full p-0.5 focus-brutal-ring"
           aria-label={`Remove ${label}`}
         >
           <X className="h-3 w-3" aria-hidden="true" />

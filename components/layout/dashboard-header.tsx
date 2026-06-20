@@ -28,12 +28,12 @@ export function DashboardHeader({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           {showLogo && (
-            <Link href="/dashboard" className="flex items-center gap-3">
+            <Link href="/dashboard" className="flex items-center gap-3 rounded-brutal focus-brutal-ring">
               <motion.div
                 whileHover={{ rotate: -5 }}
                 className="w-10 h-10 bg-yellow brutal-border brutal-radius flex items-center justify-center"
               >
-                <GraduationCap className="w-6 h-6" />
+                <GraduationCap className="w-6 h-6" aria-hidden="true" />
               </motion.div>
               <span className="font-display font-bold text-xl hidden sm:block">SkillPath</span>
             </Link>
@@ -58,16 +58,16 @@ export function DashboardHeader({
           {(title || subtitle) && (
             <div className="min-w-0">
               {title && <h1 className="truncate font-display text-base font-bold sm:text-lg">{title}</h1>}
-              {subtitle && <p className="hidden text-sm text-gray-600 sm:block">{subtitle}</p>}
+              {subtitle && <p className="hidden text-sm text-secondary sm:block">{subtitle}</p>}
             </div>
           )}
         </div>
 
         {showActions && (
           <div className="flex items-center gap-2">
-            <Link href="/settings">
-              <div className="w-10 h-10 bg-white brutal-border brutal-radius flex items-center justify-center hover:bg-gray-100 transition-colors">
-                <Settings className="w-5 h-5" />
+            <Link href="/settings" aria-label="Settings" className="rounded-brutal focus-brutal-ring">
+              <div className="w-11 h-11 bg-white brutal-border brutal-radius flex items-center justify-center hover:bg-gray-100 transition-colors">
+                <Settings className="w-5 h-5" aria-hidden="true" />
               </div>
             </Link>
           </div>

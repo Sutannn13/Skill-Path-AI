@@ -72,8 +72,10 @@ skillpath/
 │   │   ├── dashboard-header.tsx
 │   │   └── animated-background.tsx
 │   │
-│   └── three/              # 3D components
-│       └── floating-scene.tsx
+│   └── three/              # 3D components (Arcade Quest 3D Cabinet)
+│       ├── arcade-scene.tsx       # R3F cel-shaded low-poly scene
+│       ├── scene-frame.tsx        # SSR-safe lazy mount + poster fallback
+│       └── css-animated-scene.tsx # CSS-only fallback
 │
 ├── lib/                    # Business logic
 │   ├── constants/          # Skills, roles, data

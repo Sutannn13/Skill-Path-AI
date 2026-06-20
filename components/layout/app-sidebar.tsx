@@ -116,12 +116,12 @@ function SidebarProgressWidget({
         </div>
         <div className="flex-1">
           <p className="font-display font-bold text-sm">{levelLabel}</p>
-          <p className="text-xs text-black/60">{roleLabel}</p>
+          <p className="text-xs text-secondary">{roleLabel}</p>
         </div>
         {streak > 0 && (
           <div className="flex items-center gap-1">
-            <Flame className="w-4 h-4 text-orange" />
-            <span className="text-xs font-bold">{streak}</span>
+            <Flame className="w-4 h-4 text-orange" aria-hidden="true" />
+            <span className="metric-mono text-xs font-bold">{streak}</span>
           </div>
         )}
       </div>
@@ -142,7 +142,7 @@ function SidebarProgressWidget({
         </div>
       </div>
 
-      <p className="mt-2 text-xs font-medium text-black/60">
+      <p className="mt-2 text-xs font-medium text-secondary">
         {totalTasks > 0 ? `${completedTasks}/${totalTasks} tasks completed` : 'No active roadmap yet'}
       </p>
     </div>
@@ -164,8 +164,9 @@ function NavItem({ href, icon: Icon, label, badge, isCollapsed = false }: NavIte
   return (
     <Link
       href={href}
+      aria-current={isActive ? 'page' : undefined}
       className={cn(
-        'flex items-center gap-3 px-4 py-3 brutal-radius transition-all duration-150 group relative',
+        'flex items-center gap-3 px-4 py-3 brutal-radius transition-all duration-150 group relative focus-brutal-ring',
         isActive
           ? 'bg-yellow font-bold shadow-brutal-sm'
           : 'hover:bg-gray-100',
@@ -232,13 +233,13 @@ export function DesktopSidebar({ className, userProfile }: DesktopSidebarProps) 
     >
       {/* Header with Logo */}
       <div className="p-5 border-b-3 border-black">
-        <Link href="/dashboard" className="flex items-center gap-3 group">
+        <Link href="/dashboard" className="flex items-center gap-3 group rounded-brutal focus-brutal-ring">
           <div className="w-12 h-12 bg-yellow brutal-border brutal-radius flex items-center justify-center group-hover:scale-105 transition-transform">
-            <GraduationCap className="w-7 h-7" />
+            <GraduationCap className="w-7 h-7" aria-hidden="true" />
           </div>
           <div>
             <span className="font-display font-bold text-xl">SkillPath</span>
-            <p className="text-xs text-black/60">Career OS</p>
+            <p className="hud-label text-[10px] text-secondary">Career OS</p>
           </div>
         </Link>
       </div>
@@ -251,9 +252,9 @@ export function DesktopSidebar({ className, userProfile }: DesktopSidebarProps) 
       </div>
 
       {/* Main Navigation */}
-      <nav className="flex-1 px-4 py-2 space-y-1 overflow-y-auto">
+      <nav aria-label="Primary" className="flex-1 px-4 py-2 space-y-1 overflow-y-auto">
         <div className="mb-2">
-          <p className="px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-black/40">
+          <p className="px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-tertiary">
             Main Menu
           </p>
         </div>
@@ -269,7 +270,7 @@ export function DesktopSidebar({ className, userProfile }: DesktopSidebarProps) 
         ))}
 
         <div className="pt-4 mt-4 border-t-2 border-black/10">
-          <p className="px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-black/40">
+          <p className="px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-tertiary">
             Account
           </p>
         </div>
@@ -294,7 +295,7 @@ export function DesktopSidebar({ className, userProfile }: DesktopSidebarProps) 
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-medium text-sm truncate">Career profile</p>
-            <p className="text-xs text-black/60 truncate">{resolvedProfile.roleLabel ?? 'Developer'}</p>
+            <p className="text-xs text-secondary truncate">{resolvedProfile.roleLabel ?? 'Developer'}</p>
           </div>
         </div>
 
@@ -302,7 +303,7 @@ export function DesktopSidebar({ className, userProfile }: DesktopSidebarProps) 
         <LogoutButton color="red" size="sm" className="w-full" />
 
         {/* Powered by */}
-        <p className="mt-3 text-[10px] text-center text-black/40">
+        <p className="mt-3 text-[10px] text-center text-tertiary">
           SkillPath Career OS
         </p>
       </div>
@@ -325,6 +326,16 @@ interface MobileSidebarOverlayProps {
 
 export function MobileSidebarOverlay({ isOpen, onClose, userProfile }: MobileSidebarOverlayProps) {
   const resolvedProfile = useResolvedSidebarProfile(userProfile)
+
+  useEffect(() => {
+    if (!isOpen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [isOpen, onClose])
+
   const navItems = [
     { href: '/dashboard', label: 'Dashboard', icon: Home },
     { href: '/onboarding', label: 'Onboarding', icon: GraduationCap },
@@ -352,6 +363,9 @@ export function MobileSidebarOverlay({ isOpen, onClose, userProfile }: MobileSid
 
           {/* Sidebar Panel */}
           <motion.div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Navigation menu"
             initial={{ x: -280 }}
             animate={{ x: 0 }}
             exit={{ x: -280 }}
@@ -359,7 +373,7 @@ export function MobileSidebarOverlay({ isOpen, onClose, userProfile }: MobileSid
             className="fixed inset-y-0 left-0 z-50 w-[280px] flex flex-col border-r-3 border-black bg-white lg:hidden"
           >
             <div className="p-5 border-b-3 border-black">
-              <Link href="/dashboard" className="flex items-center gap-3">
+              <Link href="/dashboard" className="flex items-center gap-3 rounded-brutal focus-brutal-ring">
                 <div className="w-10 h-10 bg-yellow brutal-border brutal-radius flex items-center justify-center">
                   <GraduationCap className="w-6 h-6" />
                 </div>

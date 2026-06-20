@@ -1,11 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   BookOpen,
   Check,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   ChevronUp,
   ExternalLink,
   FileText,
@@ -16,6 +18,10 @@ import { RoadmapResource, RoadmapTask } from '@/types'
 import { BrutalButton } from '@/components/brutal'
 import { cn } from '@/lib/utils'
 import { isResourceUnavailable } from '@/lib/roadmap/progress'
+import {
+  resolveRoadmapVideoSlides,
+  type RoadmapVideoLanguage,
+} from '@/lib/roadmap/resources'
 import { EmbeddedVideoPlayer } from './embedded-video-player'
 
 interface ResourceAccordionProps {
@@ -239,6 +245,13 @@ export function ResourceAccordion({
 
   // Player expanded state: controls whether video iframe is shown (separate from accordion)
   const [playerExpandedIds, setPlayerExpandedIds] = useState<Record<string, boolean>>({})
+  const [activeVideoLanguage, setActiveVideoLanguage] = useState<RoadmapVideoLanguage>('en')
+
+  useEffect(() => {
+    setActiveVideoLanguage('en')
+    setAccordionExpandedIds({})
+    setPlayerExpandedIds({})
+  }, [task.id])
 
   const toggleAccordion = (resourceId: string) => {
     setAccordionExpandedIds((prev) => ({
@@ -260,7 +273,11 @@ export function ResourceAccordion({
   const videoResources = validResources.filter((r) => r.resourceType === 'youtube')
   const docResources = validResources.filter((r) => r.resourceType === 'docs' || r.resourceType === 'article')
 
-  const completedVideos = videoResources.filter((r) => r.isCompleted).length
+  const videoSlides = resolveRoadmapVideoSlides(videoResources)
+  const activeVideoSlide = videoSlides.find((slide) => slide.language === activeVideoLanguage)
+  const activeVideo = activeVideoSlide?.resource
+  const isIndonesianFallback = activeVideoSlide?.isFallback === true
+  const hasCompletedVideo = videoResources.some((resource) => resource.isCompleted)
   const completedDocs = docResources.filter((r) => r.isCompleted).length
 
   return (
@@ -274,36 +291,67 @@ export function ResourceAccordion({
               <span className="text-sm font-bold">Video Tutorial</span>
             </div>
             <span className="text-xs font-medium text-black/60">
-              {completedVideos}/{videoResources.length} selesai
+              {hasCompletedVideo ? '1/1 wajib selesai' : '0/1 wajib selesai'}
             </span>
           </div>
-          <div className="space-y-2">
-            {videoResources.map((resource, index) => {
-              const isNext = index > 0 && videoResources[index - 1]?.isCompleted && !resource.isCompleted
-              return (
-                <div key={resource.id} className="relative">
-                  {/* Step number indicator */}
-                  <div className="absolute -left-1 -top-1 z-10 flex h-5 w-5 items-center justify-center rounded-full border-2 border-black bg-yellow text-[10px] font-bold">
-                    {index + 1}
-                  </div>
-                  {isNext && (
-                    <div className="absolute -right-1 -top-1 z-10 rounded-full border-2 border-black bg-green px-1.5 py-0.5 text-[9px] font-bold text-white">
-                      Selanjutnya
-                    </div>
-                  )}
-                  <ResourceAccordionItem
-                    resource={resource}
-                    onAccordionToggle={() => toggleAccordion(resource.id)}
-                    onMarkComplete={() => onMarkResourceComplete(resource.id, !resource.isCompleted)}
-                    onOpenInNewTab={() => onOpenResource(resource.id)}
-                    isAccordionExpanded={accordionExpandedIds[resource.id] ?? false}
-                    isPlayerExpanded={playerExpandedIds[resource.id] ?? false}
-                    onPlayerToggle={() => togglePlayer(resource.id)}
-                  />
-                </div>
-              )
-            })}
+          <div
+            className="flex flex-col gap-2 rounded-md border-2 border-black bg-yellow/10 p-2 sm:flex-row sm:items-center sm:justify-between"
+            aria-live="polite"
+          >
+            <BrutalButton
+              variant="outline"
+              color="black"
+              size="sm"
+              className="min-h-11 justify-center"
+              onClick={() => setActiveVideoLanguage('en')}
+              disabled={activeVideoLanguage === 'en'}
+              aria-label="Tampilkan video sebelumnya dalam bahasa Inggris"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Sebelumnya
+            </BrutalButton>
+            <div className="text-center">
+              <p className="text-sm font-bold">
+                {activeVideoLanguage === 'en' ? '1/2 English' : '2/2 Bahasa Indonesia'}
+              </p>
+              <p className="text-[11px] text-black/60">
+                English menjadi bahasa default.
+              </p>
+            </div>
+            <BrutalButton
+              variant="outline"
+              color="black"
+              size="sm"
+              className="min-h-11 justify-center"
+              onClick={() => setActiveVideoLanguage('id')}
+              disabled={activeVideoLanguage === 'id'}
+              aria-label="Tampilkan video berikutnya dalam Bahasa Indonesia"
+            >
+              Berikutnya
+              <ChevronRight className="h-4 w-4" />
+            </BrutalButton>
           </div>
+          {isIndonesianFallback && (
+            <p className="rounded-md border-2 border-dashed border-black bg-white p-2 text-xs font-medium text-black/70">
+              Video Bahasa Indonesia yang relevan belum tersedia. Slide ini memakai video English yang sama sebagai fallback.
+            </p>
+          )}
+          {activeVideo && (
+            <div key={`${activeVideo.id}-${activeVideoLanguage}`} className="relative">
+              <div className="absolute -left-1 -top-1 z-10 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-black bg-yellow px-1 text-[10px] font-bold">
+                {activeVideoLanguage === 'en' ? 'EN' : 'ID'}
+              </div>
+              <ResourceAccordionItem
+                resource={activeVideo}
+                onAccordionToggle={() => toggleAccordion(activeVideo.id)}
+                onMarkComplete={() => onMarkResourceComplete(activeVideo.id, !activeVideo.isCompleted)}
+                onOpenInNewTab={() => onOpenResource(activeVideo.id)}
+                isAccordionExpanded={accordionExpandedIds[activeVideo.id] ?? false}
+                isPlayerExpanded={playerExpandedIds[activeVideo.id] ?? false}
+                onPlayerToggle={() => togglePlayer(activeVideo.id)}
+              />
+            </div>
+          )}
         </div>
       )}
 

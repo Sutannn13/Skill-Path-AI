@@ -21,12 +21,18 @@ export interface CurrentTaskLocation {
   taskId: string
 }
 
+type LearningResourceGateResource = Pick<
+  RoadmapResource,
+  'resourceType' | 'completionRule' | 'url' | 'isCompleted'
+>
+
 export function isResourceUnavailable(resource: Pick<RoadmapResource, 'completionRule' | 'url'>) {
   return resource.completionRule.startsWith('resource_unavailable') || resource.url.trim().length === 0
 }
 
-export function getLearningResourceGate(task: RoadmapTask): LearningResourceGate {
-  const resources = task.resources ?? []
+export function getLearningResourceGateFromResources(
+  resources: LearningResourceGateResource[]
+): LearningResourceGate {
   const validVideoResources = resources.filter(
     (resource) => resource.resourceType === 'youtube' && !isResourceUnavailable(resource)
   )
@@ -51,6 +57,10 @@ export function getLearningResourceGate(task: RoadmapTask): LearningResourceGate
     completedDocs,
     unavailableCount: resources.filter(isResourceUnavailable).length,
   }
+}
+
+export function getLearningResourceGate(task: RoadmapTask): LearningResourceGate {
+  return getLearningResourceGateFromResources(task.resources ?? [])
 }
 
 export function hasRequiredResourcesCompleted(task: RoadmapTask) {

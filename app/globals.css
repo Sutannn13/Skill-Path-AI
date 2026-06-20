@@ -13,6 +13,17 @@
   --color-purple: #B39DDB;
   --color-red: #FF6B6B;
   --color-white: #FFFFFF;
+
+  /* Arcade Quest cabinet / HUD surfaces (hero zones only) */
+  --color-cabinet: #1A1726;
+  --color-cabinet-soft: #241F35;
+
+  /* Semantic text tokens (WCAG 2.2 AA validated) */
+  --text-primary: #111111;   /* body + headings on light surfaces */
+  --text-secondary: #44464F; /* >=7:1 on cream/white */
+  --text-tertiary: #5C5F6B;  /* captions/hints only, >=4.5:1 */
+  --text-on-dark: #FFFFFF;   /* on cabinet surfaces */
+  --text-on-dark-soft: #C9CBD6; /* >=4.5:1 on cabinet */
 }
 
 *,
@@ -285,19 +296,374 @@ body {
   scrollbar-width: none;
 }
 
+/* ============================================================
+   Arcade Quest — semantic text, focus, surfaces, HUD primitives
+   ============================================================ */
+
+/* Semantic text utilities. Reserve gray/secondary for non-essential
+   copy; never use as the only signal. All validated >=4.5:1. */
+.text-secondary { color: var(--text-secondary); }
+.text-tertiary { color: var(--text-tertiary); }
+.text-on-dark { color: var(--text-on-dark); }
+.text-on-dark-soft { color: var(--text-on-dark-soft); }
+
+/* Accessible focus ring (WCAG 2.4.7). Thick neobrutalist outline that
+   never conflicts with the hard offset box-shadows. Apply to every
+   interactive element: buttons, links, inputs, clickable cards. */
+.focus-brutal-ring {
+  outline: none;
+}
+.focus-brutal-ring:focus-visible {
+  outline: 3px solid var(--color-black);
+  outline-offset: 2px;
+}
+/* Variant for controls sitting on dark cabinet surfaces */
+.focus-brutal-ring-invert {
+  outline: none;
+}
+.focus-brutal-ring-invert:focus-visible {
+  outline: 3px solid var(--color-white);
+  outline-offset: 2px;
+}
+
+/* 44px minimum touch target (WCAG 2.5.8) */
+.target-44 {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+}
+
+/* Shared form input primitive — replaces per-page input styling.
+   Black focus outline (>=3:1) instead of the old low-contrast yellow ring. */
+.brutal-input {
+  width: 100%;
+  min-height: 2.75rem;
+  border: 3px solid var(--color-black);
+  border-radius: 12px;
+  background-color: var(--color-white);
+  color: var(--text-primary);
+  padding: 0.75rem 1rem;
+  transition: box-shadow 150ms ease, outline-color 150ms ease;
+}
+.brutal-input::placeholder { color: #6B6B6B; }
+.brutal-input:focus,
+.brutal-input:focus-visible {
+  outline: 3px solid var(--color-black);
+  outline-offset: 2px;
+  box-shadow: 4px 4px 0 0 var(--color-black);
+}
+
+/* Cabinet / HUD surface for hero and level summaries */
+.cabinet-surface {
+  background-color: var(--color-cabinet);
+  color: var(--text-on-dark);
+}
+.cabinet-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 28px 28px, 28px 28px;
+}
+
+/* Glowing earned/active tiles on cabinet surfaces (decorative accent) */
+.tile-glow-yellow { box-shadow: 0 0 24px 0 rgba(255, 212, 71, 0.45); }
+.tile-glow-blue { box-shadow: 0 0 24px 0 rgba(124, 201, 255, 0.45); }
+.tile-glow-green { box-shadow: 0 0 24px 0 rgba(155, 229, 100, 0.45); }
+.tile-glow-pink { box-shadow: 0 0 24px 0 rgba(255, 143, 171, 0.45); }
+
+/* XP / progress bar tick texture (discrete arcade segments) */
+.xp-ticks {
+  background-image: repeating-linear-gradient(
+    90deg,
+    transparent 0,
+    transparent 13px,
+    rgba(17, 17, 17, 0.28) 13px,
+    rgba(17, 17, 17, 0.28) 15px
+  );
+}
+
+/* HUD typography helpers */
+.metric-mono {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+.hud-label {
+  font-family: var(--font-hud), var(--font-display), system-ui, sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Level-up celebratory pop */
+@keyframes levelUpPop {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+.animate-level-up {
+  animation: levelUpPop 400ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* ============================================================
+   Arcade Quest 3D Cabinet — WebGL scene frame, CRT screen,
+   neon glow. Confined to dark "cabinet" zones only (never page
+   wallpaper). All information is duplicated in the DOM HUD; the
+   Canvas/scene chrome is decorative and aria-hidden.
+   ============================================================ */
+
+/* The dark cabinet zone that frames a WebGL Canvas (or its static
+   poster fallback). --neon drives the colored edge glow; modifiers
+   below recolor it. Hard brutal offset + low-alpha neon halo. */
+.scene-frame {
+  --neon: 255, 212, 71; /* default yellow */
+  position: relative;
+  overflow: hidden;
+  background-color: var(--color-cabinet);
+  border: 3px solid var(--color-black);
+  border-radius: 16px;
+  box-shadow:
+    6px 6px 0 0 var(--color-black),
+    0 0 44px -6px rgba(var(--neon), 0.55);
+}
+.scene-frame-yellow { --neon: 255, 212, 71; }
+.scene-frame-pink   { --neon: 255, 143, 171; }
+.scene-frame-blue   { --neon: 124, 201, 255; }
+.scene-frame-green  { --neon: 155, 229, 100; }
+.scene-frame-purple { --neon: 179, 157, 219; }
+
+/* Inner perspective grid floor (functional depth cue inside the
+   cabinet, not decorative wallpaper). */
+.scene-floor {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+  background-size: 30px 30px, 30px 30px;
+}
+
+/* Retro CRT scanlines over the screen area (decorative screen role). */
+.scene-scanlines {
+  background-image: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.16) 0,
+    rgba(0, 0, 0, 0.16) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+}
+
+/* Depth vignette so floating objects read against the cabinet back. */
+.scene-vignette {
+  background: radial-gradient(
+    circle at 50% 42%,
+    transparent 0,
+    transparent 52%,
+    rgba(0, 0, 0, 0.42) 100%
+  );
+}
+
+/* Soft neon corner light bleeding from the active accent. */
+.scene-glow {
+  background: radial-gradient(
+    60% 60% at 50% 40%,
+    rgba(var(--neon), 0.28) 0,
+    transparent 70%
+  );
+}
+
+/* Breathing neon edge while the live scene runs. */
+@keyframes neonPulse {
+  0%, 100% { box-shadow: 6px 6px 0 0 var(--color-black), 0 0 36px -8px rgba(var(--neon), 0.45); }
+  50%      { box-shadow: 6px 6px 0 0 var(--color-black), 0 0 56px -4px rgba(var(--neon), 0.70); }
+}
+.scene-frame-pulse { animation: neonPulse 4.5s ease-in-out infinite; }
+
+/* Canvas loading shimmer (shown under <Suspense> while three.js + the
+   scene chunk download). Explicit loading state (FE-012). */
+@keyframes scenePulse {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 0.85; }
+}
+.scene-loading { animation: scenePulse 1.4s ease-in-out infinite; }
+
+/* ============================================================
+   Signal & Static — VHS / live-broadcast skin. Confined to dark
+   "viewfinder" / monitor zones only (never page wallpaper). All
+   information is duplicated in the DOM OSD; the loop / CRT chrome
+   is decorative and aria-hidden. Reuses the --neon accent pattern.
+   ============================================================ */
+
+/* Dark monitor bezel that frames the broadcast loop (or its static
+   poster). Hard brutal offset + low-alpha neon halo, same language as
+   .scene-frame but tuned for a CRT viewfinder. */
+.broadcast-frame {
+  --neon: 255, 212, 71; /* default yellow */
+  position: relative;
+  overflow: hidden;
+  background-color: var(--color-cabinet);
+  border: 3px solid var(--color-black);
+  border-radius: 16px;
+  box-shadow:
+    6px 6px 0 0 var(--color-black),
+    0 0 44px -6px rgba(var(--neon), 0.55);
+}
+.broadcast-frame-yellow { --neon: 255, 212, 71; }
+.broadcast-frame-pink   { --neon: 255, 143, 171; }
+.broadcast-frame-blue   { --neon: 124, 201, 255; }
+.broadcast-frame-green  { --neon: 155, 229, 100; }
+.broadcast-frame-purple { --neon: 179, 157, 219; }
+
+/* Breathing neon edge while a live loop runs. */
+@keyframes broadcastPulse {
+  0%, 100% { box-shadow: 6px 6px 0 0 var(--color-black), 0 0 36px -8px rgba(var(--neon), 0.45); }
+  50%      { box-shadow: 6px 6px 0 0 var(--color-black), 0 0 56px -4px rgba(var(--neon), 0.70); }
+}
+.broadcast-frame-pulse { animation: broadcastPulse 4.5s ease-in-out infinite; }
+
+/* Denser CRT scanlines over the monitor area (decorative screen role). */
+.vhs-scanlines {
+  background-image: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.20) 0,
+    rgba(0, 0, 0, 0.20) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+}
+
+/* Depth vignette so the loop reads against the monitor back. */
+.vhs-vignette {
+  background: radial-gradient(
+    circle at 50% 44%,
+    transparent 0,
+    transparent 50%,
+    rgba(0, 0, 0, 0.46) 100%
+  );
+}
+
+/* Soft neon corner light bleeding from the active channel accent. */
+.vhs-glow {
+  background: radial-gradient(
+    60% 60% at 50% 38%,
+    rgba(var(--neon), 0.26) 0,
+    transparent 70%
+  );
+}
+
+/* A soft bright "tracking" band that sweeps down the screen, like a
+   tape losing and re-acquiring sync. Apply to an aria-hidden overlay. */
+@keyframes trackingSweep {
+  0%   { background-position: 0 -130%; }
+  100% { background-position: 0 130%; }
+}
+.vhs-tracking {
+  background-image: linear-gradient(
+    0deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.05) 44%,
+    rgba(255, 255, 255, 0.16) 50%,
+    rgba(255, 255, 255, 0.05) 56%,
+    transparent 100%
+  );
+  background-size: 100% 220%;
+  background-repeat: no-repeat;
+  mix-blend-mode: screen;
+  animation: trackingSweep 7s linear infinite;
+}
+
+/* Subtle luminance flicker for the live monitor (decorative). */
+@keyframes vhsFlicker {
+  0%, 100% { opacity: 0.94; }
+  48%      { opacity: 1; }
+  50%      { opacity: 0.88; }
+  52%      { opacity: 1; }
+}
+.vhs-flicker { animation: vhsFlicker 5.5s steps(1, end) infinite; }
+
+/* SMPTE-style color bars (palette), used by the poster / no-signal state. */
+.signal-bars {
+  background-image: linear-gradient(
+    90deg,
+    #FFD447 0 14.28%,
+    #9BE564 14.28% 28.57%,
+    #7CC9FF 28.57% 42.85%,
+    #B39DDB 42.85% 57.14%,
+    #FF8FAB 57.14% 71.42%,
+    #FFB86B 71.42% 85.71%,
+    #FF6B6B 85.71% 100%
+  );
+}
+
+/* Functional broadcast "signal noise" texture for section backgrounds.
+   Confined, subtle, aria-hidden — evokes a tuned signal, not wallpaper. */
+.broadcast-grain {
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      rgba(17, 17, 17, 0.05) 0,
+      rgba(17, 17, 17, 0.05) 1px,
+      transparent 1px,
+      transparent 3px
+    ),
+    radial-gradient(rgba(17, 17, 17, 0.05) 1px, transparent 1px);
+  background-size: 100% 3px, 4px 4px;
+  opacity: 0.55;
+}
+/* Register surface gets a faint pink signal tint so the login/register
+   distinction (backgroundVariant) stays visible. */
+.broadcast-grain[data-variant='register'] {
+  background-color: rgba(255, 143, 171, 0.05);
+}
+
+/* Chromatic-split headline. --chroma (px) starts offset and converges to 0 on
+   "signal lock" (toggled via data-signal). The real text stays solid +
+   AA-contrast; the red/cyan ghosts are decorative text-shadow. Registering the
+   custom property lets the offset interpolate smoothly on supporting browsers
+   (it degrades to an instant snap elsewhere). */
+@property --chroma {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+.chromatic-text {
+  /* Default = "tracking" (split). data-signal='locked' converges it to 0 on
+     view, so the heading reliably starts split and snaps into focus. */
+  --chroma: 7px;
+  transition: --chroma 600ms cubic-bezier(0.2, 0, 0, 1);
+  text-shadow:
+    calc(-1 * var(--chroma)) 0 0 rgba(255, 107, 107, 0.72),
+    var(--chroma) 0 0 rgba(124, 201, 255, 0.72);
+}
+.chromatic-text[data-signal='locked'] {
+  --chroma: 0px;
+}
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   .animate-float,
   .animate-wiggle,
   .animate-float-slow,
   .animate-press,
+  .animate-level-up,
   .cartoon-float-slow,
   .cartoon-float-reverse,
   .cartoon-bob,
   .cartoon-drift,
   .cartoon-wiggle-soft,
-  .cartoon-confused {
+  .cartoon-confused,
+  .scene-frame-pulse,
+  .scene-loading,
+  .broadcast-frame-pulse,
+  .vhs-tracking,
+  .vhs-flicker {
     animation: none;
+  }
+
+  /* Tracking band and chromatic ghosts must not render under reduced motion. */
+  .vhs-tracking { opacity: 0; }
+  .chromatic-text,
+  .chromatic-text[data-signal='locked'] {
+    --chroma: 0px;
+    text-shadow: none;
+    transition: none;
   }
 
   .cartoon-sticker-motion,

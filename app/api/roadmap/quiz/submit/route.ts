@@ -7,6 +7,8 @@ import {
   QUIZ_PASSING_SCORE,
   getCuratedQuizQuestions,
 } from '@/lib/roadmap/quiz-bank'
+import { getLearningResourceGateFromResources } from '@/lib/roadmap/progress'
+import type { RoadmapResourceType } from '@/types'
 
 export const dynamic = 'force-dynamic'
 
@@ -225,36 +227,48 @@ export async function POST(request: NextRequest) {
     project_passed: boolean | null
   }
 
-  const { data: requiredResources, error: resourceError } = await supabase
+  const { data: learningResources, error: resourceError } = await supabase
     .from('roadmap_resources')
-    .select('id')
+    .select('id, resource_type, url, completion_rule')
     .eq('roadmap_task_id', taskId)
-    .eq('is_required', true)
 
   if (resourceError) {
-    return NextResponse.json({ error: `Failed to load required resources: ${resourceError.message}` }, { status: 500 })
+    return NextResponse.json({ error: `Failed to load learning resources: ${resourceError.message}` }, { status: 500 })
   }
 
-  let resourcesComplete = true
-  if ((requiredResources ?? []).length > 0) {
-    const requiredResourceIds = (requiredResources ?? []).map((resource) => resource.id as string)
+  const resourceRows = (learningResources ?? []) as Array<{
+    id: string
+    resource_type: RoadmapResourceType
+    url: string | null
+    completion_rule: string | null
+  }>
+  const resourceIds = resourceRows.map((resource) => resource.id)
+  let completedSet = new Set<string>()
+  if (resourceIds.length > 0) {
     const { data: resourceProgress, error: progressError } = await supabase
       .from('roadmap_resource_progress')
       .select('resource_id, is_completed')
       .eq('user_id', user.id)
-      .in('resource_id', requiredResourceIds)
+      .in('resource_id', resourceIds)
 
     if (progressError) {
       return NextResponse.json({ error: `Failed to load resource progress: ${progressError.message}` }, { status: 500 })
     }
 
-    const completedSet = new Set(
+    completedSet = new Set(
       (resourceProgress ?? [])
         .filter((row) => row.is_completed === true)
         .map((row) => row.resource_id as string)
     )
-    resourcesComplete = requiredResourceIds.every((id) => completedSet.has(id))
   }
+  const resourcesComplete = getLearningResourceGateFromResources(
+    resourceRows.map((resource) => ({
+      resourceType: resource.resource_type,
+      url: resource.url ?? '',
+      completionRule: resource.completion_rule ?? '',
+      isCompleted: completedSet.has(resource.id),
+    }))
+  ).resourcesComplete
 
   const projectRequired = roadmapTask?.project_required === true
   const projectPassed = roadmapTask?.project_passed === true

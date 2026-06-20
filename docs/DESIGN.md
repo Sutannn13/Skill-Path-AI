@@ -1,70 +1,58 @@
 # Design Contract
 
-## Current Direction
+## Current Direction — Cat Quest (Playful Mascot Neobrutalism)
 
-SkillPath keeps its existing neobrutalism direction and now adds a consistent cartoon companion layer. The interface uses bold borders, hard shadows, saturated cards, readable iconography, and direct dashboard language, with lightweight doodles and mascot scenes that make the app feel like a "Cartoon Career OS for Developers."
+SkillPath keeps neobrutalism as its structural base, fronted by a **friendly animated cat mascot** as the product's personality. The landing hero and the auth welcome panels are bright "cat stage" zones: a large animated SVG cat (blink, mood cycle, ear/tail motion, occasional wave) standing on an accent-tinted stage with floating confetti, a soft spotlight, and a hard neobrutalist frame. The cat is the guide/companion that cheers the learner on.
 
-This phase does not redesign the product from scratch. It upgrades the global background, mascot usage, and page personality while preserving existing routing, Supabase data flow, and neobrutalist layout structure.
+Build Lab discipline is retained: outside the stage the product stays on cream with bento grids, semantic status color, monospace metrics, and one clear primary action per view. The animated cat is decorative-but-friendly; all real information lives in DOM text / HUD beside it.
 
-## Motion and Palette Decision
+This is a **visual / composition / motion direction** over unchanged plumbing. Routing, Supabase data flow, the `brutal/*` primitive contracts, and `AuthFormLayout` + `AuthInput/PasswordToggle/AuthError` are preserved. The prior VHS/broadcast experiment is removed (no `<video>`, no CRT static) and three.js stays off the landing/auth critical path.
 
-Real-world anchor: a developer career planner marked with bright sticky tabs, project stickers, roadmap checkpoints, and progress stamps.
+## Anchor
 
-Signature motion: slow floating doodles in the page background, small pressed-card movement on hover and tap, and mascot idle movement that disables for reduced-motion users.
+The SkillPath cat mascot on a spotlit stage — a friendly companion you "level up" with. Borrowed mechanic: a **reactive character** (mood + speech bubble respond to context, e.g. covering its eyes on a password field) that makes progress feel personal and playful, rendered as a flat SVG "sticker given life" with thick black outlines.
 
-Typographic contrast: display headings use `Space Grotesk`; body and operational copy use `Inter`.
+## Tokens
 
-## Cartoon Neobrutalism Layer
+- **Typography**
+  - Display: `Space Grotesk` (Black) — headlines. Body: `Inter`. Metric/mono: `JetBrains Mono` (tabular) — XP, levels, stats. HUD accent: `Silkscreen` (pixel) — short uppercase labels only (>=14px), never body.
+  - Scale (base 16, ratio ~1.25): `display` 48/1.05, `display-sm` 36/1.1, `heading` 24/1.2, `heading-sm` 20/1.25, `body-lg` 18/1.5, `body` 16/1.5, `body-sm` 14/1.5, `caption` 12/1.4.
+- **Colors** (hex; palette retained)
+  - Palette: yellow `#FFD447`, blue `#7CC9FF`, pink `#FF8FAB`, green `#9BE564`, orange `#FFB86B`, purple `#B39DDB`, red `#FF6B6B`; cream bg `#FFF7E6`; cream-light `#FFFDF5`; ink `#111111`.
+  - Stage backdrop: an accent-tinted vertical gradient on cream (e.g. `from-yellow/60 to-cream-light`) per `sceneAccent`; confetti uses the bright palette with 3px black borders.
+  - Cabinet/dark surfaces `#1A1726` / `#241F35` remain available for dark sections (e.g. boss-battle band, footer) only.
+  - Semantic text: `--text-primary` `#111111`; `--text-secondary` `#44464F`; `--text-tertiary` `#5C5F6B`. On dark: `--text-on-dark` `#FFFFFF`; `--text-on-dark-soft` `#C9CBD6`.
+  - On-color rule: full-opacity `text-black` on yellow/blue/green/orange/pink/cream and all tints; `text-white` on red/purple/cabinet. No `text-black/60|70` or `text-gray-500|600` as body.
+  - Semantic status (always color + icon + text): success=green, progress/info=blue, warning=orange, danger=red, active/xp=yellow, locked=`gray-300` + lock icon.
+- **Cat-stage law** (binding for the mascot visual): the cat is a flat SVG with hard black outlines (no gradients-as-shading, no glossy/3D realism); it reuses the shared `AnimatedCatMascot` (one source of truth) inside `CatStage`. Confetti/spotlight/floor are decorative and `aria-hidden`. The stage carries no information that is not also in the DOM HUD/caption.
+- **Spacing**: base 4px; scale 4/8/12/16/20/24/32/48. Card padding tiers: `compact` 16, `std` 20, `hero` 24.
+- **Radius**: `sm` 8, `md` 12 (default `brutal-radius`), `lg` 16, `xl` 20.
+- **Shadow** (hard offset, color `#111`): `subtle` 2px, `standard` 4px, `emphasis` 6px, `hero` 8px.
+- **Motion**: durations micro 120ms / meso 220ms / macro 400ms; easing `cubic-bezier(0.2,0,0,1)`; press = translate to (0,0) + shadow collapse. Signatures: **level-up pop**, **ticked XP fill** (`steps()`), the cat's idle float/blink/wave, and gentle `cartoon-*` confetti drift. **Reduced motion disables the cat animation, confetti, and all decorative motion (the cat renders as a still pose), and state changes become instant.**
 
-The visual system follows a 70/20/10 split:
+## Layout System
 
-- 70 percent neobrutalist structure: thick black borders, hard shadows, solid cards, readable forms, and bold page hierarchy.
-- 20 percent cartoon personality: cat mentor scenes, sticker badges, outlined code/workflow doodles, and page-specific illustrations.
-- 10 percent motion: slow transform-only background movement, hover/tap feedback, and subtle mascot animation.
+- **Cat stage zones**: landing hero-right, and the login / register / forgot-password welcome column (lg+ only, so mobile auth stays light). Each frames the animated cat with a **readable foreground HUD / caption** (Level / XP / current quest, or a short caption) so the zone carries information, not just spectacle.
+- **Bento grids** for dashboard, GitHub, projects, skills: one primary tile (2x) + supporting tiles; one clear primary action.
+- **Quest node-map** for roadmap: weeks as connected nodes with unlocked/locked gates; current node emphasized.
+- **Shared primitives**: `CatStage` (the mascot stage) + `AnimatedCatMascot`. Plus `AuthFormLayout`, `BrutalCard`, `BrutalButton`, `StatTile`, `XPBar`, `LevelChip`, `StickerBadge`, `brutal-input`, and `CartoonBackground` for the playful page backdrop.
 
-The background is not decorative filler. It represents a developer planner workspace: route maps for roadmaps, sticky notes for sprint planning, radar and briefcases for jobs, question marks for quizzes, laptops and rockets for project submission, and gear stickers for settings.
+## Constraints
 
-## Shared Components
+- **WCAG 2.2 AA is the hard floor.** The animated cat + confetti + spotlight are decorative: `aria-hidden` (or the mascot is `role="img"` + label where meaningful), and all of its information is duplicated as DOM text / HUD. Every interactive element gets `.focus-brutal-ring`; targets >=44px; no color-only meaning; status containers use `aria-live`.
+- **Motion + performance gates**: the cat animation and confetti are pure SVG/CSS + framer-motion (no WebGL, no `<video>`); `prefers-reduced-motion` freezes them to a static pose; mobile auth (<lg) renders no stage at all (the form alone), keeping it light.
+- **Anti-patterns (max 3)**: (1) glossy / 3D-realistic / gradient-shaded mascot (betrays the flat neobrutalist sticker look); (2) dark "broken-TV" / heavy-glitch surfaces under body / long-form content; (3) the stage as the *only* carrier of state or info (must be duplicated in the DOM HUD).
 
-- `CartoonBackground` provides the fixed cream paper layer, subtle grid/dot pattern, page-specific doodles, and low-opacity sticker cards.
-- `FloatingDoodles` owns deterministic doodle placement per route variant so the UI does not reflow or randomize between renders.
-- `CartoonMascot` extends the existing cat mascot instead of replacing it, adding reusable mood/accessory combinations.
-- `PageScene` adds compact route-specific mascot scenes for high-value authenticated pages.
-- `CartoonSticker` standardizes small brutal sticker badges used in scenes and future empty/success states.
+## Operational Rules (binding, preserved)
 
-## Reduced Motion and Performance
+- **Confirmation dialogs**: never native `alert/confirm/prompt`. Use the shared neobrutalist modal — solid accent header, black border, hard shadow, explicit primary/cancel, Escape, focus trap + restore, scroll lock, destructive-impact copy, disabled dismissal while loading.
+- **Bilingual learning resources**: one video player at a time; open on `1/2 English`, `Berikutnya` -> `2/2 Bahasa Indonesia` (label English fallback when none); require one video + one doc, not both languages; controls keyboard-accessible, visibly disabled at boundary, >=44px; no autoplay on language change.
+- **Role surfaces**: user dashboard = personal readiness/sprint/skills/jobs/GitHub with mobile bottom nav; admin = operational density, no mobile bottom nav, same tokens. Never show static XP/streak/progress as if owned by the authenticated user.
+- **Components**: reuse `AppShell`, `DashboardHeader`, `BrutalCard`, `BrutalButton`, `CatStage`, `AnimatedCatMascot`; Lucide icons for actions/status; keep client boundaries small; no new UI/animation library (framer-motion already shipped).
 
-Animations use CSS transform and opacity only. Decorative layers are `pointer-events-none`, fixed behind content, and clipped by the app shell to avoid horizontal overflow. `prefers-reduced-motion` disables floating doodles, mascot idle loops, and sticker wiggles while keeping the static visual system visible.
+## Previous Directions (redesign blocklist)
 
-## Role-Specific Surfaces
-
-User dashboard:
-
-- Focuses on personal readiness, weekly sprint, recommended skills, jobs, GitHub score, and recent activity.
-- Uses bottom navigation on mobile because it is a repeated learner workflow.
-
-Admin dashboard:
-
-- Focuses on users, job ingestion, roadmaps, activity, and role boundary status.
-- Uses desktop-first operational density and removes mobile bottom navigation for reduced accidental admin navigation.
-- Keeps the same neobrutalism tokens so the admin surface feels part of the product.
-
-## Accessibility Rules
-
-- Maintain WCAG 2.2 AA contrast as the floor.
-- Do not rely on color alone for admin/user state.
-- Keep icon buttons labeled with accessible names.
-- Keep touch targets at least 44px where practical.
-- Prevent long headings or helper text from overflowing cards on mobile.
-- Never display static XP, task counts, activity, or roadmap progress as if they belong to the authenticated user.
-
-## Component Rules
-
-- Reuse `AppShell`, `DashboardHeader`, `BrutalCard`, and `BrutalButton`.
-- Use Lucide icons for dashboard actions and status signals.
-- Do not introduce a new UI library for Phase 0 or Phase 1.
-- Keep client components limited to interactive surfaces and animation-heavy UI.
-
-## Future Design Work
-
-`docs/design-intent.json` is still a generated design-governance scaffold. Before a broad redesign, run the full design synthesis workflow and update that file from seed status to an active, project-specific contract.
+- Phase 1 — Cartoon Neobrutalism: developer planner with sticky tabs, roadmap checkpoints, mascot scenes.
+- Phase 2 — Arcade Quest (2D): neobrutalism + retro game HUD on flat cards (cabinet surfaces, ticked XP bars, stat tiles, lit/unlit quest states).
+- Phase 3 — Arcade Quest 3D Cabinet: real-time WebGL low-poly arcade cabinet (React Three Fiber) in the landing hero + auth welcome panels, flat toon shading + black inverted-hull outlines.
+- Phase 4 — Signal & Static (VHS / live-broadcast): degraded-VHS viewfinder with CRT static, scanlines, REC/timecode chrome, chromatic-split headlines. Removed in favor of the friendly cat mascot; do not reintroduce the broken-TV / heavy-glitch surface as the landing/auth chrome.

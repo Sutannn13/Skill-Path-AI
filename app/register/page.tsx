@@ -2,9 +2,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { motion } from 'framer-motion'
 import Link from 'next/link'
-import { Target, Mail, Lock, User, AlertCircle, CheckCircle, ArrowRight, Eye, EyeOff, ArrowLeft, Rocket, Star, Github } from 'lucide-react'
+import { Mail, Lock, User, AlertCircle, CheckCircle, ArrowRight, ArrowLeft, Rocket, Star, Github } from 'lucide-react'
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser'
 import {
   getDisabledOAuthProviderMessage,
@@ -12,9 +11,9 @@ import {
   isOAuthProviderConfigured,
 } from '@/lib/supabase/oauth-providers'
 import { BrutalCard, BrutalButton, StickerBadge } from '@/components/brutal'
+import { AuthFormLayout, AuthInput, PasswordToggle, AuthError } from '@/components/auth/auth-form-layout'
 import { cn } from '@/lib/utils'
-import { AnimatedBrutalBackground, BrutalBackgroundStyles } from '@/components/illustrations/animated-brutal-background'
-import { AnimatedCatMascot, CatMascotMood } from '@/components/illustrations/animated-cat-mascot'
+import type { CatMascotMood } from '@/components/illustrations/animated-cat-mascot'
 
 interface RegisterFormData {
   fullName: string
@@ -31,11 +30,13 @@ function getPasswordStrength(password: string) {
     { label: 'Number', met: /\d/.test(password) },
     { label: 'Special', met: /[^A-Za-z0-9]/.test(password) },
   ]
-  const metCount = rules.filter(r => r.met).length
+  const metCount = rules.filter((r) => r.met).length
   const strength = metCount <= 2 ? 'Weak' : metCount <= 4 ? 'Medium' : 'Strong'
-  const color = metCount <= 2 ? 'text-red' : metCount <= 4 ? 'text-yellow' : 'text-green'
+  const color = metCount <= 2 ? 'text-red-dark' : metCount <= 4 ? 'text-orange' : 'text-green-dark'
   return { rules, strength, color }
 }
+
+const benefits = ['Your Personalized Roadmap', 'Quiz Progress Saved', 'Job Match Alerts', 'Project Review Feedback']
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -53,11 +54,12 @@ export default function RegisterPage() {
   const [focusedField, setFocusedField] = useState<'fullName' | 'email' | 'password' | 'confirmPassword' | null>(null)
   const [oauthLoading, setOauthLoading] = useState<'github' | 'google' | null>(null)
 
-  const mascotMood: CatMascotMood = (focusedField === 'password' || focusedField === 'confirmPassword') && !showPassword 
-    ? 'sleepy' 
-    : focusedField === 'email' || focusedField === 'fullName'
-      ? 'focus' 
-      : 'cheer'
+  const mascotMood: CatMascotMood =
+    (focusedField === 'password' || focusedField === 'confirmPassword') && !showPassword
+      ? 'sleepy'
+      : focusedField === 'email' || focusedField === 'fullName'
+        ? 'focus'
+        : 'cheer'
 
   const supabase = createSupabaseBrowserClient()
 
@@ -75,7 +77,6 @@ export default function RegisterPage() {
     setError(null)
     setIsLoading(true)
 
-    // Validate password match
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match. Please try again.')
       setIsLoading(false)
@@ -92,39 +93,25 @@ export default function RegisterPage() {
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
-        options: {
-          data: {
-            full_name: formData.fullName,
-          },
-        },
+        options: { data: { full_name: formData.fullName } },
       })
 
       if (signUpError) {
-        console.error('Sign up error:', signUpError)
         setError(signUpError.message || 'Failed to create account. Please try again.')
         setIsLoading(false)
         return
       }
 
-      // If session exists (email confirmation disabled), create profile and redirect
       if (data.session && data.user) {
-        // Create profile in public.profiles table
-        const { error: profileError } = await supabase.from('profiles').upsert({
+        await supabase.from('profiles').upsert({
           id: data.user.id,
           full_name: formData.fullName,
           role: 'user',
           onboarding_completed: false,
         })
-
-        if (profileError) {
-          console.error('Profile creation error:', profileError)
-          // Continue anyway - profile can be created during onboarding
-        }
-
         router.push('/onboarding')
         router.refresh()
       } else {
-        // Email confirmation required
         setSuccess(true)
         setIsLoading(false)
       }
@@ -148,12 +135,9 @@ export default function RegisterPage() {
         setOauthLoading(null)
         return
       }
-
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-        },
+        options: { redirectTo: `${window.location.origin}/auth/callback` },
       })
       if (error) {
         setError(error.message)
@@ -166,356 +150,245 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <BrutalBackgroundStyles />
-      <AnimatedBrutalBackground variant="register" intensity="high" showDoodles />
+    <AuthFormLayout
+      welcomeColor="pink"
+      sceneAccent="pink"
+      sceneCaption="New player · Slot 1"
+      catMood={mascotMood}
+      catMessage={mascotMood === 'sleepy' ? 'A secret!' : "Let's go!"}
+      headerRight={
+        <Link href="/login">
+          <BrutalButton variant="ghost" color="black" size="sm">
+            Sign In
+          </BrutalButton>
+        </Link>
+      }
+      welcome={
+        <>
+          <h2 className="font-display text-2xl font-bold mb-2">Create your developer hero</h2>
+          <p className="text-sm text-secondary mb-4">
+            Build your learning roadmap, pass quiz challenges, and submit portfolio projects.
+          </p>
+          <div className="space-y-3">
+            {benefits.map((benefit) => (
+              <div key={benefit} className="flex items-center gap-2">
+                <div className="w-6 h-6 bg-green brutal-border brutal-radius flex items-center justify-center shrink-0">
+                  <CheckCircle className="w-4 h-4" aria-hidden="true" />
+                </div>
+                <span className="text-sm">{benefit}</span>
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <StickerBadge variant="blue" label="AI Gen Roadmap" size="sm" />
+            <StickerBadge variant="green" label="Free" size="sm" />
+          </div>
+        </>
+      }
+      footer={
+        !success ? (
+          <p className="text-secondary">
+            Already have an account?{' '}
+            <Link href="/login" className="font-bold text-black underline rounded focus-brutal-ring">
+              Sign in
+            </Link>
+          </p>
+        ) : undefined
+      }
+    >
+      <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <StickerBadge variant="yellow" label="Account Setup" size="sm" />
+            <StickerBadge variant="pink" label="Credentials" size="sm" />
+          </div>
+          <div className="flex items-center gap-2 mb-1">
+            <Rocket className="w-6 h-6 text-pink-dark" aria-hidden="true" />
+            <h1 className="font-display text-3xl font-black">Create Your Account</h1>
+          </div>
+          <p className="text-secondary">Start your adventure with SkillPath</p>
+        </div>
+        <Link href="/">
+          <BrutalButton variant="outline" color="black" size="sm">
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+            Home
+          </BrutalButton>
+        </Link>
+      </div>
 
-      {/* Header */}
-      <header className="border-b-3 border-black bg-white/90 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-11 h-11 bg-yellow brutal-border brutal-radius flex items-center justify-center shadow-brutal-sm group-hover:shadow-brutal transition-all">
-              <Target className="w-6 h-6" />
-            </div>
-            <div>
-              <span className="font-display font-bold text-xl">SkillPath</span>
-              <span className="text-[10px] text-black/50 block">Career OS</span>
-            </div>
-          </Link>
+      {success ? (
+        <BrutalCard color="green" shadow="lg" className="p-8 text-center">
+          <div className="w-20 h-20 bg-green/20 brutal-border brutal-radius flex items-center justify-center mx-auto mb-4">
+            <span className="text-4xl">🎉</span>
+          </div>
+          <StickerBadge variant="completed" label="Email Sent!" size="lg" className="mb-4 inline-flex" />
+          <h3 className="font-display font-bold text-2xl mb-2">Check Your Inbox!</h3>
+          <p className="text-secondary mb-6 break-words">
+            We have sent a confirmation link to <strong className="text-black">{formData.email}</strong>. Click the link
+            to activate your hero!
+          </p>
           <Link href="/login">
-            <BrutalButton variant="ghost" color="black" size="sm">
-              Sign In
+            <BrutalButton color="green">
+              <Star className="w-4 h-4" aria-hidden="true" />
+              Back to Login
             </BrutalButton>
           </Link>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="mx-auto max-w-6xl px-4 py-10">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="grid gap-6 lg:grid-cols-5 items-start"
-        >
-          {/* Welcome Panel - Create Your Hero */}
-          <BrutalCard color="pink" shadow="lg" className="relative hidden p-8 lg:col-span-2 lg:block overflow-hidden">
-            <div className="relative z-10">
-              <div className="mb-6">
-                <AnimatedCatMascot
-                  size="xl"
-                  mood={mascotMood}
-                  animated={true}
-                  withMessage={mascotMood === 'sleepy' ? "A secret!" : "Create your Hero!"}
-                />
+        </BrutalCard>
+      ) : (
+        <BrutalCard color="white" shadow="lg" className="p-8">
+          {!supabase ? (
+            <div className="text-center py-8">
+              <div className="w-16 h-16 bg-yellow/20 brutal-border brutal-radius flex items-center justify-center mx-auto mb-4">
+                <AlertCircle className="w-8 h-8 text-orange" aria-hidden="true" />
               </div>
-              <h2 className="font-display text-2xl font-bold mb-2">Create Your Developer Hero</h2>
-              <p className="text-sm text-black/70 mb-4">
-                Build your learning roadmap, pass quiz challenges, and submit portfolio projects.
+              <h3 className="font-display font-bold text-xl mb-2">Supabase Not Configured</h3>
+              <p className="text-secondary mb-6">
+                Please set up your Supabase environment variables to enable authentication.
               </p>
-              {/* Benefits */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 bg-green brutal-border brutal-radius flex items-center justify-center">
-                    <CheckCircle className="w-4 h-4" />
-                  </div>
-                  <span className="text-sm">Your Personalized Roadmap</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 bg-green brutal-border brutal-radius flex items-center justify-center">
-                    <CheckCircle className="w-4 h-4" />
-                  </div>
-                  <span className="text-sm">Quiz Progress Saved</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 bg-green brutal-border brutal-radius flex items-center justify-center">
-                    <CheckCircle className="w-4 h-4" />
-                  </div>
-                  <span className="text-sm">Job Match Alerts</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 bg-green brutal-border brutal-radius flex items-center justify-center">
-                    <CheckCircle className="w-4 h-4" />
-                  </div>
-                  <span className="text-sm">Project Review Feedback</span>
-                </div>
-              </div>
-              <div className="mt-4 flex flex-wrap gap-2">
-                <StickerBadge variant="blue" label="AI Gen Roadmap" size="sm" />
-                <StickerBadge variant="green" label="Free" size="sm" />
+              <div className="bg-gray-50 brutal-border brutal-radius p-4 text-left">
+                <p className="text-sm font-medium mb-2">Required variables:</p>
+                <code className="text-xs text-secondary">
+                  NEXT_PUBLIC_SUPABASE_URL
+                  <br />
+                  NEXT_PUBLIC_SUPABASE_ANON_KEY
+                </code>
               </div>
             </div>
-            {/* Decorative shapes */}
-            <div className="absolute -top-3 -left-3 w-12 h-12 bg-yellow brutal-border brutal-radius opacity-40 animate-wiggle" />
-            <div className="absolute -bottom-4 -right-4 w-16 h-16 bg-green brutal-border brutal-radius opacity-30 animate-float" />
-            <div className="absolute top-1/3 left-4 w-8 h-8 bg-blue brutal-border rounded-full opacity-30 animate-bounce" />
-          </BrutalCard>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <AuthInput
+                id="fullName"
+                type="text"
+                label="Full Name"
+                icon={User}
+                value={formData.fullName}
+                onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                onFocus={() => setFocusedField('fullName')}
+                onBlur={() => setFocusedField(null)}
+                placeholder="John Doe"
+                autoComplete="name"
+                required
+              />
 
-          <div className="lg:col-span-3">
-            <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <AuthInput
+                id="email"
+                type="email"
+                label="Email"
+                icon={Mail}
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                onFocus={() => setFocusedField('email')}
+                onBlur={() => setFocusedField(null)}
+                placeholder="you@example.com"
+                autoComplete="email"
+                required
+              />
+
               <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <StickerBadge variant="yellow" label="Character Setup" size="sm" />
-                  <StickerBadge variant="pink" label="Credentials" size="sm" />
-                </div>
-                <div className="flex items-center gap-2 mb-1">
-                  <Rocket className="w-6 h-6 text-pink" />
-                  <h1 className="font-display text-3xl font-black">Character Creation</h1>
-                </div>
-                <p className="text-gray-600">Start your adventure with SkillPath</p>
-              </div>
-              <Link href="/">
-                <BrutalButton variant="outline" color="black" size="sm">
-                  <ArrowLeft className="mr-1 h-4 w-4" />
-                  Home
-                </BrutalButton>
-              </Link>
-            </div>
-
-            {success ? (
-              <BrutalCard color="green" shadow="lg" className="p-8 text-center">
-                <div className="w-20 h-20 bg-green/20 brutal-border brutal-radius flex items-center justify-center mx-auto mb-4">
-                  <span className="text-4xl">🎉</span>
-                </div>
-                <StickerBadge variant="completed" label="Email Sent!" size="lg" className="mb-4 inline-block" />
-                <h3 className="font-display font-bold text-2xl mb-2">Check Your Inbox!</h3>
-                <p className="text-gray-600 mb-6">
-                  We have sent a confirmation link to <strong>{formData.email}</strong>.
-                  Click the link to activate your hero!
-                </p>
-                <Link href="/login">
-                  <BrutalButton color="green">
-                    <Star className="w-4 h-4 mr-2" />
-                    Back to Login
-                  </BrutalButton>
-                </Link>
-              </BrutalCard>
-            ) : (
-              <BrutalCard color="white" shadow="lg" className="p-8">
-                {!supabase ? (
-                  <div className="text-center py-8">
-                    <div className="w-16 h-16 bg-yellow/20 brutal-border brutal-radius flex items-center justify-center mx-auto mb-4">
-                      <AlertCircle className="w-8 h-8 text-yellow" />
-                    </div>
-                    <h3 className="font-display font-bold text-xl mb-2">Supabase Not Configured</h3>
-                    <p className="text-gray-600 mb-6">
-                      Please set up your Supabase environment variables to enable authentication.
-                    </p>
-                    <div className="bg-gray-50 brutal-border brutal-radius p-4 text-left">
-                      <p className="text-sm font-medium mb-2">Required variables:</p>
-                      <code className="text-xs text-gray-600">
-                        NEXT_PUBLIC_SUPABASE_URL
-                        <br />
-                        NEXT_PUBLIC_SUPABASE_ANON_KEY
-                      </code>
-                    </div>
+                <AuthInput
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  label="Password"
+                  icon={Lock}
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  onFocus={() => setFocusedField('password')}
+                  onBlur={() => setFocusedField(null)}
+                  placeholder="Min. 8 characters"
+                  autoComplete="new-password"
+                  minLength={8}
+                  required
+                  trailing={<PasswordToggle shown={showPassword} onToggle={() => setShowPassword((p) => !p)} />}
+                />
+                <div className="mt-3 flex flex-col gap-2">
+                  <span className={cn('text-xs font-bold uppercase', passwordStrength.color)}>
+                    Strength: {passwordStrength.strength}
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    {passwordStrength.rules.map((rule) => (
+                      <StickerBadge
+                        key={rule.label}
+                        variant={rule.met ? 'green' : 'gray'}
+                        label={rule.label}
+                        size="sm"
+                        className={cn('transition-all duration-300', !rule.met && 'opacity-60')}
+                      />
+                    ))}
                   </div>
-                ) : (
-                  <form onSubmit={handleSubmit} className="space-y-6">
-                    <div>
-                      <label htmlFor="fullName" className="block mb-2 font-medium">
-                        Full Name
-                      </label>
-                      <div className="relative">
-                        <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                        <input
-                          type="text"
-                          id="fullName"
-                          value={formData.fullName}
-                          onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                          onFocus={() => setFocusedField('fullName')}
-                          onBlur={() => setFocusedField(null)}
-                          placeholder="John Doe"
-                          required
-                          className={cn(
-                            'w-full pl-12 pr-4 py-3 brutal-border brutal-radius brutal-input-focus bg-gray-50 text-black placeholder-gray-500 caret-black',
-                            'focus:bg-white focus:outline-none focus:ring-4 focus:ring-yellow focus:border-black',
-                            'transition-all'
-                          )}
-                        />
-                      </div>
-                    </div>
+                </div>
+              </div>
 
-                    <div>
-                      <label htmlFor="email" className="block mb-2 font-medium">
-                        Email
-                      </label>
-                      <div className="relative">
-                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                        <input
-                          type="email"
-                          id="email"
-                          value={formData.email}
-                          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                          onFocus={() => setFocusedField('email')}
-                          onBlur={() => setFocusedField(null)}
-                          placeholder="you@example.com"
-                          required
-                          className={cn(
-                            'w-full pl-12 pr-4 py-3 brutal-border brutal-radius brutal-input-focus bg-gray-50 text-black placeholder-gray-500 caret-black',
-                            'focus:bg-white focus:outline-none focus:ring-4 focus:ring-yellow focus:border-black',
-                            'transition-all'
-                          )}
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label htmlFor="password" className="block mb-2 font-medium">
-                        Password
-                      </label>
-                      <div className="relative">
-                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                        <input
-                          type={showPassword ? 'text' : 'password'}
-                          id="password"
-                          value={formData.password}
-                          onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                          onFocus={() => setFocusedField('password')}
-                          onBlur={() => setFocusedField(null)}
-                          placeholder="Min. 8 characters"
-                          required
-                          minLength={8}
-                          className={cn(
-                            'w-full pl-12 pr-12 py-3 brutal-border brutal-radius brutal-input-focus bg-gray-50 text-black placeholder-gray-500 caret-black',
-                            'focus:bg-white focus:outline-none focus:ring-4 focus:ring-yellow focus:border-black',
-                            'transition-all'
-                          )}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword((prev) => !prev)}
-                          aria-label={showPassword ? 'Hide password' : 'Show password'}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 rounded border-2 border-black bg-white p-1"
-                        >
-                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </button>
-                      </div>
-                      <div className="mt-3 flex flex-col gap-2">
-                        <div className="flex items-center gap-2">
-                          <span className={cn('text-xs font-bold uppercase', passwordStrength.color)}>Strength: {passwordStrength.strength}</span>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {passwordStrength.rules.map((rule) => (
-                            <StickerBadge 
-                              key={rule.label} 
-                              variant={rule.met ? 'green' : 'gray'} 
-                              label={rule.label} 
-                              size="sm" 
-                              className={cn("transition-all duration-300", !rule.met && "opacity-50 grayscale")}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label htmlFor="confirmPassword" className="block mb-2 font-medium">
-                        Confirm Password
-                      </label>
-                      <div className="relative">
-                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                        <input
-                          type={showConfirmPassword ? 'text' : 'password'}
-                          id="confirmPassword"
-                          value={formData.confirmPassword}
-                          onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                          onFocus={() => setFocusedField('confirmPassword')}
-                          onBlur={() => setFocusedField(null)}
-                          placeholder="Repeat your password"
-                          required
-                          minLength={8}
-                          className={cn(
-                            'w-full pl-12 pr-12 py-3 brutal-border brutal-radius brutal-input-focus bg-gray-50 text-black placeholder-gray-500 caret-black',
-                            'focus:bg-white focus:outline-none focus:ring-4 focus:ring-yellow focus:border-black',
-                            'transition-all',
-                            formData.confirmPassword && !passwordMatch && 'border-red border-2'
-                          )}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowConfirmPassword((prev) => !prev)}
-                          aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 rounded border-2 border-black bg-white p-1"
-                        >
-                          {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </button>
-                      </div>
-                      {formData.confirmPassword && !passwordMatch && (
-                        <p className="text-sm text-red mt-1">Passwords do not match</p>
-                      )}
-                    </div>
-
-                    {error && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="flex items-center gap-2 p-4 bg-red/10 border-2 border-red brutal-radius"
-                      >
-                        <AlertCircle className="w-5 h-5 text-red shrink-0" />
-                        <p className="text-sm text-red">{error}</p>
-                      </motion.div>
-                    )}
-
-                    <BrutalButton
-                      type="submit"
-                      color="yellow"
-                      size="lg"
-                      fullWidth
-                      loading={isLoading}
-                      disabled={!canSubmit}
-                      className="active:translate-y-[2px] active:translate-x-[2px] active:shadow-none"
-                    >
-                      {isLoading ? 'Creating account...' : 'Create Account'}
-                      {!isLoading && <ArrowRight className="w-5 h-5 ml-2" />}
-                    </BrutalButton>
-
-                    <div className="relative my-6">
-                      <div className="absolute inset-0 flex items-center">
-                        <div className="w-full border-t-3 border-black"></div>
-                      </div>
-                      <div className="relative flex justify-center">
-                        <span className="bg-white px-4 font-bold text-sm">OR</span>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <BrutalButton 
-                        variant="outline" color="black" 
-                        className="w-full shadow-brutal-sm hover:shadow-brutal active:translate-y-[2px] active:translate-x-[2px] active:shadow-none"
-                        onClick={() => handleOAuthLogin('github')}
-                        disabled={oauthLoading !== null || !isOAuthProviderConfigured('github')}
-                        loading={oauthLoading === 'github'}
-                      >
-                        <Github className="w-5 h-5 mr-2" />
-                        {isOAuthProviderConfigured('github') ? 'GitHub' : 'GitHub unavailable'}
-                      </BrutalButton>
-                      <BrutalButton 
-                        variant="outline" color="black" 
-                        className="w-full shadow-brutal-sm hover:shadow-brutal active:translate-y-[2px] active:translate-x-[2px] active:shadow-none"
-                        onClick={() => handleOAuthLogin('google')}
-                        disabled={oauthLoading !== null}
-                        loading={oauthLoading === 'google'}
-                      >
-                        Google
-                      </BrutalButton>
-                    </div>
-                  </form>
+              <div>
+                <AuthInput
+                  id="confirmPassword"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  label="Confirm Password"
+                  icon={Lock}
+                  value={formData.confirmPassword}
+                  onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                  onFocus={() => setFocusedField('confirmPassword')}
+                  onBlur={() => setFocusedField(null)}
+                  placeholder="Repeat your password"
+                  autoComplete="new-password"
+                  minLength={8}
+                  required
+                  invalid={Boolean(formData.confirmPassword) && !passwordMatch}
+                  trailing={
+                    <PasswordToggle
+                      shown={showConfirmPassword}
+                      onToggle={() => setShowConfirmPassword((p) => !p)}
+                      label="confirm password"
+                    />
+                  }
+                />
+                {formData.confirmPassword && !passwordMatch && (
+                  <p className="text-sm font-medium text-red-dark mt-1">Passwords do not match</p>
                 )}
-              </BrutalCard>
-            )}
+              </div>
 
-            <div className="mt-6 text-center">
-              <p className="text-gray-600">
-                Already have an account?{' '}
-                <Link href="/login" className="font-bold text-black hover:underline">
-                  Sign in
-                </Link>
-              </p>
-            </div>
-          </div>
-        </motion.div>
-      </main>
-    </div>
+              {error && <AuthError message={error} />}
+
+              <BrutalButton type="submit" color="yellow" size="lg" fullWidth loading={isLoading} disabled={!canSubmit}>
+                {isLoading ? 'Creating account...' : 'Create Account'}
+                {!isLoading && <ArrowRight className="w-5 h-5" aria-hidden="true" />}
+              </BrutalButton>
+
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                  <div className="w-full border-t-3 border-black" />
+                </div>
+                <div className="relative flex justify-center">
+                  <span className="bg-white px-4 font-bold text-sm">OR</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <BrutalButton
+                  variant="outline"
+                  color="black"
+                  className="w-full shadow-brutal-sm hover:shadow-brutal"
+                  onClick={() => handleOAuthLogin('github')}
+                  disabled={oauthLoading !== null || !isOAuthProviderConfigured('github')}
+                  loading={oauthLoading === 'github'}
+                >
+                  <Github className="w-5 h-5" aria-hidden="true" />
+                  {isOAuthProviderConfigured('github') ? 'GitHub' : 'Unavailable'}
+                </BrutalButton>
+                <BrutalButton
+                  variant="outline"
+                  color="black"
+                  className="w-full shadow-brutal-sm hover:shadow-brutal"
+                  onClick={() => handleOAuthLogin('google')}
+                  disabled={oauthLoading !== null}
+                  loading={oauthLoading === 'google'}
+                >
+                  Google
+                </BrutalButton>
+              </div>
+            </form>
+          )}
+        </BrutalCard>
+      )}
+    </AuthFormLayout>
   )
 }

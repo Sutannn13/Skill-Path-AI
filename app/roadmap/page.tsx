@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { AppShell, Container } from '@/components/layout'
 import { GradientBackground } from '@/components/layout'
 import { DashboardHeader } from '@/components/layout/dashboard-header'
-import { BrutalCard, BrutalButton, SkillBadge, ScoreBar } from '@/components/brutal'
+import { BrutalCard, BrutalButton, ConfirmModal, SkillBadge, ScoreBar } from '@/components/brutal'
 import { CatMascot } from '@/components/illustrations/cat-mascot'
 import { PageScene } from '@/components/illustrations/page-scene'
 import { generateFallbackRoadmap } from '@/lib/ai'
@@ -14,7 +14,11 @@ import {
   ROADMAP_CONTENT_VERSION,
   taskRequiresModuleProject,
 } from '@/lib/roadmap/content-contract'
-import { getCuratedResourcesForTask, isResourceLikelyRelevant } from '@/lib/roadmap/resources'
+import {
+  getCuratedResourcesForTask,
+  getRoadmapVideoLanguage,
+  isResourceLikelyRelevant,
+} from '@/lib/roadmap/resources'
 import {
   calculateOverallProgress,
   calculateWeekProgress,
@@ -344,20 +348,35 @@ async function ensurePersistedResourcesForTasks(input: {
     const relevantResources = uniqueLoadedResources.filter((resource) =>
       isResourceRelevantForTask(task, week, resource, targetRole)
     )
-    const hasRelevantVideo = relevantResources.some((resource) => resource.resourceType === 'youtube')
     const hasRelevantDocs = relevantResources.some((resource) =>
       resource.resourceType === 'docs' || resource.resourceType === 'article'
     )
+    const generatedResources = getCuratedResourcesForTask(task, week, { targetRole, usedUrls })
+    const hasAllGeneratedVideos = generatedResources
+      .filter((resource) => resource.resourceType === 'youtube')
+      .every((generatedVideo) =>
+        relevantResources.some((loadedResource) =>
+          loadedResource.resourceType === 'youtube' &&
+          loadedResource.url === generatedVideo.url &&
+          getRoadmapVideoLanguage(loadedResource) === getRoadmapVideoLanguage(generatedVideo)
+        )
+      )
 
-    if (hasRelevantVideo && hasRelevantDocs) continue
+    if (hasAllGeneratedVideos && hasRelevantDocs) continue
 
     const existingTaskResourceKeys = new Set(
       loadedRows.map((resource) => `${resource.resource_type}:${resource.url.trim() || resource.title.trim().toLowerCase()}`)
     )
-    const generatedResources = getCuratedResourcesForTask(task, week, { targetRole, usedUrls })
 
     generatedResources.forEach((resource, index) => {
-      if (resource.resourceType === 'youtube' && hasRelevantVideo) return
+      if (
+        resource.resourceType === 'youtube' &&
+        relevantResources.some((loadedResource) =>
+          loadedResource.resourceType === 'youtube' &&
+          loadedResource.url === resource.url &&
+          getRoadmapVideoLanguage(loadedResource) === getRoadmapVideoLanguage(resource)
+        )
+      ) return
       if ((resource.resourceType === 'docs' || resource.resourceType === 'article') && hasRelevantDocs) return
 
       const resourceKey = `${resource.resourceType}:${resource.url.trim() || resource.title.trim().toLowerCase()}`
@@ -685,6 +704,7 @@ export default function RoadmapPage() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [assessmentPersistenceAvailable, setAssessmentPersistenceAvailable] = useState(true)
   const [isGenerating, setIsGenerating] = useState(false)
+  const [isRegenerateConfirmOpen, setIsRegenerateConfirmOpen] = useState(false)
   const [finalProjectStatus, setFinalProjectStatus] = useState<RoadmapProjectReviewStatus | null>(null)
   const [focusedTaskByWeek, setFocusedTaskByWeek] = useState<Record<number, string>>({})
   const [openedResources, setOpenedResources] = useState<Record<string, boolean>>({})
@@ -695,9 +715,9 @@ export default function RoadmapPage() {
   const weekSectionRefs = useRef<Record<number, HTMLDivElement | null>>({})
 
   // Repair callback for empty-task roadmaps
-  const repairEmptyRoadmap = async () => {
+  const repairEmptyRoadmap = () => {
     if (!supabase || !currentUserId) return
-    await regenerateRoadmap()
+    setIsRegenerateConfirmOpen(true)
   }
 
   const seedRoadmapAssessments = async (roadmapId: string, taskRows: Array<{
@@ -1352,9 +1372,6 @@ export default function RoadmapPage() {
       return
     }
 
-    const confirmed = window.confirm('Replace your current roadmap? This archives the current roadmap and creates a new one with fresh tasks and progress.')
-    if (!confirmed) return
-
     setIsGenerating(true)
     setSaveState('saving')
     setSaveMessage('Generating new roadmap...')
@@ -1564,6 +1581,20 @@ export default function RoadmapPage() {
     }
   }
 
+  const requestRoadmapRegeneration = () => {
+    if (!supabase || !currentUserId) {
+      void regenerateRoadmap()
+      return
+    }
+
+    setIsRegenerateConfirmOpen(true)
+  }
+
+  const confirmRoadmapRegeneration = () => {
+    setIsRegenerateConfirmOpen(false)
+    void regenerateRoadmap()
+  }
+
   const progress = roadmap ? calculateOverallProgress(roadmap) : 0
   const hasFinalProjectSubmission = Boolean(finalProjectStatus && finalProjectStatus !== 'pending')
   const finalProjectUnlocked = progress >= 100
@@ -1572,6 +1603,23 @@ export default function RoadmapPage() {
   return (
     <AppShell showBottomNav={true}>
       <GradientBackground variant="roadmap" />
+      <ConfirmModal
+        isOpen={isRegenerateConfirmOpen}
+        onClose={() => setIsRegenerateConfirmOpen(false)}
+        onConfirm={confirmRoadmapRegeneration}
+        title="Buat roadmap baru?"
+        eyebrow="Perubahan roadmap"
+        message="Roadmap aktif akan diarsipkan dan diganti dengan roadmap baru yang menyesuaikan profil belajar terbaru."
+        details={[
+          'Task dan progress pada roadmap baru dimulai dari awal.',
+          'Roadmap lama tetap tersimpan sebagai arsip.',
+          'Materi baru menyesuaikan role, level, dan skill terbaru.',
+        ]}
+        confirmText="Ya, buat roadmap baru"
+        cancelText="Pertahankan roadmap ini"
+        variant="warning"
+        isLoading={isGenerating}
+      />
 
       <div className="flex-1 pb-32 lg:pb-8">
         <DashboardHeader
@@ -1698,7 +1746,7 @@ export default function RoadmapPage() {
                     </BrutalButton>
                     <BrutalButton
                       color="black"
-                      onClick={regenerateRoadmap}
+                      onClick={requestRoadmapRegeneration}
                       loading={isGenerating}
                       disabled={isGenerating}
                     >

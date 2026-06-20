@@ -31,11 +31,16 @@ export function ScoreMeter({
   const progress = Math.min(Math.max(score, 0), 100)
 
   return (
-    <div className="flex flex-col items-center gap-2">
+    <div
+      className="flex flex-col items-center gap-2"
+      role="img"
+      aria-label={`${label ? label + ': ' : ''}${Math.round(progress)} out of 100`}
+    >
       <div className={cn('relative', sizes.container)}>
         <svg
           className="w-full h-full transform -rotate-90"
           viewBox="0 0 160 160"
+          aria-hidden="true"
         >
           {/* Background circle */}
           <circle
@@ -79,7 +84,7 @@ export function ScoreMeter({
         </svg>
         {/* Score text */}
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className={cn('font-bold text-black', sizes.text)}>
+          <span className={cn('metric-mono font-bold text-black', sizes.text)}>
             {animated ? (
               <motion.span
                 initial={false}

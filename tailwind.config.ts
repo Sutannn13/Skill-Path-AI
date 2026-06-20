@@ -24,12 +24,29 @@ const config: Config = {
         'green-dark': '#7BC445',
         'orange-dark': '#F09A4A',
         'purple-dark': '#9A7FCC',
+        'red-dark': '#C2261B',
         'cream-light': '#FFFDF5',
         'cream-dark': '#F5EDD8',
+        // Arcade Quest cabinet / HUD surfaces
+        cabinet: '#1A1726',
+        'cabinet-soft': '#241F35',
       },
       fontFamily: {
         display: ['var(--font-display)', 'system-ui', 'sans-serif'],
         body: ['var(--font-body)', 'system-ui', 'sans-serif'],
+        mono: ['var(--font-mono)', 'ui-monospace', 'SFMono-Regular', 'monospace'],
+        hud: ['var(--font-hud)', 'var(--font-display)', 'system-ui', 'sans-serif'],
+      },
+      fontSize: {
+        // Bound typography ladder (base 16, ratio ~1.25)
+        display: ['3rem', { lineHeight: '1.05', fontWeight: '800' }],
+        'display-sm': ['2.25rem', { lineHeight: '1.1', fontWeight: '800' }],
+        heading: ['1.5rem', { lineHeight: '1.2', fontWeight: '700' }],
+        'heading-sm': ['1.25rem', { lineHeight: '1.25', fontWeight: '700' }],
+        'body-lg': ['1.125rem', { lineHeight: '1.5' }],
+        body: ['1rem', { lineHeight: '1.5' }],
+        'body-sm': ['0.875rem', { lineHeight: '1.5' }],
+        caption: ['0.75rem', { lineHeight: '1.4' }],
       },
       boxShadow: {
         brutal: '4px 4px 0px 0px #111111',
@@ -41,6 +58,11 @@ const config: Config = {
         'brutal-hover': '6px 6px 0px 0px #111111',
       },
       borderWidth: {
+        // `3` makes the widely-used `border-3` / `border-b-3` / `border-l-3`
+        // utilities resolve to 3px. Tailwind 3.4's default scale is 0/2/4/8,
+        // so without this key those classes were silent no-ops and the
+        // intended neobrutalist 3px outlines did not render.
+        '3': '3px',
         brutal: '3px',
         'brutal-thick': '4px',
       },

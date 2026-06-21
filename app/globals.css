@@ -333,23 +333,27 @@ body {
 }
 
 /* Shared form input primitive — replaces per-page input styling.
-   Black focus outline (>=3:1) instead of the old low-contrast yellow ring. */
-.brutal-input {
-  width: 100%;
-  min-height: 2.75rem;
-  border: 3px solid var(--color-black);
-  border-radius: 12px;
-  background-color: var(--color-white);
-  color: var(--text-primary);
-  padding: 0.75rem 1rem;
-  transition: box-shadow 150ms ease, outline-color 150ms ease;
-}
-.brutal-input::placeholder { color: #6B6B6B; }
-.brutal-input:focus,
-.brutal-input:focus-visible {
-  outline: 3px solid var(--color-black);
-  outline-offset: 2px;
-  box-shadow: 4px 4px 0 0 var(--color-black);
+   Black focus outline (>=3:1) instead of the old low-contrast yellow ring.
+   Wrapped in @layer components so Tailwind utility overrides (pl-12, pr-14)
+   take precedence over the default horizontal padding. */
+@layer components {
+  .brutal-input {
+    width: 100%;
+    min-height: 2.75rem;
+    border: 3px solid var(--color-black);
+    border-radius: 12px;
+    background-color: var(--color-white);
+    color: var(--text-primary);
+    padding: 0.75rem 1rem;
+    transition: box-shadow 150ms ease, outline-color 150ms ease;
+  }
+  .brutal-input::placeholder { color: #6B6B6B; }
+  .brutal-input:focus,
+  .brutal-input:focus-visible {
+    outline: 3px solid var(--color-black);
+    outline-offset: 2px;
+    box-shadow: 4px 4px 0 0 var(--color-black);
+  }
 }
 
 /* Cabinet / HUD surface for hero and level summaries */

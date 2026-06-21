@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { Container } from '@/components/layout'
 import { cn } from '@/lib/utils'
 import { CartoonBackground } from '@/components/illustrations/cartoon-background'
-import { CatStage } from '@/components/illustrations/cat-stage'
+import { AnimatedCatMascot } from '@/components/illustrations/animated-cat-mascot'
 import {
   BrutalCard,
   BrutalCardHover,
@@ -16,6 +16,7 @@ import {
   XPBar,
   StatTile,
 } from '@/components/brutal'
+import { AppWindow, MiniTerminal, JobRadarCard } from '@/components/public'
 import type { CardColor } from '@/components/brutal/brutal-card'
 import type { StickerBadgeVariant } from '@/components/brutal/brutal-ui-v2'
 import {
@@ -31,6 +32,7 @@ import {
   Flame,
   Play,
   ArrowRight,
+  Github,
 } from 'lucide-react'
 
 const EASE: [number, number, number, number] = [0.2, 0, 0, 1]
@@ -130,6 +132,90 @@ function Reveal({ children, className, delay = 0 }: { children: ReactNode; class
   )
 }
 
+// Hero "app window" body — a believable career-OS dashboard built only from real
+// DOM text + shared HUD primitives (so the window is never the sole info carrier).
+function HeroDashboard() {
+  return (
+    <div className="space-y-4 bg-white p-4 sm:p-5">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2">
+          <span
+            className="grid h-9 w-9 shrink-0 place-items-center bg-yellow text-lg brutal-border brutal-radius"
+            aria-hidden="true"
+          >
+            🐱
+          </span>
+          <div className="min-w-0">
+            <p className="hud-label text-[10px] text-secondary">Now Playing</p>
+            <p className="truncate font-display font-bold leading-tight">Future Dev</p>
+          </div>
+        </div>
+        <LevelChip level={5} />
+      </div>
+
+      <XPBar value={1240} max={2000} label="XP to Level 6" accent="yellow" />
+
+      <div className="grid grid-cols-2 gap-3">
+        <StatTile label="Career Power" value="72" unit="%" icon={Flame} accent="pink" className="p-4" />
+        <StatTile label="Job Match" value="85" unit="%" icon={Target} accent="blue" className="p-4" />
+      </div>
+
+      <div className="flex items-center justify-between gap-2 bg-cream-light px-3 py-2 brutal-border brutal-radius">
+        <div className="min-w-0">
+          <p className="hud-label text-[10px] text-secondary">Current Quest</p>
+          <p className="truncate text-sm font-bold">React API Patterns</p>
+        </div>
+        <StickerBadge variant="in-progress" label="Active" size="sm" />
+      </div>
+
+      <div className="space-y-2">
+        <XPBar value={80} max={100} label="Roadmap" accent="green" />
+        <XPBar value={60} max={100} label="Quizzes" accent="blue" />
+        <XPBar value={40} max={100} label="Projects" accent="pink" />
+      </div>
+    </div>
+  )
+}
+
+// Landing-only GitHub portfolio tracker preview (illustrative chrome).
+function GitHubTrackerCard() {
+  const repos = [
+    { name: 'portfolio-site', note: 'Add tests + README' },
+    { name: 'react-dashboard', note: 'Great structure' },
+    { name: 'api-playground', note: 'Pin & document' },
+  ]
+  return (
+    <AppWindow routeTab="SKILLPATH://GITHUB" urlPill="github-tracker" className="h-full">
+      <div className="p-5 sm:p-6">
+        <div className="mb-4 flex items-center gap-2">
+          <span className="grid h-10 w-10 place-items-center bg-purple text-white brutal-border brutal-radius">
+            <Github className="h-5 w-5" aria-hidden="true" />
+          </span>
+          <div className="min-w-0">
+            <h3 className="font-display text-heading-sm font-bold leading-tight">GitHub Tracker</h3>
+            <p className="text-xs text-secondary">Portfolio readiness &amp; next actions</p>
+          </div>
+          <span className="ml-auto shrink-0">
+            <LevelChip level="68%" label="READY" />
+          </span>
+        </div>
+        <XPBar value={68} max={100} label="Portfolio readiness" accent="green" className="mb-4" />
+        <ul className="space-y-2">
+          {repos.map((repo) => (
+            <li
+              key={repo.name}
+              className="flex items-center justify-between gap-3 bg-cream-light px-3 py-2 brutal-border brutal-radius"
+            >
+              <span className="metric-mono truncate text-sm font-bold">{repo.name}</span>
+              <span className="truncate text-xs text-secondary">{repo.note}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </AppWindow>
+  )
+}
+
 export default function HomePage() {
   const { scrollYProgress } = useScroll()
   const [activeTab, setActiveTab] = useState<'stats' | 'quests'>('stats')
@@ -183,9 +269,9 @@ export default function HomePage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, ease: EASE }}
             >
-              <div className="mb-6 inline-flex items-center gap-2 bg-yellow brutal-border brutal-radius px-4 py-2 shadow-brutal-sm">
-                <Sparkles className="h-4 w-4" aria-hidden="true" />
-                <span className="hud-label text-xs">Your Developer Career Quest</span>
+              <div className="mb-6 inline-flex items-center gap-2 bg-yellow px-4 py-2 brutal-border brutal-radius shadow-brutal-sm">
+                <span className="h-2.5 w-2.5 rounded-full border border-black bg-green" aria-hidden="true" />
+                <span className="hud-label text-xs">Career OS · Live demo</span>
               </div>
 
               <h1 className="mb-6 font-display text-4xl font-black leading-tight sm:text-5xl lg:text-6xl">
@@ -201,8 +287,8 @@ export default function HomePage() {
               </h1>
 
               <p className="mb-8 max-w-lg text-body-lg text-secondary">
-                SkillPath is your career game OS. Check your skills, unlock quests, level up, and land your first
-                developer job — with a buddy cheering you on.
+                Your career, as a console you can actually run. Check your skills, generate a roadmap, clear quests,
+                and land your first developer job — with a buddy cheering you on.
               </p>
 
               <div className="mb-8 flex flex-col gap-4 sm:flex-row">
@@ -225,51 +311,32 @@ export default function HomePage() {
                 <StickerBadge variant="in-progress" label="Quizzes" size="sm" />
                 <StickerBadge variant="great-match" label="Job Match" size="sm" />
               </div>
+
+              {/* Mobile-only compact preview keeps small screens light but not empty */}
+              <div className="mt-8 grid grid-cols-2 gap-3 lg:hidden">
+                <StatTile label="Job Match" value="85" unit="%" icon={Target} accent="blue" className="p-4" />
+                <StatTile label="Career Power" value="72" unit="%" icon={Flame} accent="pink" className="p-4" />
+              </div>
             </motion.div>
 
-            {/* Animated cat stage — the star of the page */}
+            {/* Desktop hero: the career-OS dashboard window + a code terminal */}
             <motion.div
               initial={{ opacity: 0, scale: 0.96 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.5, delay: 0.15, ease: EASE }}
-              className="relative"
+              className="relative hidden lg:block"
             >
-              <CatStage variant="hero" accent="yellow" className="h-[440px] sm:h-[500px]">
-                {/* Accessible foreground HUD — real player info */}
-                <div className="p-3 sm:p-4">
-                  <div className="bg-white/95 p-4 backdrop-blur-sm brutal-border brutal-radius shadow-brutal-sm">
-                    <div className="mb-3 flex items-center justify-between gap-3">
-                      <div className="flex min-w-0 items-center gap-2">
-                        <span
-                          className="grid h-9 w-9 shrink-0 place-items-center bg-yellow text-lg brutal-border brutal-radius"
-                          aria-hidden="true"
-                        >
-                          🐱
-                        </span>
-                        <div className="min-w-0">
-                          <p className="text-[10px] font-bold uppercase tracking-wider text-secondary">Now Playing</p>
-                          <p className="truncate font-display font-bold leading-tight">Future Dev</p>
-                        </div>
-                      </div>
-                      <LevelChip level={5} />
-                    </div>
-                    <XPBar value={1240} max={2000} label="XP to Level 6" accent="yellow" className="mb-3" />
-                    <div className="flex items-center justify-between gap-2 rounded-brutal bg-cream-light px-3 py-2 brutal-border">
-                      <div className="min-w-0">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-secondary">Current Quest</p>
-                        <p className="truncate text-sm font-bold">React API Patterns</p>
-                      </div>
-                      <StickerBadge variant="in-progress" label="Active" size="sm" />
-                    </div>
-                  </div>
-                </div>
-              </CatStage>
+              {/* Reactive cat companion (decorative) */}
+              <div className="absolute -right-3 -top-9 z-20" aria-hidden="true">
+                <AnimatedCatMascot size="sm" mood="cheer" withMessage="Lvl 5!" animated />
+              </div>
 
-              {/* Floating accent for continuity (decorative) */}
-              <div className="absolute -right-3 -top-3 z-20 hidden md:block" aria-hidden="true">
-                <div className="bg-yellow px-3 py-2 brutal-border brutal-radius shadow-brutal-sm cartoon-float-slow">
-                  <p className="hud-label text-[10px]">Quiz 10/10</p>
-                </div>
+              <AppWindow routeTab="SKILLPATH://DASHBOARD" urlPill="app.skillpath.dev/me" litDot="green" shadow="lg">
+                <HeroDashboard />
+              </AppWindow>
+
+              <div className="mt-4">
+                <MiniTerminal command="skillpath start --role frontend" result="✓ roadmap generated" />
               </div>
             </motion.div>
           </div>
@@ -300,7 +367,7 @@ export default function HomePage() {
                     {problem.emoji}
                   </span>
                   <p className="mb-2 text-lg font-bold">{problem.title}</p>
-                  <p className="text-sm text-black/80">{problem.text}</p>
+                  <p className="text-sm text-black">{problem.text}</p>
                 </div>
               </Reveal>
             ))}
@@ -312,9 +379,9 @@ export default function HomePage() {
       <section className="relative px-4 py-20">
         <Container>
           <Reveal className="mb-16 text-center">
-            <StickerBadge variant="yellow" label="Your Quest" size="lg" className="mb-4" />
+            <StickerBadge variant="yellow" label="The Quest Path" size="lg" className="mb-4" />
             <h2 className="mb-4 font-display text-3xl font-bold sm:text-4xl">How to Win Your Career Quest</h2>
-            <p className="mx-auto max-w-2xl text-secondary">Four levels to conquer your developer career.</p>
+            <p className="mx-auto max-w-2xl text-secondary">Four worlds to conquer your developer career.</p>
           </Reveal>
 
           <div className="mx-auto max-w-3xl space-y-6">
@@ -322,22 +389,28 @@ export default function HomePage() {
               <Reveal key={step.number} delay={i * 0.08}>
                 <BrutalCardHover
                   color={['yellow', 'blue', 'pink', 'green', 'orange'][i % 5] as CardColor}
-                  className="flex items-start gap-6"
+                  className="relative flex items-start gap-5 overflow-hidden"
                 >
+                  {/* Oversized editorial index numeral (decorative) */}
+                  <span
+                    className="metric-mono pointer-events-none absolute -top-5 right-3 select-none text-7xl font-black text-black/10"
+                    aria-hidden="true"
+                  >
+                    {String(step.number).padStart(2, '0')}
+                  </span>
+
                   <div className="relative shrink-0">
-                    <div className="flex h-14 w-14 items-center justify-center bg-black text-2xl font-bold text-white brutal-border brutal-radius metric-mono">
-                      {step.number}
-                    </div>
-                    <div className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center bg-yellow brutal-border brutal-radius shadow-brutal-sm">
-                      <step.icon className="h-4 w-4" aria-hidden="true" />
+                    <div className="flex h-14 w-14 items-center justify-center bg-black text-white brutal-border brutal-radius">
+                      <step.icon className="h-6 w-6" aria-hidden="true" />
                     </div>
                   </div>
-                  <div className="flex-1">
+                  <div className="relative flex-1">
                     <div className="mb-1 flex flex-wrap items-center gap-2">
+                      <span className="hud-label text-[10px] text-secondary">World {step.number}</span>
                       <h3 className="font-display text-heading-sm font-bold">{step.title}</h3>
                       <StickerBadge variant={stepBadgeVariants[i % stepBadgeVariants.length]} label={step.badge} size="sm" />
                     </div>
-                    <p className="text-black/80">{step.description}</p>
+                    <p className="text-black">{step.description}</p>
                   </div>
                 </BrutalCardHover>
               </Reveal>
@@ -362,17 +435,26 @@ export default function HomePage() {
                   <div className="absolute right-2 top-2 opacity-20" aria-hidden="true">
                     <feature.icon className="h-20 w-20" />
                   </div>
+                  <span className="hud-label relative z-10 mb-3 block text-[10px] text-black/70">Power-up</span>
                   <feature.icon className="relative z-10 mb-4 h-10 w-10" aria-hidden="true" />
                   <h3 className="relative z-10 mb-2 font-display text-heading-sm font-bold">{feature.title}</h3>
-                  <p className="relative z-10 text-sm text-black/80">{feature.description}</p>
+                  <p className="relative z-10 text-sm text-black">{feature.description}</p>
                 </BrutalCard>
               </Reveal>
             ))}
           </div>
+
+          {/* See it live — job radar + GitHub tracker windows */}
+          <Reveal className="mt-12">
+            <div className="grid gap-6 lg:grid-cols-2">
+              <JobRadarCard />
+              <GitHubTrackerCard />
+            </div>
+          </Reveal>
         </Container>
       </section>
 
-      {/* Demo Preview — Player Dashboard */}
+      {/* Demo Preview — Player Dashboard (one more OS window) */}
       <section className="px-4 py-20">
         <Container>
           <Reveal className="mb-12 text-center">
@@ -382,7 +464,7 @@ export default function HomePage() {
           </Reveal>
 
           <Reveal className="mx-auto max-w-4xl">
-            <BrutalCard shadow="lg" className="overflow-hidden p-0">
+            <AppWindow routeTab="SKILLPATH://DASHBOARD" urlPill="app.skillpath.dev/me" litDot="green" shadow="lg">
               <div className="border-b-3 border-black bg-yellow px-4 pt-4">
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <div className="flex items-center gap-4">
@@ -391,7 +473,7 @@ export default function HomePage() {
                     </div>
                     <div>
                       <p className="font-display font-bold">Your Dashboard</p>
-                      <p className="text-sm text-black/80">Player stats updated</p>
+                      <p className="text-sm text-black">Player stats preview</p>
                     </div>
                   </div>
                   <LevelChip level={5} />
@@ -473,7 +555,7 @@ export default function HomePage() {
                   </div>
                 </div>
               </div>
-            </BrutalCard>
+            </AppWindow>
           </Reveal>
         </Container>
       </section>
@@ -500,7 +582,7 @@ export default function HomePage() {
             </div>
             <StickerBadge variant="completed" label="Ready to Start?" size="lg" className="mb-4 inline-flex" />
             <h2 className="mb-4 font-display text-3xl font-black sm:text-4xl">Ready to start your developer quest?</h2>
-            <p className="mx-auto mb-8 max-w-2xl text-black/80">
+            <p className="mx-auto mb-8 max-w-2xl text-black">
               Join developers using SkillPath to conquer their careers. It takes 5 minutes to begin.
             </p>
             <Link href="/register">

@@ -12,6 +12,7 @@ import {
 } from '@/lib/supabase/oauth-providers'
 import { BrutalCard, BrutalButton, StickerBadge } from '@/components/brutal'
 import { AuthFormLayout, AuthInput, PasswordToggle, AuthError } from '@/components/auth/auth-form-layout'
+import { ResumeSessionCard } from '@/components/auth/auth-quest-panel'
 import type { CatMascotMood } from '@/components/illustrations/animated-cat-mascot'
 
 interface LoginFormData {
@@ -110,24 +111,24 @@ export default function LoginPage() {
 
   return (
     <AuthFormLayout
-      welcomeColor="yellow"
-      sceneAccent="yellow"
-      sceneCaption="Ready to play"
+      routeTab="SKILLPATH://LOGIN"
+      urlPill="app.skillpath.dev/login"
+      litDot="green"
+      sceneAccent="blue"
+      sceneCaption="Resume your save"
       catMood={mascotMood}
       catMessage={mascotMood === 'sleepy' ? 'No peeking!' : 'Welcome back!'}
       headerRight={<StickerBadge variant="blue" label="Welcome Back" size="sm" />}
       welcome={
-        <>
-          <h2 className="font-display text-2xl font-bold mb-2">Welcome back, hero!</h2>
-          <p className="text-sm text-secondary mb-4">
-            Continue your roadmap, finish quests, and level up your developer career.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <StickerBadge variant="completed" label="Roadmap" size="sm" />
-            <StickerBadge variant="in-progress" label="Quiz" size="sm" />
-            <StickerBadge variant="blue" label="Jobs" size="sm" />
+        <div className="space-y-4">
+          <div>
+            <h2 className="font-display text-xl font-bold">Continue your quest</h2>
+            <p className="mt-1 text-sm text-secondary">
+              Pick up your roadmap, quizzes, and job matches right where you left off.
+            </p>
           </div>
-        </>
+          <ResumeSessionCard />
+        </div>
       }
       footer={
         <div className="space-y-2">
@@ -146,7 +147,7 @@ export default function LoginPage() {
         </div>
       }
     >
-      <div className="mb-6 flex items-center justify-between gap-4">
+      <div className="mb-6 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <Rocket className="w-6 h-6 text-pink-dark" aria-hidden="true" />
@@ -162,7 +163,7 @@ export default function LoginPage() {
         </Link>
       </div>
 
-      <BrutalCard color="white" shadow="lg" className="p-8">
+      <BrutalCard color="white" shadow="lg" className="p-6">
         {!supabase ? (
           <div className="text-center py-8">
             <div className="w-16 h-16 bg-yellow/20 brutal-border brutal-radius flex items-center justify-center mx-auto mb-4">
@@ -215,16 +216,14 @@ export default function LoginPage() {
 
             {error && <AuthError message={error} />}
 
-            <div className="flex items-center gap-2">
+            <label htmlFor="remember" className="flex min-h-[44px] cursor-pointer items-center gap-2">
               <input
                 type="checkbox"
                 id="remember"
-                className="w-5 h-5 brutal-border brutal-radius accent-yellow cursor-pointer focus-brutal-ring"
+                className="h-5 w-5 brutal-border brutal-radius accent-yellow cursor-pointer focus-brutal-ring"
               />
-              <label htmlFor="remember" className="text-sm font-bold cursor-pointer">
-                Remember me
-              </label>
-            </div>
+              <span className="text-sm font-bold">Remember me</span>
+            </label>
 
             <BrutalButton type="submit" color="yellow" size="lg" fullWidth loading={isLoading} disabled={isLoading}>
               {isLoading ? 'Signing in...' : 'Login'}

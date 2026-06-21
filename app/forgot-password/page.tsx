@@ -6,6 +6,7 @@ import { Mail, AlertCircle, CheckCircle, ArrowLeft, KeyRound, ExternalLink } fro
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser'
 import { BrutalCard, BrutalButton } from '@/components/brutal'
 import { AuthFormLayout, AuthInput, AuthError } from '@/components/auth/auth-form-layout'
+import { RecoveryConsole } from '@/components/auth/auth-quest-panel'
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
@@ -18,6 +19,7 @@ export default function ForgotPasswordPage() {
 
   const mascotMood = success ? 'cheer' : isLoading ? 'focus' : 'happy'
   const mascotMessage = success ? 'Mail sent!' : isLoading ? 'Searching...' : "Let's fix it!"
+  const recoveryState: 'idle' | 'loading' | 'success' = success ? 'success' : isLoading ? 'loading' : 'idle'
 
   const validateEmail = (value: string): boolean => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
 
@@ -59,9 +61,11 @@ export default function ForgotPasswordPage() {
 
   return (
     <AuthFormLayout
-      welcomeColor="yellow"
+      routeTab="SKILLPATH://RECOVER-KEY"
+      urlPill="app.skillpath.dev/recover"
+      litDot="yellow"
       sceneAccent="orange"
-      sceneCaption="Need a hand?"
+      sceneCaption="Recovery console"
       catMood={mascotMood}
       catMessage={mascotMessage}
       headerRight={
@@ -73,11 +77,14 @@ export default function ForgotPasswordPage() {
         </Link>
       }
       welcome={
-        <div className="text-center">
-          <h2 className="font-display text-2xl font-bold">Forgot your password?</h2>
-          <p className="mt-2 text-sm text-secondary">
-            No worries. Enter your email and we will send you a reset link.
-          </p>
+        <div className="space-y-4">
+          <div>
+            <h2 className="font-display text-xl font-bold">Lost your key?</h2>
+            <p className="mt-1 text-sm text-secondary">
+              No worries — run the recovery console and we will email you a reset link.
+            </p>
+          </div>
+          <RecoveryConsole state={recoveryState} />
         </div>
       }
       footer={
@@ -107,7 +114,7 @@ export default function ForgotPasswordPage() {
             </div>
             <div>
               <h3 className="font-display font-bold text-xl mb-2">Check your email!</h3>
-              <p className="text-black/80 break-words">
+              <p className="break-words text-black">
                 We have sent a password reset link to <strong>{email}</strong>. Check your inbox and click the link to
                 reset your password.
               </p>
@@ -147,7 +154,7 @@ export default function ForgotPasswordPage() {
           </div>
         </BrutalCard>
       ) : (
-        <BrutalCard color="white" shadow="lg" className="p-8">
+        <BrutalCard color="white" shadow="lg" className="p-6">
           {!supabase ? (
             <div className="text-center py-8">
               <div className="w-16 h-16 bg-yellow/20 brutal-border brutal-radius flex items-center justify-center mx-auto mb-4">
@@ -193,9 +200,9 @@ export default function ForgotPasswordPage() {
               {error && <AuthError message={error} />}
 
               <div className="bg-blue/10 brutal-border brutal-radius p-4">
-                <p className="text-sm text-black/80">
-                  <strong>How it works:</strong> Enter your email and we will send a secure reset link that expires in 1
-                  hour.
+                <p className="text-sm text-secondary">
+                  <strong className="text-black">How it works:</strong> Enter your email and we will send a secure reset
+                  link that expires in 1 hour.
                 </p>
               </div>
 

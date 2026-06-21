@@ -1,8 +1,8 @@
 # Design Contract
 
-## Current Direction — Cat Quest (Playful Mascot Neobrutalism)
+## Current Direction — Career Quest OS (Neobrutalism × Developer-Quest Career Dashboard)
 
-SkillPath keeps neobrutalism as its structural base, fronted by a **friendly animated cat mascot** as the product's personality. The landing hero and the auth welcome panels are bright "cat stage" zones: a large animated SVG cat (blink, mood cycle, ear/tail motion, occasional wave) standing on an accent-tinted stage with floating confetti, a soft spotlight, and a hard neobrutalist frame. The cat is the guide/companion that cheers the learner on.
+SkillPath keeps neobrutalism as its structural base and frames the public surface as **one believable developer "career OS" rendered as neobrutalist app windows**. The signature motif is the **AppWindow**: a hard-bordered card with a title bar carrying three traffic-light dots, a Silkscreen route tab (e.g. `SKILLPATH://DASHBOARD`), and a JetBrains-Mono URL pill. The landing hero is a live-looking dashboard window (Level/XP, Career Power, Job Match, current quest, quest-progress bars) backed by a slim code MiniTerminal; the three auth screens are each "a different window of the same OS" — distinct by accent + route tab + lit dot + status widget + cat mood. The **friendly flat-SVG cat** is retained as a small in-window companion (the prior Cat Quest personality), reacting to context but never the sole carrier of information.
 
 Build Lab discipline is retained: outside the stage the product stays on cream with bento grids, semantic status color, monospace metrics, and one clear primary action per view. The animated cat is decorative-but-friendly; all real information lives in DOM text / HUD beside it.
 
@@ -10,7 +10,7 @@ This is a **visual / composition / motion direction** over unchanged plumbing. R
 
 ## Anchor
 
-The SkillPath cat mascot on a spotlit stage — a friendly companion you "level up" with. Borrowed mechanic: a **reactive character** (mood + speech bubble respond to context, e.g. covering its eyes on a password field) that makes progress feel personal and playful, rendered as a flat SVG "sticker given life" with thick black outlines.
+A real developer "career operating system" shown as neobrutalist **app windows** (title bar + traffic-light dots + route tab + mono URL pill). Borrowed mechanic: **a product that shows its own dashboard** — the landing hero is the actual output (XP, Career Power, Job Match, quest progress) inside a window, so a visitor sees the product before signing up. The SkillPath cat rides along as a **reactive in-window companion** (mood + speech bubble respond to context, e.g. covering its eyes on a password field), rendered as a flat SVG "sticker given life" with thick black outlines.
 
 ## Tokens
 
@@ -32,10 +32,10 @@ The SkillPath cat mascot on a spotlit stage — a friendly companion you "level 
 
 ## Layout System
 
-- **Cat stage zones**: landing hero-right, and the login / register / forgot-password welcome column (lg+ only, so mobile auth stays light). Each frames the animated cat with a **readable foreground HUD / caption** (Level / XP / current quest, or a short caption) so the zone carries information, not just spectacle.
+- **AppWindow zones**: the landing hero-right dashboard window + code MiniTerminal, and the login / register / forgot-password welcome column (lg+ only, so mobile auth stays light). Each AppWindow pairs the small in-window cat companion with a **readable status HUD** (Level / XP / current quest / job match, or a per-page quest widget) so the zone carries real information, not just spectacle. The active form sits in a constrained (~440px) card beside it — two snug windows, never one stretched balloon.
 - **Bento grids** for dashboard, GitHub, projects, skills: one primary tile (2x) + supporting tiles; one clear primary action.
 - **Quest node-map** for roadmap: weeks as connected nodes with unlocked/locked gates; current node emphasized.
-- **Shared primitives**: `CatStage` (the mascot stage) + `AnimatedCatMascot`. Plus `AuthFormLayout`, `BrutalCard`, `BrutalButton`, `StatTile`, `XPBar`, `LevelChip`, `StickerBadge`, `brutal-input`, and `CartoonBackground` for the playful page backdrop.
+- **Shared primitives**: `AppWindow` + `TrafficDots` (the OS-window chrome), `MiniTerminal` (code surface), `JobRadarCard`, plus `CatStage` + `AnimatedCatMascot` (single mascot source). Plus `AuthFormLayout`, `BrutalCard`, `BrutalButton`, `StatTile`, `XPBar`, `LevelChip`, `StickerBadge`, `brutal-input`, and `CartoonBackground` for the playful page backdrop.
 
 ## Constraints
 
@@ -56,3 +56,4 @@ The SkillPath cat mascot on a spotlit stage — a friendly companion you "level 
 - Phase 2 — Arcade Quest (2D): neobrutalism + retro game HUD on flat cards (cabinet surfaces, ticked XP bars, stat tiles, lit/unlit quest states).
 - Phase 3 — Arcade Quest 3D Cabinet: real-time WebGL low-poly arcade cabinet (React Three Fiber) in the landing hero + auth welcome panels, flat toon shading + black inverted-hull outlines.
 - Phase 4 — Signal & Static (VHS / live-broadcast): degraded-VHS viewfinder with CRT static, scanlines, REC/timecode chrome, chromatic-split headlines. Removed in favor of the friendly cat mascot; do not reintroduce the broken-TV / heavy-glitch surface as the landing/auth chrome.
+- Phase 5 — Cat Quest (Playful Mascot Neobrutalism): bright "cat stage" landing hero + auth welcome panels with the full animated cat as the star. Evolved into the current Career Quest OS, which retains the flat cat as an in-window companion (the cat-stage law still binds); do not regress to the bare cat stage as the sole hero with no product/window context.

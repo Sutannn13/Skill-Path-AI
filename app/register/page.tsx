@@ -12,6 +12,7 @@ import {
 } from '@/lib/supabase/oauth-providers'
 import { BrutalCard, BrutalButton, StickerBadge } from '@/components/brutal'
 import { AuthFormLayout, AuthInput, PasswordToggle, AuthError } from '@/components/auth/auth-form-layout'
+import { CharacterCreationCard } from '@/components/auth/auth-quest-panel'
 import { cn } from '@/lib/utils'
 import type { CatMascotMood } from '@/components/illustrations/animated-cat-mascot'
 
@@ -151,8 +152,9 @@ export default function RegisterPage() {
 
   return (
     <AuthFormLayout
-      welcomeColor="pink"
-      sceneAccent="pink"
+      routeTab="SKILLPATH://NEW-GAME"
+      urlPill="app.skillpath.dev/signup"
+      sceneAccent="green"
       sceneCaption="New player · Slot 1"
       catMood={mascotMood}
       catMessage={mascotMood === 'sleepy' ? 'A secret!' : "Let's go!"}
@@ -164,26 +166,25 @@ export default function RegisterPage() {
         </Link>
       }
       welcome={
-        <>
-          <h2 className="font-display text-2xl font-bold mb-2">Create your developer hero</h2>
-          <p className="text-sm text-secondary mb-4">
-            Build your learning roadmap, pass quiz challenges, and submit portfolio projects.
-          </p>
-          <div className="space-y-3">
+        <div className="space-y-4">
+          <div>
+            <h2 className="font-display text-xl font-bold">Start a new game</h2>
+            <p className="mt-1 text-sm text-secondary">
+              Create your developer hero and unlock your roadmap, quizzes, and job radar.
+            </p>
+          </div>
+          <CharacterCreationCard />
+          <div className="space-y-2">
             {benefits.map((benefit) => (
               <div key={benefit} className="flex items-center gap-2">
-                <div className="w-6 h-6 bg-green brutal-border brutal-radius flex items-center justify-center shrink-0">
-                  <CheckCircle className="w-4 h-4" aria-hidden="true" />
+                <div className="flex h-6 w-6 shrink-0 items-center justify-center bg-green brutal-border brutal-radius">
+                  <CheckCircle className="h-4 w-4" aria-hidden="true" />
                 </div>
                 <span className="text-sm">{benefit}</span>
               </div>
             ))}
           </div>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <StickerBadge variant="blue" label="AI Gen Roadmap" size="sm" />
-            <StickerBadge variant="green" label="Free" size="sm" />
-          </div>
-        </>
+        </div>
       }
       footer={
         !success ? (
@@ -235,7 +236,7 @@ export default function RegisterPage() {
           </Link>
         </BrutalCard>
       ) : (
-        <BrutalCard color="white" shadow="lg" className="p-8">
+        <BrutalCard color="white" shadow="lg" className="p-6">
           {!supabase ? (
             <div className="text-center py-8">
               <div className="w-16 h-16 bg-yellow/20 brutal-border brutal-radius flex items-center justify-center mx-auto mb-4">

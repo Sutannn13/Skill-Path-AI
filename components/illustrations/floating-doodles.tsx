@@ -16,6 +16,7 @@ import {
   Rocket,
   Search,
   Settings,
+  Sparkles,
   Star,
   Terminal,
   Trophy,
@@ -133,6 +134,45 @@ const baseDoodles: DoodleItem[] = [
     className: 'right-[12%] bottom-[18%] rotate-[-10deg]',
     size: 'sm',
     motion: 'bob',
+  },
+  // Extra ambient doodles so every page reads as a lively cartoon-neobrutalist
+  // field, not a near-empty gradient. Kept to the edges + low opacity so the
+  // central reading column still clears AA contrast.
+  {
+    id: 'rocket-mid-left',
+    icon: Rocket,
+    color: 'orange',
+    className: 'left-[3%] top-[40%] rotate-[10deg]',
+    size: 'sm',
+    motion: 'drift',
+    hideOnMobile: true,
+  },
+  {
+    id: 'sparkle-top-mid',
+    icon: Sparkles,
+    color: 'purple',
+    className: 'left-[46%] top-[6%] rotate-[6deg]',
+    size: 'sm',
+    motion: 'wiggle',
+    hideOnMobile: true,
+  },
+  {
+    id: 'trophy-bottom-left',
+    icon: Trophy,
+    color: 'green',
+    className: 'left-[10%] bottom-[8%] rotate-[-6deg]',
+    size: 'sm',
+    motion: 'float',
+    hideOnMobile: true,
+  },
+  {
+    id: 'star-bottom-right',
+    icon: Star,
+    color: 'blue',
+    className: 'right-[5%] bottom-[8%] rotate-[12deg]',
+    size: 'sm',
+    motion: 'floatReverse',
+    hideOnMobile: true,
   },
 ]
 
@@ -422,9 +462,9 @@ const variantDoodles: Record<CartoonBackgroundVariant, DoodleItem[]> = {
 }
 
 const intensityLimits: Record<CartoonBackgroundIntensity, number> = {
-  low: 5,
-  normal: 8,
-  high: 11,
+  low: 6,
+  normal: 10,
+  high: 14,
 }
 
 export function FloatingDoodles({

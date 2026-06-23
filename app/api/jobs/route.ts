@@ -207,11 +207,29 @@ function filterJobs(jobs: JobPost[], filters: ExtendedFilters): JobPost[] {
     filtered = filtered.filter(job => job.employmentType === normalizedType)
   }
 
-  // Level filter
+  // Level filter. The UI sends aliases ('intern', 'freshgraduate') that do not
+  // map 1:1 to JobPost.experienceLevel, so expand each requested level to the
+  // set of stored values (and text signals) it should match.
   if (filters.experienceLevel && filters.experienceLevel !== 'all' && VALID_LEVELS.includes(filters.experienceLevel)) {
+    const requested = filters.experienceLevel.toLowerCase()
+    const levelAliases: Record<string, string[]> = {
+      intern: ['internship'],
+      internship: ['internship'],
+      freshgraduate: ['internship', 'junior', 'beginner'],
+      beginner: ['beginner', 'junior', 'internship'],
+      junior: ['junior', 'beginner'],
+      mid: ['mid'],
+      senior: ['senior'],
+    }
+    const accepted = levelAliases[requested] ?? [requested]
     filtered = filtered.filter(job => {
-      const level = job.experienceLevel || 'junior'
-      return level.toLowerCase() === filters.experienceLevel!.toLowerCase()
+      const level = (job.experienceLevel || 'junior').toLowerCase()
+      if (accepted.includes(level)) return true
+      // Fresh-graduate friendly fallback via AI flags / text signals.
+      if (requested === 'freshgraduate') {
+        return job.ai_fresh_graduate_friendly === true || job.ai_beginner_friendly === true
+      }
+      return false
     })
   }
 

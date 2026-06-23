@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { Container } from '@/components/layout'
 import { cn } from '@/lib/utils'
 import { CartoonBackground } from '@/components/illustrations/cartoon-background'
+import { Landing3DBackground } from '@/components/illustrations/landing-3d-background'
 import { AnimatedCatMascot } from '@/components/illustrations/animated-cat-mascot'
 import {
   BrutalCard,
@@ -108,6 +109,15 @@ const steps = [
 ]
 
 const stepBadgeVariants = ['yellow', 'blue', 'pink', 'green'] satisfies StickerBadgeVariant[]
+
+// "Boss battles" = the recurring pains a junior dev hits. Each card is framed as
+// an enemy with a threat meter so the dark section reads as a game arena.
+const bosses = [
+  { emoji: '🤔', title: 'Skill Boss', text: 'Students do not know which skills actually matter.', color: 'bg-pink', threat: '85%' },
+  { emoji: '📄', title: 'Confusion Spell', text: 'Job descriptions are confusing and inconsistent.', color: 'bg-blue', threat: '70%' },
+  { emoji: '📚', title: 'No Map Quest', text: 'Tutorials are scattered everywhere, with no clear path.', color: 'bg-yellow', threat: '92%' },
+  { emoji: '👻', title: 'Portfolio Ghost', text: 'Portfolios do not match the target role.', color: 'bg-orange', threat: '64%' },
+] as const
 
 const revealVariants: Variants = {
   hidden: { opacity: 0, y: 20 },
@@ -218,6 +228,7 @@ function GitHubTrackerCard() {
 
 export default function HomePage() {
   const { scrollYProgress } = useScroll()
+  const prefersReducedMotion = useReducedMotion()
   const [activeTab, setActiveTab] = useState<'stats' | 'quests'>('stats')
 
   return (
@@ -229,8 +240,8 @@ export default function HomePage() {
         aria-hidden="true"
       />
 
-      {/* Cute doodle backdrop */}
-      <CartoonBackground variant="default" intensity="normal" showDoodles animated />
+      {/* Soft paper backdrop; the animated cartoon doodle field lives per-section below. */}
+      <CartoonBackground variant="default" intensity="normal" showDoodles={false} animated />
 
       {/* Navigation */}
       <nav className="fixed left-0 right-0 top-0 z-50 border-b-3 border-black bg-background/90 backdrop-blur-sm">
@@ -261,7 +272,8 @@ export default function HomePage() {
       </nav>
 
       {/* Hero */}
-      <section className="relative px-4 pb-16 pt-28">
+      <section className="relative overflow-hidden px-4 pb-16 pt-28">
+        <Landing3DBackground preset="hero" parallax />
         <Container className="relative z-10">
           <div className="grid items-center gap-12 lg:grid-cols-2">
             <motion.div
@@ -343,32 +355,66 @@ export default function HomePage() {
         </Container>
       </section>
 
-      {/* Problem Section — Boss Battles */}
-      <section className="relative bg-black px-4 py-16 text-white">
-        <Container>
-          <Reveal className="mb-12 text-center">
+      {/* Problem Section — Boss Battles (dark game arena) */}
+      <section className="relative overflow-hidden bg-cabinet px-4 py-20 text-white">
+        {/* Arena floor grid + neon top-light (decorative depth cues, not wallpaper) */}
+        <div className="pointer-events-none absolute inset-0 cabinet-grid opacity-25" aria-hidden="true" />
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 h-72"
+          aria-hidden="true"
+          style={{ background: 'radial-gradient(60% 100% at 50% 0%, rgba(255,143,171,0.25), transparent 70%)' }}
+        />
+        {/* Floating arena doodles */}
+        <Landing3DBackground preset="boss" />
+
+        <Container className="relative z-10">
+          <Reveal className="mb-14 text-center">
             <StickerBadge variant="boss-fight" label="Boss Battles" size="lg" className="mb-4" />
-            <h2 className="mb-4 font-display text-3xl font-bold sm:text-4xl">Sound familiar?</h2>
-            <p className="mx-auto max-w-2xl text-gray-200">
+            <h2 className="mb-4 font-display text-3xl font-black sm:text-5xl">
+              Sound <span className="text-pink">familiar?</span>
+            </h2>
+            <p className="mx-auto max-w-2xl text-on-dark-soft">
               Every developer faces these boss battles. SkillPath helps you defeat them.
             </p>
           </Reveal>
 
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {[
-              { emoji: '🤔', title: 'Skill Boss', text: 'Students do not know which skills actually matter', color: 'bg-pink' },
-              { emoji: '📄', title: 'Confusion Spell', text: 'Job descriptions are confusing and inconsistent', color: 'bg-blue' },
-              { emoji: '📚', title: 'No Map Quest', text: 'Tutorials are scattered everywhere, no clear path', color: 'bg-yellow' },
-              { emoji: '💼', title: 'Portfolio Ghost', text: 'Portfolios do not match target roles', color: 'bg-orange' },
-            ].map((problem, i) => (
-              <Reveal key={problem.title} delay={i * 0.08}>
-                <div className={cn('h-full p-6 text-black brutal-border brutal-radius shadow-brutal-sm', problem.color)}>
-                  <span className="mb-4 block text-5xl" aria-hidden="true">
-                    {problem.emoji}
-                  </span>
-                  <p className="mb-2 text-lg font-bold">{problem.title}</p>
-                  <p className="text-sm text-black">{problem.text}</p>
-                </div>
+            {bosses.map((problem, i) => (
+              <Reveal key={problem.title} delay={i * 0.08} className="h-full">
+                <motion.div
+                  className="group h-full"
+                  whileHover={prefersReducedMotion ? undefined : { y: -8, rotateX: 6, rotateY: -6 }}
+                  whileTap={prefersReducedMotion ? undefined : { scale: 0.98 }}
+                  style={{ transformPerspective: 800 }}
+                >
+                  <div
+                    className={cn(
+                      'relative flex h-full flex-col p-6 text-black brutal-border brutal-radius shadow-brutal transition-shadow duration-200 group-hover:shadow-brutal-lg',
+                      problem.color
+                    )}
+                  >
+                    <span className="absolute right-3 top-3 rounded-md border-2 border-black bg-black px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-white">
+                      Boss
+                    </span>
+                    <span
+                      className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-xl border-2 border-black bg-white/70 text-4xl"
+                      aria-hidden="true"
+                    >
+                      {problem.emoji}
+                    </span>
+                    <p className="mb-2 font-display text-lg font-black">{problem.title}</p>
+                    <p className="mb-5 flex-1 text-sm font-medium text-black/80">{problem.text}</p>
+                    <div className="mt-auto">
+                      <div className="mb-1 flex items-center justify-between text-[10px] font-black uppercase tracking-wider">
+                        <span>Threat</span>
+                        <span className="metric-mono">Lv {i + 1}</span>
+                      </div>
+                      <div className="h-2.5 overflow-hidden rounded-full border-2 border-black bg-white/50">
+                        <div className="h-full bg-black" style={{ width: problem.threat }} />
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
               </Reveal>
             ))}
           </div>
@@ -376,8 +422,9 @@ export default function HomePage() {
       </section>
 
       {/* How it Works — Quest Path */}
-      <section className="relative px-4 py-20">
-        <Container>
+      <section className="relative overflow-hidden px-4 py-20">
+        <Landing3DBackground preset="quest" />
+        <Container className="relative z-10">
           <Reveal className="mb-16 text-center">
             <StickerBadge variant="yellow" label="The Quest Path" size="lg" className="mb-4" />
             <h2 className="mb-4 font-display text-3xl font-bold sm:text-4xl">How to Win Your Career Quest</h2>
@@ -420,8 +467,9 @@ export default function HomePage() {
       </section>
 
       {/* Features — Power-Ups */}
-      <section className="relative bg-cream-light px-4 py-20">
-        <Container>
+      <section className="relative overflow-hidden bg-cream-light px-4 py-20">
+        <Landing3DBackground preset="power" />
+        <Container className="relative z-10">
           <Reveal className="mb-16 text-center">
             <StickerBadge variant="green" label="Power-Ups" size="lg" className="mb-4" />
             <h2 className="mb-4 font-display text-3xl font-bold sm:text-4xl">Your Developer Power-Ups</h2>
@@ -431,15 +479,25 @@ export default function HomePage() {
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {features.map((feature, i) => (
               <Reveal key={feature.title} delay={i * 0.06} className="h-full">
-                <BrutalCard color={feature.color} className="relative h-full overflow-hidden">
-                  <div className="absolute right-2 top-2 opacity-20" aria-hidden="true">
-                    <feature.icon className="h-20 w-20" />
-                  </div>
-                  <span className="hud-label relative z-10 mb-3 block text-[10px] text-black/70">Power-up</span>
-                  <feature.icon className="relative z-10 mb-4 h-10 w-10" aria-hidden="true" />
-                  <h3 className="relative z-10 mb-2 font-display text-heading-sm font-bold">{feature.title}</h3>
-                  <p className="relative z-10 text-sm text-black">{feature.description}</p>
-                </BrutalCard>
+                <motion.div
+                  className="h-full"
+                  whileHover={prefersReducedMotion ? undefined : { y: -6, rotateX: 5, rotateY: -5 }}
+                  whileTap={prefersReducedMotion ? undefined : { scale: 0.98 }}
+                  style={{ transformPerspective: 800 }}
+                >
+                  <BrutalCard
+                    color={feature.color}
+                    className="relative h-full overflow-hidden transition-shadow duration-200 hover:shadow-brutal-lg"
+                  >
+                    <div className="absolute right-2 top-2 opacity-20" aria-hidden="true">
+                      <feature.icon className="h-20 w-20" />
+                    </div>
+                    <span className="hud-label relative z-10 mb-3 block text-[10px] text-black/70">Power-up</span>
+                    <feature.icon className="relative z-10 mb-4 h-10 w-10" aria-hidden="true" />
+                    <h3 className="relative z-10 mb-2 font-display text-heading-sm font-bold">{feature.title}</h3>
+                    <p className="relative z-10 text-sm text-black">{feature.description}</p>
+                  </BrutalCard>
+                </motion.div>
               </Reveal>
             ))}
           </div>
@@ -455,8 +513,9 @@ export default function HomePage() {
       </section>
 
       {/* Demo Preview — Player Dashboard (one more OS window) */}
-      <section className="px-4 py-20">
-        <Container>
+      <section className="relative overflow-hidden px-4 py-20">
+        <Landing3DBackground preset="demo" />
+        <Container className="relative z-10">
           <Reveal className="mb-12 text-center">
             <StickerBadge variant="pink" label="Live Preview" size="lg" className="mb-4" />
             <h2 className="mb-4 font-display text-3xl font-bold sm:text-4xl">See Your Stats in Action</h2>
@@ -562,14 +621,7 @@ export default function HomePage() {
 
       {/* CTA — Final Quest */}
       <section className="relative overflow-hidden bg-yellow px-4 py-20">
-        <div
-          className="absolute left-8 top-6 h-16 w-16 rotate-12 bg-pink opacity-60 brutal-border brutal-radius cartoon-float-slow"
-          aria-hidden="true"
-        />
-        <div
-          className="absolute bottom-10 right-12 h-12 w-12 -rotate-6 bg-blue opacity-50 brutal-border brutal-radius cartoon-bob"
-          aria-hidden="true"
-        />
+        <Landing3DBackground preset="cta" />
 
         <Container className="relative z-10 text-center">
           <Reveal>

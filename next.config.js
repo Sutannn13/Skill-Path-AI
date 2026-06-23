@@ -2,6 +2,10 @@
 const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ['three'],
+  // Keep heavy server-only document parsers out of the bundle. pdf-parse pulls in
+  // pdfjs-dist (dynamic requires) and mammoth ships Node-only deps; bundling them
+  // breaks the Next.js server build.
+  serverExternalPackages: ['pdf-parse', 'mammoth'],
   async headers() {
     return [
       {

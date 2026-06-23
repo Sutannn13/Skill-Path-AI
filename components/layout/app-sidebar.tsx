@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { cn } from '@/lib/utils'
-import { LogoutButton } from '@/components/auth/logout-button'
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser'
 import { loadUserRoadmapSummary } from '@/lib/roadmap/user-progress'
 import {
@@ -19,6 +18,7 @@ import {
   GitBranch,
   Target,
   Flame,
+  ScanLine,
 } from 'lucide-react'
 
 // ============================================
@@ -217,6 +217,7 @@ export function DesktopSidebar({ className, userProfile }: DesktopSidebarProps) 
     { href: '/roadmap', label: 'Roadmap', icon: Map, badge: null },
     { href: '/sprint', label: 'Sprint', icon: ListTodo, badge: null },
     { href: '/github', label: 'GitHub', icon: GitBranch, badge: null },
+    { href: '/cv-analyzer', label: 'CV Analyzer', icon: ScanLine, badge: null },
     { href: '/projects', label: 'Projects', icon: Target, badge: null },
   ]
 
@@ -299,11 +300,8 @@ export function DesktopSidebar({ className, userProfile }: DesktopSidebarProps) 
           </div>
         </div>
 
-        {/* Logout Button */}
-        <LogoutButton color="red" size="sm" className="w-full" />
-
         {/* Powered by */}
-        <p className="mt-3 text-[10px] text-center text-tertiary">
+        <p className="text-[10px] text-center text-tertiary">
           SkillPath Career OS
         </p>
       </div>
@@ -344,6 +342,7 @@ export function MobileSidebarOverlay({ isOpen, onClose, userProfile }: MobileSid
     { href: '/roadmap', label: 'Roadmap', icon: Map },
     { href: '/sprint', label: 'Sprint', icon: ListTodo },
     { href: '/github', label: 'GitHub', icon: GitBranch },
+    { href: '/cv-analyzer', label: 'CV Analyzer', icon: ScanLine },
     { href: '/projects', label: 'Projects', icon: Target },
     { href: '/settings', label: 'Settings', icon: User },
   ]
@@ -392,10 +391,6 @@ export function MobileSidebarOverlay({ isOpen, onClose, userProfile }: MobileSid
                 <NavItem key={item.href} href={item.href} icon={item.icon} label={item.label} />
               ))}
             </nav>
-
-            <div className="p-4 border-t-3 border-black">
-              <LogoutButton color="red" size="sm" className="w-full" />
-            </div>
           </motion.div>
         </>
       )}

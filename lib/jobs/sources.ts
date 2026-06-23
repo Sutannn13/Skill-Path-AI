@@ -3,6 +3,10 @@ import { remotiveAdapter } from './adapters/remotive'
 import { jobicyAdapter } from './adapters/jobicy'
 import { arbeitnowAdapter } from './adapters/arbeitnow'
 import { adzunaAdapter } from './adapters/adzuna'
+import { remoteokAdapter } from './adapters/remoteok'
+import { himalayasAdapter } from './adapters/himalayas'
+import { themuseAdapter } from './adapters/themuse'
+import { weworkremotelyAdapter } from './adapters/weworkremotely'
 import { indonesiaSampleAdapter } from './adapters/indonesia-sample'
 
 const ADAPTER_FETCH_TIMEOUT_MS = 12000
@@ -11,10 +15,14 @@ const ADAPTER_FETCH_BASE_BACKOFF_MS = 250
 
 // Registry of all available job source adapters
 export const jobSourceAdapters: JobSourceAdapter[] = [
-  // Primary sources
+  // Primary sources (public, no API key required)
   remotiveAdapter,
   arbeitnowAdapter,
   jobicyAdapter,
+  remoteokAdapter,
+  himalayasAdapter,
+  themuseAdapter,
+  weworkremotelyAdapter,
 
   // Optional sources (require API keys)
   adzunaAdapter,
@@ -149,5 +157,9 @@ export {
   jobicyAdapter,
   arbeitnowAdapter,
   adzunaAdapter,
+  remoteokAdapter,
+  himalayasAdapter,
+  themuseAdapter,
+  weworkremotelyAdapter,
   indonesiaSampleAdapter,
 }

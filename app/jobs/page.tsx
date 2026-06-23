@@ -8,7 +8,7 @@ import { DashboardHeader } from '@/components/layout/dashboard-header'
 import { BrutalCard, BrutalButton, SkillBadge, MatchScorePill, StickerBadge } from '@/components/brutal'
 import { PageScene } from '@/components/illustrations/page-scene'
 import { getDeterministicMatchScore, getDeterministicValidityScore, getRiskLabel, getRiskLevel } from '@/lib/jobs/display'
-import { getJobSearchText, inferJobExperience, rankJobsForCareerProfile } from '@/lib/jobs/ranking'
+import { rankJobsForCareerProfile, scoreJobForCareerProfile } from '@/lib/jobs/ranking'
 import { extractSkillsFromJob } from '@/lib/jobs/skill-extraction'
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser'
 import { initializeUserProfile } from '@/lib/user/profile'
@@ -399,7 +399,7 @@ export default function JobsPage() {
   }, [supabase])
 
   // Client-side search filtering (for real-time search)
-  const filteredJobs = useMemo(() => {
+  const searchedJobs = useMemo(() => {
     if (!searchQuery.trim()) return jobs
 
     const normalizedSearch = searchQuery.trim().toLowerCase()
@@ -417,6 +417,36 @@ export default function JobsPage() {
       })
     )
   }, [jobs, searchQuery])
+
+  // Apply role/level-aware ranking so match scores and ordering reflect the
+  // user's target role. When the user explicitly picks a non-match sort (newest,
+  // salary), we still recompute the role match score for the pill but preserve
+  // the server-provided ordering.
+  const filteredJobs = useMemo(() => {
+    const profile = {
+      targetRole: careerProfile.targetRole,
+      currentLevel: careerProfile.currentLevel,
+    }
+
+    if (filters.sort === 'best_match' || filters.sort === 'newest') {
+      // rankJobsForCareerProfile sorts by role match (then recency as tiebreak),
+      // which is exactly the "jobs that fit my role first" behavior users expect.
+      const ranked = rankJobsForCareerProfile(searchedJobs, profile)
+      if (filters.sort === 'best_match') return ranked
+      // For 'newest', keep recency primary but still surface role-aware scores.
+      return ranked.sort((a, b) => {
+        const dateA = new Date(a.publishedAt || a.fetchedAt || 0).getTime()
+        const dateB = new Date(b.publishedAt || b.fetchedAt || 0).getTime()
+        return dateB - dateA
+      })
+    }
+
+    // Other sorts (salary, beginner_friendly): keep server order, refresh scores.
+    return searchedJobs.map((job) => ({
+      ...job,
+      matchScore: scoreJobForCareerProfile(job, profile),
+    }))
+  }, [searchedJobs, careerProfile.targetRole, careerProfile.currentLevel, filters.sort])
 
   const allTags = useMemo(
     () => Array.from(new Set(jobs.flatMap((job) => job.tags))).sort(),

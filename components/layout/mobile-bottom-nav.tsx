@@ -3,7 +3,6 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { LogoutButton } from '@/components/auth/logout-button'
 import {
   Home,
   Compass,
@@ -123,8 +122,7 @@ export function DesktopSidebar({ className }: DesktopSidebarProps) {
       </nav>
 
       {/* Footer */}
-      <div className="space-y-3 p-4 border-t-3 border-black">
-        <LogoutButton color="red" size="sm" className="w-full" />
+      <div className="p-4 border-t-3 border-black">
         <p className="text-xs text-gray-500 text-center">
           Career OS for Developers
         </p>

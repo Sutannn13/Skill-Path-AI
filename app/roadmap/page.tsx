@@ -755,6 +755,9 @@ export default function RoadmapPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     let isActive = true
+    // Role of the currently-loaded active roadmap (from its saved context). Used to
+    // detect role drift when the user changes target_role after a roadmap exists.
+    let latestRoadmapStoredRole: TargetRole | null = null
 
     const loadLatestRoadmap = async (userId: string) => {
       if (!supabase) return undefined
@@ -780,6 +783,7 @@ export default function RoadmapPage() {
       }
 
       const typedRoadmap = roadmapRow as RoadmapRow
+      latestRoadmapStoredRole = typedRoadmap.context?.targetRole ?? null
       if (isActive) {
         setFinalProjectStatus(typedRoadmap.final_project_status ?? 'pending')
       }
@@ -1082,6 +1086,17 @@ export default function RoadmapPage() {
         }
 
         setCurrentUserId(user.id)
+
+        // The profile's target role is the source of truth. Read it before loading
+        // the saved roadmap so we can detect a stale roadmap built for a prior role.
+        const { data: currentProfileRow } = await supabase
+          .from('profiles')
+          .select('target_role')
+          .eq('id', user.id)
+          .maybeSingle()
+        const currentTargetRole =
+          (currentProfileRow as { target_role: TargetRole | null } | null)?.target_role ?? null
+
         const savedRoadmap = await loadLatestRoadmap(user.id)
 
         // Handle empty roadmap (0 tasks) - trigger repair
@@ -1089,6 +1104,27 @@ export default function RoadmapPage() {
           setRoadmap(null)
           setMode('repair')
           setStatusMessage('This roadmap was created without tasks. Regenerate it to repair your learning path.')
+          return
+        }
+
+        // Role drift: the active roadmap was generated for a different target role
+        // than the user's current profile. Rebuild it so the modules AND the curated
+        // videos/docs match the role the user actually chose.
+        if (
+          savedRoadmap &&
+          currentTargetRole &&
+          latestRoadmapStoredRole &&
+          currentTargetRole !== latestRoadmapStoredRole
+        ) {
+          if (isActive) {
+            setStatusMessage('Your target role changed. Rebuilding your roadmap to match...')
+          }
+          const rebuiltRoadmap = await generateAndSaveRoadmap(user.id, true)
+          if (isActive) {
+            setRoadmap(rebuiltRoadmap)
+            setMode('supabase')
+            setStatusMessage('Roadmap rebuilt to match your current target role.')
+          }
           return
         }
 
@@ -1723,7 +1759,9 @@ export default function RoadmapPage() {
                   <div>
                     <h2 className="mb-1 font-display text-2xl font-bold">{roadmap.title}</h2>
                     <p className="text-black/70">
-                      Build backend skills one level at a time. Focus on the current task, then unlock quiz and mini project steps.
+                      {roadmap.summary?.trim()
+                        ? roadmap.summary
+                        : 'Work through each module one task at a time, then unlock the quiz and mini project steps.'}
                     </p>
                     <p className="mt-2 text-sm font-bold text-black/70">
                       {mode === 'supabase'

@@ -32,6 +32,8 @@ Behavior:
 - Returns source attribution, posted or fetched dates, work mode, validity score, risk level, and match score.
 - Tops up short result sets with the explicit Indonesia curated sample provider so beginner, internship, magang, fresh graduate, junior, backend, frontend, and fullstack examples remain available before a live Indonesian API is connected.
 - Uses in-memory/live fallback only when Supabase persistence is not configured.
+- Aggregates from multiple no-key public sources: Remotive, Arbeitnow, Jobicy, RemoteOK, Himalayas, The Muse, and We Work Remotely (RSS), plus Adzuna when keyed. This widens coverage across internship/junior/mid/senior roles from many portals.
+- `level` filtering is alias-aware: `intern`/`internship`, `freshgraduate` (matches internship/junior/beginner and AI fresh-graduate flags), and `beginner` expand to the appropriate stored experience levels rather than requiring an exact string match.
 
 Freshness rule:
 
@@ -124,6 +126,51 @@ Behavior:
 - Does not fall back to mock data on failure.
 - Returns safe `404`, `429`, or `502` errors for not found, rate limit, or upstream errors.
 
+## `POST /api/cv/analyze`
+
+Audits an uploaded CV/resume for fitness against a target role and experience level.
+
+Request: `multipart/form-data` with fields:
+
+- `file` (required): the CV as PDF, DOCX, or TXT (max 5 MB).
+- `targetRole` (required): one of the six `TargetRole` values.
+- `experienceLevel` (optional): `internship | entry | junior | mid | senior` (defaults to `entry`).
+
+Behavior:
+
+- Runtime is `nodejs`; text is extracted with `pdf-parse` (PDF) or `mammoth` (DOCX).
+- Rejects scanned/image-only or unreadable files (`422 TEXT_TOO_SHORT`), oversized files (`413`), and unsupported types (`415`).
+- Always computes a deterministic, grounded role keyword-coverage score; the LLM (Gemini) supplies the qualitative audit (summary, sections, issues, fixes, revisions) and is blended with the heuristic.
+- Extracts real hyperlink annotations (PDF via `parseHyperlinks`, DOCX via `convertToHtml` `<a href>`, plus bare-URL scan) and classifies them (`github | linkedin | portfolio | social | email | other`). Links feed the audit (GitHub/portfolio presence) and are never hallucinated.
+- Falls back to a fully usable heuristic audit when `GEMINI_API_KEY` is absent or the model fails — the feature never returns empty.
+- Response: `{ analysis, extracted, meta }`. `analysis` includes `overallScore`, `verdict` (`aman | perlu-revisi | belum-siap`), `roleMatch`, `ats`, `sections`, `strengths`, `issues`, `revisions`, `links`, and `source` (`ai | fallback`). `extracted` returns `{ text, links }` so the client can call `/improve` and `/cover-letter` without re-uploading. Human-readable text is in Bahasa Indonesia.
+
+## `POST /api/cv/improve`
+
+Rewrites an analyzed CV into a clean, modern, ATS-parseable single-column draft tailored to the target role.
+
+Request (JSON): `{ text, targetRole, experienceLevel?, links?, issues? }` — reuse the `extracted.text`/`extracted.links` and the audit issue titles from `/api/cv/analyze`.
+
+Behavior:
+
+- Runtime is `nodejs`. The LLM rewrites bullets to action+impact form, fixes the known issues, and optimizes keyword coverage for the role — grounded in the CV, with an explicit no-fabrication instruction (no invented employers, dates, degrees, or metrics).
+- Detected links are reused verbatim; contact info is copied from the CV or left blank rather than invented.
+- Falls back to a deterministic section-split draft when `GEMINI_API_KEY` is absent or the model fails, so a downloadable draft is always returned.
+- The draft follows a standard Indonesian ATS structure (Profil Singkat, Pendidikan, Pengalaman, Proyek, Keahlian Teknis split into Tech Stack / Tools & Services, Sertifikasi & Penghargaan, Bahasa, Publikasi Ilmiah).
+- Response: `{ draft, meta }`. `draft` is a structured `CvDraft` (`fullName`, `headline`, `contact`, `links`, `summary`, `experience[]`, `education[]`, `skills[]`, `projects[]` (with optional `stack`), `certifications[]`, `languages[]`, `publications[]`, `improvementNotes[]`, `source`). The client renders it and exports a real-text, single-column **PDF** (ATS-parseable) plus a plain-text `.txt`.
+
+## `POST /api/cv/cover-letter`
+
+Generates a digital cover letter grounded in the analyzed CV.
+
+Request (JSON): `{ text, targetRole, experienceLevel?, company?, position? }`. `company` and `position` are optional; when supplied the letter is addressed and tailored to them.
+
+Behavior:
+
+- Runtime is `nodejs`. The LLM writes a complete, formally structured 3-4 paragraph letter in the CV's language, grounded only in the CV (no fabricated experience or company facts).
+- Falls back to a deterministic template letter (filled with role, level, company, and the skills actually found in the CV) when the AI is unavailable.
+- Response: `{ coverLetter, meta }` where `coverLetter` is `{ senderName, senderContact, recipientLines[], greeting, paragraphs[], closing, signature, source }` — a standard formal letter (sender block, date added on render, recipient block, salutation, body, sign-off, signature). Exportable as **PDF** and `.txt` on the client.
+
 ## `POST /api/roadmap/quiz/seed`
 
 Seeds deterministic quiz metadata and 10 curated multiple-choice questions per roadmap task.
@@ -190,6 +237,7 @@ Loads the latest mini or final project submission + review summary for the curre
 | `/roadmap/final-project` | `user` | Focused final portfolio submission/review workflow backed by `/api/roadmap/project-review` with `projectType=final_project`. |
 | `/jobs` | `user` or demo | Lists fresh jobs from Supabase plus curated Indonesia top-up data, ranks jobs with the saved career profile, and lets users persist `saved_jobs`. |
 | `/github` | `user` or demo | Calls `/api/github/analyze` and renders only the requested username's result unless demo is explicitly chosen. |
+| `/cv-analyzer` | `user` or demo | Uploads a CV (PDF/DOCX/TXT) to `/api/cv/analyze` with a target role + experience level, then renders the verdict, role/ATS scores, detected hyperlinks, section checklist, issues with fixes, and an ordered revision checklist. From the result it can call `/api/cv/improve` (rewritten ATS draft following a standard CV structure) and `/api/cv/cover-letter` (formal letter with sender/recipient/signature), both downloadable as PDF and `.txt`. Works with heuristic/template fallbacks when the AI key is absent. |
 | `/skills`, `/sprint`, `/settings`, `/projects` | `user` or demo | Protected app surfaces when Supabase is configured; demo mode remains available when Supabase env vars are missing. |
 | `/login`, `/register`, `/forgot-password`, `/reset-password` | Public auth | Logged-in users visiting `/login` or `/register` are redirected to `/dashboard`. |
 

@@ -34,6 +34,7 @@ import {
   Trophy,
   Star,
   Flame,
+  ScanLine,
 } from 'lucide-react'
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser'
 import { initializeUserProfile } from '@/lib/user/profile'
@@ -859,6 +860,29 @@ export default function DashboardPage() {
                 <Link href="/github">
                   <BrutalButton variant="outline" color="black" size="sm">
                     Analyze
+                  </BrutalButton>
+                </Link>
+              </BrutalCard>
+            </Section>
+
+            <Section title="CV Analyzer">
+              <BrutalCard color="pink" className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <ScanLine className="w-8 h-8" aria-hidden="true" />
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-bold text-lg">Audit CV Sebelum Melamar</h3>
+                      <StickerBadge variant="great-match" label="AI" size="sm" />
+                    </div>
+                    <p className="text-sm text-black/80">
+                      Unggah CV, lalu AI cek kecocokan role, ATS, dan kasih daftar revisi.
+                    </p>
+                  </div>
+                </div>
+                <Link href="/cv-analyzer">
+                  <BrutalButton color="black" size="sm">
+                    Scan CV
+                    <ArrowRight className="ml-2 h-4 w-4" />
                   </BrutalButton>
                 </Link>
               </BrutalCard>

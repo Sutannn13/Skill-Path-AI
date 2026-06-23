@@ -51,6 +51,7 @@ function inferVariantFromPath(pathname: string | null): CartoonBackgroundVariant
   if (pathname.startsWith('/onboarding')) return 'onboarding'
   if (pathname.startsWith('/skills')) return 'skills'
   if (pathname.startsWith('/github') || pathname.startsWith('/projects')) return 'github'
+  if (pathname.startsWith('/cv-analyzer')) return 'github'
   if (
     pathname.startsWith('/login') ||
     pathname.startsWith('/register') ||

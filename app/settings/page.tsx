@@ -367,17 +367,14 @@ export default function SettingsPage() {
                     )}
 
                     <div className="space-y-6">
-                      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="flex items-center gap-6">
-                          <div className="w-20 h-20 bg-yellow brutal-border brutal-radius flex items-center justify-center">
-                            <span className="text-3xl font-bold">{initials}</span>
-                          </div>
-                          <div>
-                            <p className="font-medium">Account Session</p>
-                            <p className="text-sm text-gray-500">Logout is available here and in Security tab.</p>
-                          </div>
+                      <div className="flex items-center gap-6">
+                        <div className="w-20 h-20 bg-yellow brutal-border brutal-radius flex items-center justify-center">
+                          <span className="text-3xl font-bold">{initials}</span>
                         </div>
-                        <LogoutButton color="red" size="sm" />
+                        <div>
+                          <p className="font-medium">Account</p>
+                          <p className="text-sm text-gray-500">Manage your profile details below.</p>
+                        </div>
                       </div>
 
                       <div className="space-y-4">
@@ -498,6 +495,16 @@ export default function SettingsPage() {
                           <RefreshCw className="w-4 h-4 mr-2" />
                           Reset Onboarding
                         </BrutalButton>
+                      </div>
+
+                      <div className="border-t-2 border-gray-200 pt-6">
+                        <div className="flex flex-col gap-3 rounded-md border-2 border-black bg-gray-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <p className="font-medium">Sign out of your account</p>
+                            <p className="text-sm text-gray-500">You will be redirected to the login page.</p>
+                          </div>
+                          <LogoutButton color="red" size="sm" />
+                        </div>
                       </div>
                     </div>
                   </BrutalCard>
@@ -631,16 +638,6 @@ export default function SettingsPage() {
                         </div>
                       </div>
 
-                      <div className="pt-6 border-t-2 border-gray-200">
-                        <h3 className="font-medium mb-2">Session</h3>
-                        <div className="flex items-center justify-between p-4 bg-gray-50 brutal-border brutal-radius">
-                          <div>
-                            <p className="font-medium">Sign out of your account</p>
-                            <p className="text-sm text-gray-500">You will be redirected to the login page</p>
-                          </div>
-                          <LogoutButton color="red" size="sm" />
-                        </div>
-                      </div>
                     </div>
                   </BrutalCard>
                 </motion.div>

@@ -594,10 +594,10 @@ export default function JobsPage() {
                   key={opt.value}
                   onClick={() => setFilters(f => ({ ...f, region: filters.region === opt.value ? 'all' : opt.value }))}
                   className={cn(
-                    'flex items-center gap-1.5 px-3 py-1.5 text-sm brutal-radius transition-all',
+                    'flex items-center gap-1.5 px-3 py-1.5 text-sm brutal-radius font-bold transition-all',
                     filters.region === opt.value
-                      ? 'bg-blue/20 border-2 border-blue text-blue font-medium'
-                      : 'bg-white border-2 border-transparent hover:bg-gray-50'
+                      ? 'bg-blue/20 border-2 border-blue text-blue -translate-y-0.5 shadow-brutal-sm'
+                      : 'bg-white border-2 border-black/15 hover:border-black hover:-translate-y-0.5'
                   )}
                 >
                   <Globe className="w-3.5 h-3.5" />
@@ -616,10 +616,10 @@ export default function JobsPage() {
                   key={opt.value}
                   onClick={() => setFilters(f => ({ ...f, experience: filters.experience === opt.value ? 'all' : opt.value }))}
                   className={cn(
-                    'flex items-center gap-1.5 px-3 py-1.5 text-sm brutal-radius transition-all',
+                    'flex items-center gap-1.5 px-3 py-1.5 text-sm brutal-radius font-bold transition-all',
                     filters.experience === opt.value
-                      ? 'bg-green/20 border-2 border-green text-green font-medium'
-                      : 'bg-white border-2 border-transparent hover:bg-gray-50'
+                      ? 'bg-green/20 border-2 border-green text-green -translate-y-0.5 shadow-brutal-sm'
+                      : 'bg-white border-2 border-black/15 hover:border-black hover:-translate-y-0.5'
                   )}
                 >
                   <Briefcase className="w-3.5 h-3.5" />

@@ -7,7 +7,8 @@ import { AppShell, Container, GradientBackground } from '@/components/layout'
 import { DashboardHeader } from '@/components/layout/dashboard-header'
 import { BrutalCard, BrutalButton, BrutalCardHover, ScoreMeter, StickerBadge } from '@/components/brutal'
 import { PageScene } from '@/components/illustrations/page-scene'
-import { Github, Search, ExternalLink, AlertCircle, CheckCircle2, XCircle, Loader2 } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { Github, Search, ExternalLink, AlertCircle, CheckCircle2, XCircle, Loader2, Star, GitBranch, Activity, Sparkles } from 'lucide-react'
 import { GitHubAnalysis } from '@/types'
 
 // Mock analysis data
@@ -409,26 +410,55 @@ export default function GitHubPage() {
 
           {/* Empty State */}
           {!analysis && !error && (
-            <BrutalCard color="gray" className="text-center py-16">
-              <Github className="w-20 h-20 mx-auto mb-4 text-gray-300" />
-              <h3 className="font-display font-bold text-2xl mb-2">
+            <BrutalCard color="white" className="text-center py-12">
+              <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center bg-purple brutal-border brutal-radius shadow-brutal rotate-[-4deg]">
+                {isAnalyzing ? (
+                  <Loader2 className="h-10 w-10 animate-spin" aria-hidden="true" />
+                ) : (
+                  <Github className="h-10 w-10" aria-hidden="true" />
+                )}
+              </div>
+              <h3 className="mb-2 font-display text-2xl font-bold">
                 {isAnalyzing && analyzedUsername ? `Analyzing @${analyzedUsername}` : 'Analyze Your GitHub'}
               </h3>
-              <p className="text-gray-600 max-w-md mx-auto mb-6">
+              <p className="mx-auto mb-6 max-w-md text-gray-600">
                 {isAnalyzing
                   ? 'Fetching public repositories and checking portfolio signals.'
-                  : 'Enter your GitHub username above to get a detailed analysis of your portfolio, including repository quality, language usage, and personalized suggestions.'}
+                  : 'Masukkan username GitHub di atas untuk audit portofolio: kualitas repo, bahasa yang dipakai, sinyal aktivitas, dan saran perbaikan.'}
               </p>
-              <Link
-                href="https://github.com"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <BrutalButton color="black">
-                  Create GitHub Account
-                  <ExternalLink className="w-4 h-4 ml-2" />
+
+              {!isAnalyzing && (
+                <div className="mx-auto mb-7 grid max-w-xl gap-3 sm:grid-cols-3">
+                  {[
+                    { icon: Activity, color: 'bg-green', label: 'Aktivitas repo' },
+                    { icon: Star, color: 'bg-yellow', label: 'Kualitas proyek' },
+                    { icon: Sparkles, color: 'bg-pink', label: 'Saran perbaikan' },
+                  ].map((item) => (
+                    <div
+                      key={item.label}
+                      className="flex items-center gap-3 brutal-border brutal-radius bg-cream-light p-3 text-left"
+                    >
+                      <span className={cn('flex h-9 w-9 shrink-0 items-center justify-center brutal-border brutal-radius', item.color)}>
+                        <item.icon className="h-4 w-4" aria-hidden="true" />
+                      </span>
+                      <span className="text-sm font-bold">{item.label}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex flex-wrap items-center justify-center gap-3">
+                <BrutalButton color="yellow" onClick={loadDemoAnalysis} disabled={isAnalyzing}>
+                  <GitBranch className="mr-2 h-4 w-4" aria-hidden="true" />
+                  Coba demo (octocat)
                 </BrutalButton>
-              </Link>
+                <Link href="https://github.com" target="_blank" rel="noopener noreferrer">
+                  <BrutalButton variant="outline" color="black">
+                    Buat akun GitHub
+                    <ExternalLink className="ml-2 h-4 w-4" aria-hidden="true" />
+                  </BrutalButton>
+                </Link>
+              </div>
             </BrutalCard>
           )}
         </Container>

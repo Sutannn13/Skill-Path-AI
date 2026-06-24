@@ -11,7 +11,7 @@ import { SKILLS, SKILL_CATEGORIES, SKILL_LEVEL_LABELS } from '@/lib/constants'
 import { SkillCategory, SkillLevel } from '@/types'
 import { cn } from '@/lib/utils'
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser'
-import { Search, Save, Compass, Check, AlertCircle, RefreshCw } from 'lucide-react'
+import { Search, Save, Compass, Check, AlertCircle, RefreshCw, Layers, Sparkles, Trophy } from 'lucide-react'
 
 interface UserSkillRow {
   skill_slug: string
@@ -280,35 +280,28 @@ export default function SkillsPage() {
 
           {/* Stats Overview */}
           <div className="grid grid-cols-3 gap-4 mb-8">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <BrutalCard color="yellow" className="text-center py-4">
-                <p className="text-3xl font-bold">{skillCounts.total}</p>
-                <p className="text-sm text-black/70">Total Skills</p>
-              </BrutalCard>
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-            >
-              <BrutalCard color="green" className="text-center py-4">
-                <p className="text-3xl font-bold">{skillCounts.learned}</p>
-                <p className="text-sm text-black/70">Learned</p>
-              </BrutalCard>
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-            >
-              <BrutalCard color="blue" className="text-center py-4">
-                <p className="text-3xl font-bold">{skillCounts.mastered}</p>
-                <p className="text-sm text-black/70">Mastered</p>
-              </BrutalCard>
-            </motion.div>
+            {[
+              { value: skillCounts.total, label: 'Total Skills', color: 'yellow' as const, icon: Layers },
+              { value: skillCounts.learned, label: 'Learned', color: 'green' as const, icon: Sparkles },
+              { value: skillCounts.mastered, label: 'Mastered', color: 'blue' as const, icon: Trophy },
+            ].map((stat, i) => (
+              <motion.div
+                key={stat.label}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.1 }}
+              >
+                <BrutalCard color={stat.color} className="flex items-center gap-3 py-4">
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center bg-white brutal-border brutal-radius shadow-brutal-sm">
+                    <stat.icon className="h-5 w-5 text-black" aria-hidden="true" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="metric-mono text-3xl font-black leading-none">{stat.value}</p>
+                    <p className="truncate text-xs font-bold text-black/70">{stat.label}</p>
+                  </div>
+                </BrutalCard>
+              </motion.div>
+            ))}
           </div>
 
           {/* Search and Filter */}
@@ -327,8 +320,8 @@ export default function SkillsPage() {
               <button
                 onClick={() => setActiveCategory('all')}
                 className={cn(
-                  'px-4 py-2 brutal-border brutal-radius font-medium whitespace-nowrap transition-all',
-                  activeCategory === 'all' ? 'bg-black text-white' : 'bg-white hover:bg-gray-100'
+                  'min-h-[44px] px-4 py-2 brutal-border brutal-radius font-bold whitespace-nowrap transition-all',
+                  activeCategory === 'all' ? 'bg-black text-white -translate-x-0.5 -translate-y-0.5 shadow-brutal-sm' : 'bg-white hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-brutal-sm'
                 )}
               >
                 All
@@ -338,8 +331,8 @@ export default function SkillsPage() {
                   key={cat.id}
                   onClick={() => setActiveCategory(cat.id)}
                   className={cn(
-                    'px-4 py-2 brutal-border brutal-radius font-medium whitespace-nowrap transition-all',
-                    activeCategory === cat.id ? 'bg-black text-white' : 'bg-white hover:bg-gray-100'
+                    'min-h-[44px] px-4 py-2 brutal-border brutal-radius font-bold whitespace-nowrap transition-all',
+                    activeCategory === cat.id ? 'bg-black text-white -translate-x-0.5 -translate-y-0.5 shadow-brutal-sm' : 'bg-white hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-brutal-sm'
                   )}
                 >
                   {cat.label}

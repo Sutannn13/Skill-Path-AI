@@ -2,11 +2,10 @@
 
 import { useEffect, useMemo, useState, useCallback } from 'react'
 import { motion } from 'framer-motion'
-import { AppShell, Container } from '@/components/layout'
+import { AppShell, Container, GradientBackground } from '@/components/layout'
 import { DashboardHeader } from '@/components/layout/dashboard-header'
 import { BrutalCard, BrutalButton, BrutalCardHover, ScoreBar, SkillBadge, StickerBadge } from '@/components/brutal'
 import { PageScene } from '@/components/illustrations/page-scene'
-import { CartoonBackground } from '@/components/illustrations/cartoon-background'
 import { cn } from '@/lib/utils'
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser'
 import {
@@ -140,13 +139,17 @@ export default function SprintPage() {
 
         setCurrentUserId(user.id)
 
-        // Get current week's sprint
+        // Get current week's sprint. Older data may contain duplicate rows for
+        // the same (user, week_start); take the most recent one instead of
+        // letting .single() throw "multiple rows returned".
         const weekStart = getCurrentWeekStart()
         const { data: sprintRow, error: sprintError } = await supabase
           .from('weekly_sprints')
           .select('id, week_start, goal, focus_skills, progress, created_at, updated_at')
           .eq('user_id', user.id)
           .eq('week_start', weekStart)
+          .order('created_at', { ascending: false })
+          .limit(1)
           .maybeSingle()
 
         if (sprintError) {
@@ -469,7 +472,7 @@ export default function SprintPage() {
   if (mode === 'loading') {
     return (
       <AppShell showBottomNav={true}>
-        <CartoonBackground variant="sprint" intensity="normal" showDoodles animated />
+        <GradientBackground />
         <DashboardHeader
           icon={ListTodo}
           iconColor="green"
@@ -491,7 +494,7 @@ export default function SprintPage() {
   if (mode === 'error') {
     return (
       <AppShell showBottomNav={true}>
-        <CartoonBackground variant="sprint" intensity="normal" showDoodles animated />
+        <GradientBackground />
         <DashboardHeader
           icon={ListTodo}
           iconColor="green"
@@ -517,7 +520,7 @@ export default function SprintPage() {
 
   return (
     <AppShell showBottomNav={true}>
-      <CartoonBackground variant="sprint" intensity="normal" showDoodles animated />
+      <GradientBackground />
 
       <div className="flex-1">
         <DashboardHeader

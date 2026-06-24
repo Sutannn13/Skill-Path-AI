@@ -239,7 +239,7 @@ Loads the latest mini or final project submission + review summary for the curre
 | `/github` | `user` or demo | Calls `/api/github/analyze` and renders only the requested username's result unless demo is explicitly chosen. |
 | `/cv-analyzer` | `user` or demo | Uploads a CV (PDF/DOCX/TXT) to `/api/cv/analyze` with a target role + experience level, then renders the verdict, role/ATS scores, detected hyperlinks, section checklist, issues with fixes, and an ordered revision checklist. From the result it can call `/api/cv/improve` (rewritten ATS draft following a standard CV structure) and `/api/cv/cover-letter` (formal letter with sender/recipient/signature), both downloadable as PDF and `.txt`. Works with heuristic/template fallbacks when the AI key is absent. |
 | `/skills`, `/sprint`, `/settings`, `/projects` | `user` or demo | Protected app surfaces when Supabase is configured; demo mode remains available when Supabase env vars are missing. |
-| `/login`, `/register`, `/forgot-password`, `/reset-password` | Public auth | Logged-in users visiting `/login` or `/register` are redirected to `/dashboard`. |
+| `/login`, `/register`, `/forgot-password`, `/reset-password` | Public auth | `/login` always presents the form and clears any still-active session on load, so pressing "Sign In" requires fresh credentials even when a previous session was left open (no silent pass-through to `/dashboard`). |
 
 Login and register check Supabase Auth provider settings before OAuth redirect. Disabled providers return a local user-facing setup message.
 

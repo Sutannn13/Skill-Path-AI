@@ -165,8 +165,9 @@ export function StatTile({
   return (
     <div
       className={cn(
-        'brutal-border brutal-radius p-5 relative overflow-hidden',
-        onDark ? 'bg-cabinet-soft text-on-dark' : 'bg-white',
+        'brutal-border brutal-radius p-5 relative overflow-hidden transition-all duration-150',
+        'hover:-translate-x-[2px] hover:-translate-y-[2px]',
+        onDark ? 'bg-cabinet-soft text-on-dark hover:shadow-[4px_4px_0_0_rgba(255,255,255,0.25)]' : 'bg-white hover:shadow-brutal-sm',
         glow && tileGlow[accent],
         className
       )}

@@ -169,6 +169,26 @@ export default function ProjectsPage() {
             </Link>
           </BrutalCard>
 
+          {/* Stat overview */}
+          <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+            {[
+              { label: 'Total ide', value: mockProjects.length, accent: 'bg-blue', icon: Code },
+              { label: 'Beginner', value: mockProjects.filter((p) => p.difficulty === 'beginner').length, accent: 'bg-green', icon: CheckCircle2 },
+              { label: 'Intermediate', value: mockProjects.filter((p) => p.difficulty === 'intermediate').length, accent: 'bg-yellow', icon: Clock },
+              { label: 'Advanced', value: mockProjects.filter((p) => p.difficulty === 'advanced').length, accent: 'bg-pink', icon: Trophy },
+            ].map((stat) => (
+              <BrutalCard key={stat.label} color="white" shadow="sm" className="flex items-center gap-3 py-4">
+                <span className={cn('flex h-10 w-10 shrink-0 items-center justify-center brutal-border brutal-radius', stat.accent)}>
+                  <stat.icon className="h-5 w-5 text-black" aria-hidden="true" />
+                </span>
+                <div className="min-w-0">
+                  <p className="metric-mono text-2xl font-black leading-none">{stat.value}</p>
+                  <p className="truncate text-xs text-secondary">{stat.label}</p>
+                </div>
+              </BrutalCard>
+            ))}
+          </div>
+
           {/* Search and Filter */}
           <div className="flex flex-col sm:flex-row gap-4 mb-6">
             <div className="relative flex-1">
@@ -187,12 +207,13 @@ export default function ProjectsPage() {
                   key={diff}
                   onClick={() => setSelectedDifficulty(selectedDifficulty === diff ? null : diff)}
                   className={cn(
-                    'px-4 py-2 brutal-border brutal-radius font-medium capitalize transition-all',
+                    'min-h-[44px] px-4 py-2 brutal-border brutal-radius font-bold capitalize transition-all',
                     selectedDifficulty === diff
-                      ? diff === 'beginner' ? 'bg-green text-white'
-                        : diff === 'intermediate' ? 'bg-yellow text-black'
-                        : 'bg-red text-white'
-                      : 'bg-white'
+                      ? cn('-translate-x-0.5 -translate-y-0.5 shadow-brutal-sm',
+                          diff === 'beginner' ? 'bg-green text-white'
+                            : diff === 'intermediate' ? 'bg-yellow text-black'
+                            : 'bg-red text-white')
+                      : 'bg-white hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-brutal-sm'
                   )}
                 >
                   {diff}

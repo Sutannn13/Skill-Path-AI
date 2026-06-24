@@ -506,7 +506,7 @@ export function StatCard({
 
   return (
     <div className={cn(
-      'brutal-border brutal-radius p-4 bg-white',
+      'brutal-border brutal-radius p-4 bg-white transition-all duration-150 hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-brutal-sm',
       className
     )}>
       <div className="flex items-center gap-3 mb-2">

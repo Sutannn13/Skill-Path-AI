@@ -482,8 +482,8 @@ export default function OnboardingPage() {
 
             {/* Success Message */}
             <BrutalCard color="green" className="text-center mb-8">
-              <div className="w-16 h-16 bg-green/20 brutal-border brutal-radius flex items-center justify-center mx-auto mb-4">
-                <Check className="w-8 h-8 text-green" />
+              <div className="w-16 h-16 bg-white brutal-border brutal-radius shadow-brutal-sm flex items-center justify-center mx-auto mb-4">
+                <Check className="w-8 h-8 text-green" strokeWidth={3} />
               </div>
               <h1 className="font-display font-bold text-2xl mb-2">Career Profile Already Set</h1>
               <p className="text-gray-600">

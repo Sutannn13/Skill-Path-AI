@@ -1902,30 +1902,38 @@ export default function RoadmapPage() {
                           )}
                           disabled={moduleLocked}
                         >
-                          <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-white brutal-border brutal-radius flex items-center justify-center font-bold text-xl">
-                              {week.week}
+                          <div className="flex min-w-0 items-center gap-4">
+                            <div
+                              className={cn(
+                                'flex h-12 w-12 shrink-0 items-center justify-center brutal-border brutal-radius font-bold text-xl shadow-brutal-sm',
+                                weekProgress >= 100 ? 'bg-green' : 'bg-white'
+                              )}
+                            >
+                              {weekProgress >= 100 ? <CheckCircle2 className="h-6 w-6" aria-hidden="true" /> : week.week}
                             </div>
-                            <div>
-                              <h3 className="font-display font-bold text-lg">{week.title}</h3>
-                              <p className="text-sm text-black/70">{week.goal}</p>
+                            <div className="min-w-0">
+                              <h3 className="font-display text-lg font-bold">{week.title}</h3>
+                              <p className="truncate text-sm text-black/70">{week.goal}</p>
                             </div>
                           </div>
-                          <div className="flex items-center gap-4">
-                            <div className="text-right">
-                              <p className="font-bold">{completedTasks}/{week.tasks.length}</p>
-                              <p className="text-xs text-black/70">{weekProgress}% complete</p>
+                          <div className="flex shrink-0 items-center gap-4">
+                            <div className="hidden w-32 text-right sm:block">
+                              <div className="mb-1 flex items-center justify-end gap-2">
+                                <span className="font-bold">{completedTasks}/{week.tasks.length}</span>
+                                <span className="text-xs text-black/70">{weekProgress}%</span>
+                              </div>
+                              <div className="h-2 overflow-hidden border-2 border-black brutal-radius bg-white/60">
+                                <div className="h-full bg-black transition-all" style={{ width: `${weekProgress}%` }} />
+                              </div>
                               {moduleLocked && (
                                 <p className="mt-1 text-[11px] font-bold text-black/60">
-                                  Complete the current module to unlock the next one.
+                                  Selesaikan modul ini untuk membuka berikutnya.
                                 </p>
                               )}
                             </div>
-                            {isExpanded ? (
-                              <ChevronUp className="w-5 h-5" />
-                            ) : (
-                              <ChevronDown className="w-5 h-5" />
-                            )}
+                            <span className="flex h-9 w-9 items-center justify-center brutal-border brutal-radius bg-white">
+                              {isExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                            </span>
                           </div>
                         </button>
 

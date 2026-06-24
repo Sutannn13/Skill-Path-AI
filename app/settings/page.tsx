@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { AppShell, Container, GradientBackground } from '@/components/layout'
 import { DashboardHeader } from '@/components/layout/dashboard-header'
-import { BrutalCard, BrutalButton, ConfirmModal } from '@/components/brutal'
+import { BrutalCard, BrutalButton, ConfirmModal, SectionHeader, StickerBadge } from '@/components/brutal'
 import { LogoutButton } from '@/components/auth/logout-button'
 import { PageScene } from '@/components/illustrations/page-scene'
 import { cn } from '@/lib/utils'
@@ -270,6 +270,9 @@ export default function SettingsPage() {
       .map((part) => part[0]?.toUpperCase())
       .join('') || 'U'
 
+  const roleLabel = TARGET_ROLES.find((r) => r.id === profileForm.targetRole)?.label ?? ''
+  const levelLabel = CURRENT_LEVELS.find((l) => l.id === profileForm.currentLevel)?.label ?? ''
+
   return (
     <AppShell showBottomNav={true}>
       <GradientBackground />
@@ -321,22 +324,33 @@ export default function SettingsPage() {
           <div className="grid lg:grid-cols-4 gap-6">
             <div className="lg:col-span-1">
               <BrutalCard color="white" className="sticky top-24">
+                <p className="hud-label mb-3 text-[10px] text-secondary">Settings menu</p>
                 <nav className="space-y-2">
-                  {settingsSections.map((section) => (
-                    <button
-                      key={section.id}
-                      onClick={() => setActiveSection(section.id)}
-                      className={cn(
-                        'w-full flex items-center gap-3 px-4 py-3 brutal-radius font-medium transition-all text-left',
-                        activeSection === section.id
-                          ? 'bg-yellow font-bold'
-                          : 'hover:bg-gray-100'
-                      )}
-                    >
-                      <section.icon className="w-5 h-5" />
-                      {section.label}
-                    </button>
-                  ))}
+                  {settingsSections.map((section) => {
+                    const isActive = activeSection === section.id
+                    return (
+                      <button
+                        key={section.id}
+                        onClick={() => setActiveSection(section.id)}
+                        className={cn(
+                          'flex w-full items-center gap-3 px-4 py-3 brutal-border brutal-radius text-left font-bold transition-all',
+                          isActive
+                            ? 'bg-yellow shadow-brutal-sm -translate-x-0.5 -translate-y-0.5'
+                            : 'border-transparent hover:border-black hover:bg-gray-100'
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            'flex h-8 w-8 items-center justify-center brutal-border brutal-radius',
+                            isActive ? 'bg-white' : 'bg-cream-light'
+                          )}
+                        >
+                          <section.icon className="h-4 w-4" aria-hidden="true" />
+                        </span>
+                        {section.label}
+                      </button>
+                    )
+                  })}
                 </nav>
               </BrutalCard>
             </div>
@@ -346,7 +360,7 @@ export default function SettingsPage() {
                 <motion.div initial={false} animate={{ opacity: 1, y: 0 }}>
                   <BrutalCard color="white">
                     <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-                      <h2 className="font-display font-bold text-xl">Profile Settings</h2>
+                      <SectionHeader label="Profile Settings" icon={User} className="mb-0" />
                       {isDemoMode && (
                         <span className="rounded-md border-2 border-black bg-yellow px-3 py-1 text-xs font-bold">
                           Demo Mode
@@ -367,13 +381,24 @@ export default function SettingsPage() {
                     )}
 
                     <div className="space-y-6">
-                      <div className="flex items-center gap-6">
-                        <div className="w-20 h-20 bg-yellow brutal-border brutal-radius flex items-center justify-center">
-                          <span className="text-3xl font-bold">{initials}</span>
+                      <div className="flex flex-col gap-4 brutal-border brutal-radius bg-cream-light p-4 sm:flex-row sm:items-center">
+                        <div className="flex h-20 w-20 shrink-0 items-center justify-center bg-yellow brutal-border brutal-radius shadow-brutal-sm">
+                          <span className="text-3xl font-black">{initials}</span>
                         </div>
-                        <div>
-                          <p className="font-medium">Account</p>
-                          <p className="text-sm text-gray-500">Manage your profile details below.</p>
+                        <div className="min-w-0 flex-1">
+                          <p className="hud-label text-[10px] text-secondary">Akun</p>
+                          <p className="truncate font-display text-lg font-bold">
+                            {profileForm.fullName || 'Lengkapi nama Anda'}
+                          </p>
+                          <p className="truncate text-sm text-secondary">{profileForm.email || 'Email belum diatur'}</p>
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {profileForm.targetRole && (
+                              <StickerBadge variant="blue" label={roleLabel} size="sm" />
+                            )}
+                            {profileForm.currentLevel && (
+                              <StickerBadge variant="green" label={levelLabel} size="sm" />
+                            )}
+                          </div>
                         </div>
                       </div>
 
@@ -384,7 +409,7 @@ export default function SettingsPage() {
                             type="text"
                             value={profileForm.fullName}
                             onChange={(e) => updateProfileField('fullName', e.target.value)}
-                            className="w-full px-4 py-3 brutal-border brutal-radius bg-gray-50 focus:bg-white"
+                            className="w-full px-4 py-3 brutal-border brutal-radius bg-gray-50 transition-all focus:bg-white focus:-translate-x-0.5 focus:-translate-y-0.5 focus:shadow-brutal-sm focus:outline-none"
                             disabled={isLoading}
                           />
                         </div>
@@ -409,7 +434,7 @@ export default function SettingsPage() {
                                 type="text"
                                 value={profileForm.githubUsername}
                                 onChange={(e) => updateProfileField('githubUsername', e.target.value)}
-                                className="w-full pl-12 pr-4 py-3 brutal-border brutal-radius bg-gray-50 focus:bg-white"
+                                className="w-full pl-12 pr-4 py-3 brutal-border brutal-radius bg-gray-50 transition-all focus:bg-white focus:-translate-x-0.5 focus:-translate-y-0.5 focus:shadow-brutal-sm focus:outline-none"
                               />
                             </div>
                             <a
@@ -434,7 +459,7 @@ export default function SettingsPage() {
                           <select
                             value={profileForm.targetRole}
                             onChange={(e) => updateProfileField('targetRole', e.target.value as TargetRole | '')}
-                            className="w-full px-4 py-3 brutal-border brutal-radius bg-gray-50 focus:bg-white"
+                            className="w-full px-4 py-3 brutal-border brutal-radius bg-gray-50 transition-all focus:bg-white focus:-translate-x-0.5 focus:-translate-y-0.5 focus:shadow-brutal-sm focus:outline-none"
                           >
                             <option value="">Select target role</option>
                             {TARGET_ROLES.map((role) => (
@@ -450,7 +475,7 @@ export default function SettingsPage() {
                           <select
                             value={profileForm.currentLevel}
                             onChange={(e) => updateProfileField('currentLevel', e.target.value as CurrentLevel | '')}
-                            className="w-full px-4 py-3 brutal-border brutal-radius bg-gray-50 focus:bg-white"
+                            className="w-full px-4 py-3 brutal-border brutal-radius bg-gray-50 transition-all focus:bg-white focus:-translate-x-0.5 focus:-translate-y-0.5 focus:shadow-brutal-sm focus:outline-none"
                           >
                             <option value="">Select current level</option>
                             {CURRENT_LEVELS.map((level) => (
@@ -466,7 +491,7 @@ export default function SettingsPage() {
                           <select
                             value={profileForm.studyTime}
                             onChange={(e) => updateProfileField('studyTime', e.target.value as StudyTime | '')}
-                            className="w-full px-4 py-3 brutal-border brutal-radius bg-gray-50 focus:bg-white"
+                            className="w-full px-4 py-3 brutal-border brutal-radius bg-gray-50 transition-all focus:bg-white focus:-translate-x-0.5 focus:-translate-y-0.5 focus:shadow-brutal-sm focus:outline-none"
                           >
                             <option value="">Select study time</option>
                             {STUDY_TIMES.map((time) => (
@@ -514,7 +539,7 @@ export default function SettingsPage() {
               {activeSection === 'notifications' && (
                 <motion.div initial={false} animate={{ opacity: 1, y: 0 }}>
                   <BrutalCard color="white">
-                    <h2 className="font-display font-bold text-xl mb-6">Notification Preferences</h2>
+                    <SectionHeader label="Notification Preferences" icon={Bell} className="mb-6" />
 
                     <div className="space-y-4">
                       {[
@@ -523,21 +548,23 @@ export default function SettingsPage() {
                         { label: 'Roadmap updates', description: 'Updates about changes to your learning roadmap', enabled: false },
                         { label: 'Marketing emails', description: 'Tips, tricks, and updates from SkillPath', enabled: false },
                       ].map((item, i) => (
-                        <div key={i} className="flex items-center justify-between p-4 bg-gray-50 brutal-border brutal-radius">
+                        <div key={i} className="flex items-center justify-between gap-4 p-4 bg-cream-light brutal-border brutal-radius">
                           <div>
-                            <p className="font-medium">{item.label}</p>
-                            <p className="text-sm text-gray-500">{item.description}</p>
+                            <p className="font-bold">{item.label}</p>
+                            <p className="text-sm text-secondary">{item.description}</p>
                           </div>
                           <button
+                            type="button"
+                            aria-pressed={item.enabled}
                             onClick={() => {}}
                             className={cn(
-                              'w-12 h-6 brutal-radius relative transition-all',
+                              'relative h-7 w-12 shrink-0 rounded-full brutal-border transition-colors',
                               item.enabled ? 'bg-green' : 'bg-gray-300'
                             )}
                           >
-                            <div className={cn(
-                              'w-5 h-5 bg-white brutal-border absolute top-0.5 transition-all',
-                              item.enabled ? 'left-6' : 'left-0.5'
+                            <span className={cn(
+                              'absolute top-0.5 h-5 w-5 rounded-full border-2 border-black bg-white transition-all',
+                              item.enabled ? 'left-[22px]' : 'left-0.5'
                             )} />
                           </button>
                         </div>
@@ -550,7 +577,7 @@ export default function SettingsPage() {
               {activeSection === 'appearance' && (
                 <motion.div initial={false} animate={{ opacity: 1, y: 0 }}>
                   <BrutalCard color="white">
-                    <h2 className="font-display font-bold text-xl mb-6">Appearance Settings</h2>
+                    <SectionHeader label="Appearance Settings" icon={Palette} className="mb-6" />
 
                     <div className="space-y-6">
                       <div>
@@ -572,16 +599,18 @@ export default function SettingsPage() {
 
                       <div>
                         <p className="font-medium mb-3">Animations</p>
-                        <div className="flex items-center justify-between p-4 bg-gray-50 brutal-border brutal-radius">
+                        <div className="flex items-center justify-between gap-4 p-4 bg-cream-light brutal-border brutal-radius">
                           <div>
-                            <p className="font-medium">Reduced motion</p>
-                            <p className="text-sm text-gray-500">Minimize animations for accessibility</p>
+                            <p className="font-bold">Reduced motion</p>
+                            <p className="text-sm text-secondary">Minimize animations for accessibility</p>
                           </div>
                           <button
+                            type="button"
+                            aria-pressed={false}
                             onClick={() => {}}
-                            className="w-12 h-6 brutal-radius relative bg-gray-300"
+                            className="relative h-7 w-12 shrink-0 rounded-full brutal-border bg-gray-300"
                           >
-                            <div className="w-5 h-5 bg-white brutal-border absolute left-0.5 top-0.5" />
+                            <span className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full border-2 border-black bg-white" />
                           </button>
                         </div>
                       </div>
@@ -593,7 +622,7 @@ export default function SettingsPage() {
               {activeSection === 'security' && (
                 <motion.div initial={false} animate={{ opacity: 1, y: 0 }}>
                   <BrutalCard color="white">
-                    <h2 className="font-display font-bold text-xl mb-6">Security Settings</h2>
+                    <SectionHeader label="Security Settings" icon={Shield} className="mb-6" />
 
                     <div className="space-y-6">
                       <div>
@@ -602,17 +631,17 @@ export default function SettingsPage() {
                           <input
                             type="password"
                             placeholder="Current password"
-                            className="w-full px-4 py-3 brutal-border brutal-radius bg-gray-50"
+                            className="w-full px-4 py-3 brutal-border brutal-radius bg-gray-50 transition-all focus:bg-white focus:-translate-x-0.5 focus:-translate-y-0.5 focus:shadow-brutal-sm focus:outline-none"
                           />
                           <input
                             type="password"
                             placeholder="New password"
-                            className="w-full px-4 py-3 brutal-border brutal-radius bg-gray-50"
+                            className="w-full px-4 py-3 brutal-border brutal-radius bg-gray-50 transition-all focus:bg-white focus:-translate-x-0.5 focus:-translate-y-0.5 focus:shadow-brutal-sm focus:outline-none"
                           />
                           <input
                             type="password"
                             placeholder="Confirm new password"
-                            className="w-full px-4 py-3 brutal-border brutal-radius bg-gray-50"
+                            className="w-full px-4 py-3 brutal-border brutal-radius bg-gray-50 transition-all focus:bg-white focus:-translate-x-0.5 focus:-translate-y-0.5 focus:shadow-brutal-sm focus:outline-none"
                           />
                           <BrutalButton color="blue">Update Password</BrutalButton>
                         </div>

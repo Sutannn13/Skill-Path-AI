@@ -16,7 +16,6 @@ const protectedRoutePrefixes = [
   '/admin',
 ]
 
-const authRoutePrefixes = ['/login', '/register']
 const adminRoutePrefixes = ['/admin', '/api/admin']
 
 function matchesRoutePrefix(pathname: string, prefixes: string[]) {
@@ -79,15 +78,11 @@ export async function updateSupabaseSession(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname
 
-  if (user && matchesRoutePrefix(pathname, authRoutePrefixes)) {
-    const redirectUrl = request.nextUrl.clone()
-    redirectUrl.pathname = '/dashboard'
-    redirectUrl.search = ''
-
-    const redirectResponse = NextResponse.redirect(redirectUrl)
-    copyResponseCookies(response, redirectResponse)
-    return redirectResponse
-  }
+  // NOTE: we intentionally do NOT redirect an authenticated user away from
+  // /login or /register. Pressing "Sign In" must always present the login form
+  // and require fresh credentials — a session left active (closed tab without
+  // logging out) must not grant a free pass back in. The /login page clears any
+  // stale session on load.
 
   if (!user && matchesRoutePrefix(pathname, protectedRoutePrefixes)) {
     const redirectUrl = request.nextUrl.clone()

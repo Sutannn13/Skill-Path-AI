@@ -181,7 +181,16 @@ function NavItem({ href, icon: Icon, label, badge, isCollapsed = false }: NavIte
         )}
       />
 
-      <Icon className={cn('w-5 h-5 shrink-0', isActive && 'stroke-[3]')} />
+      <span
+        className={cn(
+          'flex h-8 w-8 shrink-0 items-center justify-center brutal-radius transition-colors',
+          isActive
+            ? 'bg-white brutal-border'
+            : 'border-2 border-transparent group-hover:border-black group-hover:bg-white'
+        )}
+      >
+        <Icon className={cn('w-[18px] h-[18px]', isActive && 'stroke-[3]')} />
+      </span>
       {!isCollapsed && (
         <>
           <span className="flex-1">{label}</span>
@@ -289,16 +298,24 @@ export function DesktopSidebar({ className, userProfile }: DesktopSidebarProps) 
 
       {/* Footer Zone */}
       <div className="p-4 border-t-3 border-black bg-cream-light">
-        {/* User Profile Mini */}
-        <div className="flex items-center gap-3 mb-3 p-2 bg-white brutal-border brutal-radius">
-          <div className="w-10 h-10 bg-blue brutal-border brutal-radius flex items-center justify-center">
+        {/* User Profile Mini — links to Settings */}
+        <Link
+          href="/settings"
+          className="group mb-3 flex items-center gap-3 bg-white p-2 brutal-border brutal-radius transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-brutal-sm focus-brutal-ring"
+        >
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center bg-blue brutal-border brutal-radius">
             <User className="h-5 w-5" aria-hidden="true" />
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-medium text-sm truncate">Career profile</p>
-            <p className="text-xs text-secondary truncate">{resolvedProfile.roleLabel ?? 'Developer'}</p>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-bold">Career profile</p>
+            <p className="truncate text-xs text-secondary">{resolvedProfile.roleLabel ?? 'Developer'}</p>
           </div>
-        </div>
+          {resolvedProfile.levelLabel && (
+            <span className="hud-label shrink-0 whitespace-nowrap bg-yellow px-2 py-0.5 text-[9px] brutal-border brutal-radius">
+              {resolvedProfile.levelLabel}
+            </span>
+          )}
+        </Link>
 
         {/* Powered by */}
         <p className="text-[10px] text-center text-tertiary">

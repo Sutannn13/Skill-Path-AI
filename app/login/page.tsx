@@ -35,15 +35,21 @@ export default function LoginPage() {
   const supabase = useMemo(() => createSupabaseBrowserClient(), [])
 
   useEffect(() => {
+    // Pressing "Sign In" must always require a fresh login. If a previous session
+    // is still active (e.g. the user closed the tab without logging out), clear it
+    // on arrival so a stale session can never grant a free pass back in.
     let isActive = true
-    const redirectAuthenticatedUser = async () => {
+    const clearStaleSession = async () => {
       if (!supabase) return
       const {
         data: { user },
       } = await supabase.auth.getUser()
-      if (isActive && user) router.replace('/dashboard')
+      if (isActive && user) {
+        await supabase.auth.signOut()
+        router.refresh()
+      }
     }
-    redirectAuthenticatedUser()
+    clearStaleSession()
     return () => {
       isActive = false
     }
@@ -89,24 +95,24 @@ export default function LoginPage() {
     setOauthLoading(provider)
     setError(null)
     try {
-      const availability = await getOAuthProviderAvailability(provider)
-      if (availability === 'disabled') {
-        setError(getDisabledOAuthProviderMessage(provider))
-        setOauthLoading(null)
-        return
-      }
       const { error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: { redirectTo: `${window.location.origin}/auth/callback` },
-      })
-      if (error) {
-        setError(error.message)
-        setOauthLoading(null)
-      }
-    } catch (err) {
-      setError('OAuth sign-in failed. Please try again.')
+      provider,
+      options: { 
+        redirectTo: `${window.location.origin}/auth/callback`,
+        queryParams: {
+          prompt: 'select_account', 
+        },
+      },
+    })
+    
+    if (error) {
+      setError(error.message)
       setOauthLoading(null)
     }
+  } catch (err) {
+    setError('OAuth sign-in failed. Please try again.')
+    setOauthLoading(null)
+  }
   }
 
   return (

@@ -47,6 +47,20 @@ import {
 } from '@/lib/roadmap/progress'
 import type { Roadmap, RoadmapResource, RoadmapTask, RoadmapTaskRequirementState, RoadmapWeek, SkillLevel, TargetRole, UserSkill } from '@/types'
 
+/** Role-based starter skill recommendations. Used as fallback when user has
+ *  a target role selected but no skills saved yet (pre-onboarding or
+ *  incomplete onboarding). Ensures "Recommended Skills to Learn" always shows
+ *  actionable content instead of a locked empty state. */
+const roleStarterRecommendations: Record<TargetRole, string[]> = {
+  'frontend-developer': ['React', 'TypeScript', 'Responsive UI'],
+  'backend-developer': ['Node.js', 'PostgreSQL', 'REST API'],
+  'fullstack-developer': ['React', 'Node.js', 'PostgreSQL'],
+  'ui-engineer': ['Design Systems', 'Accessibility', 'React'],
+  'mobile-developer': ['React Native', 'Mobile UI', 'REST API'],
+  'data-analyst': ['SQL', 'Python', 'Data Visualization'],
+}
+const defaultStarterRecommendations = ['TypeScript', 'React', 'Git']
+
 interface ProfileRow {
   full_name: string | null
   target_role: TargetRole | null
@@ -429,6 +443,9 @@ export default function DashboardPage() {
           })
 
           if (!targetRole || mappedUserSkills.length === 0) {
+            const fallbackRecs = targetRole
+              ? roleStarterRecommendations[targetRole] ?? defaultStarterRecommendations
+              : defaultStarterRecommendations
             if (isActive) {
               setState({
                 ...initialDashboardState,
@@ -443,8 +460,8 @@ export default function DashboardPage() {
                 careerReadiness: 0,
                 jobMatchScore: null,
                 weeklyProgress: 0,
-                nextRecommendedSkill: null,
-                recommendedSkills: [],
+                nextRecommendedSkill: fallbackRecs[0] ?? null,
+                recommendedSkills: fallbackRecs,
                 skillsCount: mappedUserSkills.length,
                 scoreNotice: 'Complete onboarding to calculate your score',
               })
@@ -580,338 +597,436 @@ export default function DashboardPage() {
             <PageScene variant="dashboard" />
 
             {state.error && (
-              <BrutalCard color="white" className="flex items-start gap-3 bg-red/10" animate={false}>
-                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-dark" aria-hidden="true" />
-                <div role="alert" aria-live="assertive">
-                  <p className="font-bold text-red-dark">Failed to load dashboard data</p>
-                  <p className="text-sm text-secondary break-words">{state.error}</p>
-                </div>
-              </BrutalCard>
+              <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+                <BrutalCard color="white" className="flex items-start gap-3 bg-red/10" animate={false}>
+                  <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-dark" aria-hidden="true" />
+                  <div role="alert" aria-live="assertive">
+                    <p className="font-bold text-red-dark">Failed to load dashboard data</p>
+                    <p className="text-sm text-secondary break-words">{state.error}</p>
+                  </div>
+                </BrutalCard>
+              </motion.div>
             )}
 
             {state.needsOnboarding && (
-              <BrutalCard color="yellow" shadow="lg" className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <Rocket className="w-5 h-5" aria-hidden="true" />
-                    <h2 className="font-display text-xl font-bold">Start Your Quest!</h2>
-                  </div>
-                  <p className="text-sm text-black/80">
-                    Complete your onboarding to unlock real score calculation and personalized recommendations.
-                  </p>
-                </div>
-                <Link href="/onboarding">
-                  <BrutalButton color="black">
-                    <Star className="h-4 w-4" aria-hidden="true" />
-                    Begin Onboarding
-                  </BrutalButton>
-                </Link>
-              </BrutalCard>
-            )}
-
-            {/* Hero HUD — cabinet bento */}
-            <CabinetCard className="p-6">
-              <div className="grid lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2 space-y-5">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-4">
-                      <div
-                        className="w-16 h-16 bg-yellow brutal-border brutal-radius flex items-center justify-center text-3xl shrink-0"
-                        role="img"
-                        aria-label="Player avatar"
-                      >
-                        🐱
-                      </div>
-                      <div className="min-w-0">
-                        <p className="hud-label text-[11px] text-on-dark-soft">Welcome back</p>
-                        <h2 className="font-display font-black text-2xl lg:text-3xl text-on-dark truncate">
-                          {welcomeName}
-                        </h2>
-                      </div>
-                    </div>
-                    <LevelChip level={playerLevel} onDark />
-                  </div>
-
-                  <XPBar
-                    value={state.careerReadiness}
-                    max={100}
-                    label="Career Power"
-                    accent="yellow"
-                    onDark
-                  />
-
-                  <div className="flex flex-wrap items-center gap-2">
-                    {state.streak > 0 && <StickerBadge variant="orange" label={`${state.streak} Day Streak`} size="sm" />}
-                    <StickerBadge
-                      variant={state.onboardingCompleted ? 'completed' : 'in-progress'}
-                      label={state.onboardingCompleted ? 'Onboarding Complete' : 'Onboarding Pending'}
-                      size="sm"
-                    />
-                    <StickerBadge variant="blue" label={state.targetRoleLabel} size="sm" />
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-3 pt-1">
-                    <Link href={nextBestAction.href}>
-                      <BrutalButton color="yellow" size="lg" className="focus-brutal-ring-invert w-full sm:w-auto">
-                        <nextBestAction.icon className="h-5 w-5" aria-hidden="true" />
-                        {nextBestAction.label}
-                      </BrutalButton>
-                    </Link>
-                    <p className="text-sm text-on-dark-soft">{nextBestAction.hint}</p>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <StatTile
-                    label="Career Power"
-                    value={state.careerReadiness}
-                    unit="%"
-                    icon={Flame}
-                    accent="pink"
-                    onDark
-                    glow
-                    hint={state.scoreNotice ?? undefined}
-                  />
-                  <StatTile
-                    label="Job Match"
-                    value={state.jobMatchScore ?? '--'}
-                    unit={state.jobMatchScore === null ? '' : '%'}
-                    icon={Target}
-                    accent="green"
-                    onDark
-                    glow
-                  />
-                </div>
-              </div>
-            </CabinetCard>
-
-            {/* Secondary stats — demoted light tiles */}
-            <Section title="Learning Health" helper="At a glance">
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatTile label="Skills" value={state.skillsCount} icon={Zap} accent="blue" />
-                <StatTile
-                  label="GitHub"
-                  value={state.githubScore === null ? 'N/A' : state.githubScore}
-                  unit={state.githubScore === null ? '' : '/100'}
-                  icon={GitBranch}
-                  accent="purple"
-                />
-                <StatTile
-                  label="Jobs Saved"
-                  value={state.isDemoMode ? savedJobsCount : 'Open'}
-                  icon={Briefcase}
-                  accent="orange"
-                />
-                <StatTile
-                  label="Streak"
-                  value={state.streak}
-                  unit={state.streak === 1 ? 'day' : 'days'}
-                  icon={Flame}
-                  accent="yellow"
-                />
-              </div>
-            </Section>
-
-            {/* Learning path + next power-up */}
-            <Section title="Your Progress" helper="Track your journey">
-              <Grid cols={2}>
-                <BrutalCard color="green" className="h-full">
-                  <div className="flex items-center justify-between mb-4 gap-2">
-                    <h3 className="font-display font-bold text-heading-sm flex items-center gap-2">
-                      <Calendar className="w-5 h-5" aria-hidden="true" />
-                      Learning Path
-                    </h3>
-                    <StickerBadge
-                      variant={state.hasActiveRoadmap ? 'in-progress' : 'blue'}
-                      label={state.hasActiveRoadmap ? 'Active' : 'Not Started'}
-                      size="sm"
-                    />
-                  </div>
-                  <XPBar value={state.roadmapProgress ?? 0} max={100} label="Roadmap Progress" accent="blue" />
-                  <div className="mt-4 flex items-center justify-between gap-2">
-                    <span className="text-sm text-black/80">
-                      {state.hasActiveRoadmap
-                        ? `${state.completedRoadmapTasks}/${state.totalRoadmapTasks} tasks completed`
-                        : 'No active roadmap yet'}
-                    </span>
-                    <Link href="/roadmap" className="rounded focus-brutal-ring">
-                      <span className="text-sm font-bold underline flex items-center gap-1">
-                        {state.hasActiveRoadmap ? 'Continue' : 'Build'} <ArrowRight className="w-4 h-4" aria-hidden="true" />
-                      </span>
-                    </Link>
-                  </div>
-                  {state.currentRoadmapTask && (
-                    <p className="mt-3 rounded-md border-2 border-black bg-white p-2 text-xs font-medium text-secondary">
-                      Next task: <span className="font-bold text-black">{state.currentRoadmapTask}</span>
-                    </p>
-                  )}
-                </BrutalCard>
-
-                <BrutalCard color="orange" className="h-full">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-display font-bold text-heading-sm flex items-center gap-2">
-                      <Zap className="w-5 h-5" aria-hidden="true" />
-                      Next Power-Up
-                    </h3>
-                  </div>
-                  <p className="text-2xl font-display font-bold mb-2">{state.nextRecommendedSkill ?? 'Complete onboarding first'}</p>
-                  <p className="text-sm text-black/80 mb-4">
-                    {state.nextRecommendedSkill
-                      ? 'Highest leverage skill based on your current profile.'
-                      : 'Skill recommendations appear after your onboarding and skill assessment are saved.'}
-                  </p>
-                  <Link href={state.nextRecommendedSkill ? `/skills?focus=${state.nextRecommendedSkill.toLowerCase().replace(/\s+/g, '-')}` : '/onboarding'}>
-                    <BrutalButton variant="outline" color="black" size="sm" className="w-full">
-                      {state.nextRecommendedSkill ? 'Update Skill Level' : 'Go to Onboarding'}
-                    </BrutalButton>
-                  </Link>
-                </BrutalCard>
-              </Grid>
-            </Section>
-
-            <Section title="Recommended Skills to Learn">
-              {state.recommendedSkills.length === 0 ? (
-                <BrutalCard color="white">
-                  <EmptyStateDoodle label="Add skills to unlock recommendations" />
-                </BrutalCard>
-              ) : (
-                <div className="flex flex-wrap gap-3">
-                  {state.recommendedSkills.map((skill, i) => (
-                    <Link key={skill} href={`/skills?focus=${skill.toLowerCase().replace(/\s+/g, '-')}`}>
-                      <BrutalCardHover
-                        color={['yellow', 'blue', 'pink'][i % 3] as 'yellow' | 'blue' | 'pink'}
-                        ariaLabel={`Improve ${skill}`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <Target className="w-4 h-4" aria-hidden="true" />
-                          <span className="font-bold">{skill}</span>
-                          <ArrowRight className="w-4 h-4" aria-hidden="true" />
-                        </div>
-                      </BrutalCardHover>
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </Section>
-
-            <Section title="Best Match Jobs">
-              <BrutalCard color="white" shadow="lg">
-                <div className="flex flex-col sm:flex-row gap-4 mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-pink brutal-border brutal-radius flex items-center justify-center shrink-0">
-                      <Briefcase className="w-6 h-6" aria-hidden="true" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-bold">Open Job Radar for {state.targetRoleLabel}</h3>
-                        <StickerBadge variant="blue" label="Active" size="sm" />
-                      </div>
-                      <p className="text-sm text-secondary">Jobs are ranked from your saved role and current level.</p>
-                    </div>
-                  </div>
-                  <div className="sm:ml-auto text-center">
-                    <span className="metric-mono text-3xl font-bold text-black">
-                      {state.jobMatchScore === null ? '--' : `${state.jobMatchScore}%`}
-                    </span>
-                    <p className="text-xs text-secondary">readiness</p>
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {(state.recommendedSkills.length > 0
-                    ? state.recommendedSkills
-                    : [state.targetRoleLabel, 'Junior', 'Internship']
-                  ).map((tag) => (
-                    <SkillBadge key={tag} name={tag} size="sm" />
-                  ))}
-                </div>
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <Link href="/jobs" className="flex-1">
-                    <BrutalButton color="blue" className="w-full">
-                      <Target className="w-4 h-4" aria-hidden="true" />
-                      Browse Jobs
-                    </BrutalButton>
-                  </Link>
-                  <Link href="/roadmap" className="flex-1">
-                    <BrutalButton variant="outline" color="black" className="w-full">
-                      <Rocket className="w-4 h-4" aria-hidden="true" />
-                      Build Roadmap
-                    </BrutalButton>
-                  </Link>
-                </div>
-              </BrutalCard>
-            </Section>
-
-            <Section title="GitHub Portfolio">
-              <BrutalCard color="purple" className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  <GitBranch className="w-8 h-8" aria-hidden="true" />
+              <motion.div initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }}>
+                <BrutalCard color="yellow" shadow="lg" className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between relative overflow-hidden">
+                  {/* Decorative corner accent */}
+                  <div className="absolute -top-6 -right-6 w-24 h-24 bg-orange/30 rounded-full blur-xl pointer-events-none" aria-hidden="true" />
                   <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-bold text-lg">Portfolio Score</h3>
-                      <StickerBadge variant="in-progress" label="Analyzing" size="sm" />
-                    </div>
-                    <p className="text-sm text-black/80">Based on your GitHub activity</p>
-                  </div>
-                </div>
-                <div className="text-center">
-                  <span className="metric-mono text-4xl font-bold">{state.githubScore ?? 0}</span>
-                  <span className="text-lg">/100</span>
-                </div>
-                <Link href="/github">
-                  <BrutalButton variant="outline" color="black" size="sm">
-                    Analyze
-                  </BrutalButton>
-                </Link>
-              </BrutalCard>
-            </Section>
-
-            <Section title="CV Analyzer">
-              <BrutalCard color="pink" className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  <ScanLine className="w-8 h-8" aria-hidden="true" />
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-bold text-lg">Audit CV Sebelum Melamar</h3>
-                      <StickerBadge variant="great-match" label="AI" size="sm" />
+                    <div className="flex items-center gap-2 mb-2">
+                      <Rocket className="w-5 h-5" aria-hidden="true" />
+                      <h2 className="font-display text-xl font-bold">Start Your Quest!</h2>
                     </div>
                     <p className="text-sm text-black/80">
-                      Unggah CV, lalu AI cek kecocokan role, ATS, dan kasih daftar revisi.
+                      Complete your onboarding to unlock real score calculation and personalized recommendations.
                     </p>
                   </div>
-                </div>
-                <Link href="/cv-analyzer">
-                  <BrutalButton color="black" size="sm">
-                    Scan CV
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </BrutalButton>
-                </Link>
-              </BrutalCard>
-            </Section>
+                  <Link href="/onboarding">
+                    <BrutalButton color="black">
+                      <Star className="h-4 w-4" aria-hidden="true" />
+                      Begin Onboarding
+                    </BrutalButton>
+                  </Link>
+                </BrutalCard>
+              </motion.div>
+            )}
 
-            <Section title="Recent Activity">
-              <div className="space-y-3">
-                {recentActivities.map((activity) => (
-                  <BrutalCard key={activity.id} color="white" shadow="sm" className="flex items-center gap-4 py-4">
-                    <div className="w-10 h-10 bg-green brutal-border brutal-radius flex items-center justify-center shrink-0">
-                      <activity.icon className="w-5 h-5 text-black" aria-hidden="true" />
+            {/* ──── Hero HUD — cabinet bento ──── */}
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15, duration: 0.5 }}>
+              <CabinetCard className="p-6">
+                <div className="grid lg:grid-cols-3 gap-6">
+                  <div className="lg:col-span-2 space-y-5">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-4">
+                        {/* Animated avatar ring */}
+                        <div className="relative">
+                          <div
+                            className="w-16 h-16 bg-yellow brutal-border brutal-radius flex items-center justify-center text-3xl shrink-0 relative z-10"
+                            role="img"
+                            aria-label="Player avatar"
+                          >
+                            🐱
+                          </div>
+                          <div className="absolute -inset-1 bg-gradient-to-br from-yellow via-orange to-pink rounded-2xl opacity-50 blur-sm -z-0 animate-pulse" aria-hidden="true" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="hud-label text-[11px] text-on-dark-soft">Welcome back</p>
+                          <h2 className="font-display font-black text-2xl lg:text-3xl text-on-dark truncate">
+                            {welcomeName}
+                          </h2>
+                        </div>
+                      </div>
+                      <LevelChip level={playerLevel} onDark />
+                    </div>
+
+                    <XPBar
+                      value={state.careerReadiness}
+                      max={100}
+                      label="Career Power"
+                      accent="yellow"
+                      onDark
+                    />
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      {state.streak > 0 && <StickerBadge variant="orange" label={`${state.streak} Day Streak`} size="sm" />}
+                      <StickerBadge
+                        variant={state.onboardingCompleted ? 'completed' : 'in-progress'}
+                        label={state.onboardingCompleted ? 'Onboarding Complete' : 'Onboarding Pending'}
+                        size="sm"
+                      />
+                      <StickerBadge variant="blue" label={state.targetRoleLabel} size="sm" />
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 pt-1">
+                      <Link href={nextBestAction.href}>
+                        <BrutalButton color="yellow" size="lg" className="focus-brutal-ring-invert w-full sm:w-auto">
+                          <nextBestAction.icon className="h-5 w-5" aria-hidden="true" />
+                          {nextBestAction.label}
+                        </BrutalButton>
+                      </Link>
+                      <p className="text-sm text-on-dark-soft">{nextBestAction.hint}</p>
+                    </div>
+                  </div>
+
+                  {/* Right stat panel with enhanced glow */}
+                  <div className="space-y-3">
+                    <motion.div whileHover={{ scale: 1.02 }} transition={{ type: 'spring', stiffness: 300 }}>
+                      <StatTile
+                        label="Career Power"
+                        value={state.careerReadiness}
+                        unit="%"
+                        icon={Flame}
+                        accent="pink"
+                        onDark
+                        glow
+                        hint={state.scoreNotice ?? undefined}
+                      />
+                    </motion.div>
+                    <motion.div whileHover={{ scale: 1.02 }} transition={{ type: 'spring', stiffness: 300 }}>
+                      <StatTile
+                        label="Job Match"
+                        value={state.jobMatchScore ?? '--'}
+                        unit={state.jobMatchScore === null ? '' : '%'}
+                        icon={Target}
+                        accent="green"
+                        onDark
+                        glow
+                      />
+                    </motion.div>
+                  </div>
+                </div>
+              </CabinetCard>
+            </motion.div>
+
+            {/* ──── Learning Health — enhanced bento stats ──── */}
+            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25, duration: 0.4 }}>
+              <Section title="Learning Health" helper="At a glance">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  {[
+                    { label: 'Skills', value: state.skillsCount, icon: Zap, accent: 'blue' as const, unit: undefined },
+                    { label: 'GitHub', value: state.githubScore === null ? 'N/A' : state.githubScore, icon: GitBranch, accent: 'purple' as const, unit: state.githubScore === null ? '' : '/100' },
+                    { label: 'Jobs Saved', value: state.isDemoMode ? savedJobsCount : 'Open', icon: Briefcase, accent: 'orange' as const, unit: undefined },
+                    { label: 'Streak', value: state.streak, icon: Flame, accent: 'yellow' as const, unit: state.streak === 1 ? 'day' : 'days' },
+                  ].map((stat, i) => (
+                    <motion.div
+                      key={stat.label}
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3 + i * 0.08, duration: 0.35 }}
+                    >
+                      <StatTile
+                        label={stat.label}
+                        value={stat.value}
+                        unit={stat.unit}
+                        icon={stat.icon}
+                        accent={stat.accent}
+                      />
+                    </motion.div>
+                  ))}
+                </div>
+              </Section>
+            </motion.div>
+
+            {/* ──── Your Progress — enhanced cards ──── */}
+            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35, duration: 0.4 }}>
+              <Section title="Your Progress" helper="Track your journey">
+                <Grid cols={2}>
+                  <BrutalCard color="green" className="h-full relative overflow-hidden">
+                    {/* Gradient accent */}
+                    <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-green via-blue to-green" aria-hidden="true" />
+                    <div className="flex items-center justify-between mb-4 gap-2 pt-1">
+                      <h3 className="font-display font-bold text-heading-sm flex items-center gap-2">
+                        <Calendar className="w-5 h-5" aria-hidden="true" />
+                        Learning Path
+                      </h3>
+                      <StickerBadge
+                        variant={state.hasActiveRoadmap ? 'in-progress' : 'blue'}
+                        label={state.hasActiveRoadmap ? 'Active' : 'Not Started'}
+                        size="sm"
+                      />
+                    </div>
+                    <XPBar value={state.roadmapProgress ?? 0} max={100} label="Roadmap Progress" accent="blue" />
+                    <div className="mt-4 flex items-center justify-between gap-2">
+                      <span className="text-sm text-black/80">
+                        {state.hasActiveRoadmap
+                          ? `${state.completedRoadmapTasks}/${state.totalRoadmapTasks} tasks completed`
+                          : 'No active roadmap yet'}
+                      </span>
+                      <Link href="/roadmap" className="rounded focus-brutal-ring">
+                        <span className="text-sm font-bold underline flex items-center gap-1">
+                          {state.hasActiveRoadmap ? 'Continue' : 'Build'} <ArrowRight className="w-4 h-4" aria-hidden="true" />
+                        </span>
+                      </Link>
+                    </div>
+                    {state.currentRoadmapTask && (
+                      <motion.p
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="mt-3 rounded-md border-2 border-black bg-white p-2 text-xs font-medium text-secondary"
+                      >
+                        Next task: <span className="font-bold text-black">{state.currentRoadmapTask}</span>
+                      </motion.p>
+                    )}
+                  </BrutalCard>
+
+                  <BrutalCard color="orange" className="h-full relative overflow-hidden">
+                    {/* Gradient accent */}
+                    <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-orange via-pink to-orange" aria-hidden="true" />
+                    <div className="flex items-center justify-between mb-4 pt-1">
+                      <h3 className="font-display font-bold text-heading-sm flex items-center gap-2">
+                        <Zap className="w-5 h-5" aria-hidden="true" />
+                        Next Power-Up
+                      </h3>
+                      {state.nextRecommendedSkill && (
+                        <StickerBadge variant="yellow" label="Suggested" size="sm" />
+                      )}
+                    </div>
+                    <p className="text-2xl font-display font-bold mb-2">{state.nextRecommendedSkill ?? 'Complete onboarding first'}</p>
+                    <p className="text-sm text-black/80 mb-4">
+                      {state.nextRecommendedSkill
+                        ? 'Highest leverage skill based on your current profile.'
+                        : 'Skill recommendations appear after your onboarding and skill assessment are saved.'}
+                    </p>
+                    <Link href={state.nextRecommendedSkill ? `/skills?focus=${state.nextRecommendedSkill.toLowerCase().replace(/\s+/g, '-')}` : '/onboarding'}>
+                      <BrutalButton variant="outline" color="black" size="sm" className="w-full">
+                        {state.nextRecommendedSkill ? 'Update Skill Level' : 'Go to Onboarding'}
+                      </BrutalButton>
+                    </Link>
+                  </BrutalCard>
+                </Grid>
+              </Section>
+            </motion.div>
+
+            {/* ──── Recommended Skills — interactive skill cards ──── */}
+            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4, duration: 0.4 }}>
+              <Section title="Recommended Skills to Learn">
+                {state.recommendedSkills.length === 0 ? (
+                  <BrutalCard color="white">
+                    <EmptyStateDoodle label="Add skills to unlock recommendations" />
+                  </BrutalCard>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    {state.recommendedSkills.map((skill, i) => {
+                      const colors = ['yellow', 'blue', 'pink'] as const
+                      const cardColor = colors[i % 3]
+                      const gradients = [
+                        'from-yellow/30 via-orange/10 to-transparent',
+                        'from-blue/30 via-purple/10 to-transparent',
+                        'from-pink/30 via-red/10 to-transparent',
+                      ]
+                      return (
+                        <motion.div
+                          key={skill}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.45 + i * 0.1, duration: 0.3 }}
+                          whileHover={{ y: -4 }}
+                        >
+                          <Link href={`/skills?focus=${skill.toLowerCase().replace(/\s+/g, '-')}`}>
+                            <BrutalCard color={cardColor} className="relative overflow-hidden group cursor-pointer h-full">
+                              {/* Background gradient */}
+                              <div className={`absolute inset-0 bg-gradient-to-br ${gradients[i % 3]} opacity-60`} aria-hidden="true" />
+                              <div className="relative z-10">
+                                <div className="flex items-center justify-between mb-3">
+                                  <div className="w-10 h-10 brutal-border brutal-radius bg-white/70 flex items-center justify-center">
+                                    <Target className="w-5 h-5" aria-hidden="true" />
+                                  </div>
+                                  <ArrowRight className="w-5 h-5 opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" aria-hidden="true" />
+                                </div>
+                                <p className="font-display font-bold text-lg mb-1">{skill}</p>
+                                <p className="text-xs text-black/60">
+                                  {state.onboardingCompleted ? 'Based on your skill gap' : 'Starter recommendation'}
+                                </p>
+                              </div>
+                            </BrutalCard>
+                          </Link>
+                        </motion.div>
+                      )
+                    })}
+                  </div>
+                )}
+              </Section>
+            </motion.div>
+
+            {/* ──── Best Match Jobs — enhanced visual ──── */}
+            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5, duration: 0.4 }}>
+              <Section title="Best Match Jobs">
+                <BrutalCard color="white" shadow="lg" className="relative overflow-hidden">
+                  {/* Top gradient bar */}
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue via-pink to-yellow" aria-hidden="true" />
+                  <div className="flex flex-col sm:flex-row gap-4 mb-4 pt-1">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 bg-pink brutal-border brutal-radius flex items-center justify-center shrink-0 relative">
+                        <Briefcase className="w-6 h-6" aria-hidden="true" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="font-bold">Open Job Radar for {state.targetRoleLabel}</h3>
+                          <StickerBadge variant="blue" label="Active" size="sm" />
+                        </div>
+                        <p className="text-sm text-secondary">Jobs are ranked from your saved role and current level.</p>
+                      </div>
+                    </div>
+                    <div className="sm:ml-auto text-center">
+                      <span className="metric-mono text-3xl font-bold text-black">
+                        {state.jobMatchScore === null ? '--' : `${state.jobMatchScore}%`}
+                      </span>
+                      <p className="text-xs text-secondary">readiness</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {(state.recommendedSkills.length > 0
+                      ? state.recommendedSkills
+                      : [state.targetRoleLabel, 'Junior', 'Internship']
+                    ).map((tag) => (
+                      <SkillBadge key={tag} name={tag} size="sm" />
+                    ))}
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <Link href="/jobs" className="flex-1">
+                      <BrutalButton color="blue" className="w-full">
+                        <Target className="w-4 h-4" aria-hidden="true" />
+                        Browse Jobs
+                      </BrutalButton>
+                    </Link>
+                    <Link href="/roadmap" className="flex-1">
+                      <BrutalButton variant="outline" color="black" className="w-full">
+                        <Rocket className="w-4 h-4" aria-hidden="true" />
+                        Build Roadmap
+                      </BrutalButton>
+                    </Link>
+                  </div>
+                </BrutalCard>
+              </Section>
+            </motion.div>
+
+            {/* ──── GitHub + CV Analyzer — side by side on large screens ──── */}
+            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.55, duration: 0.4 }}>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* GitHub Portfolio */}
+                <BrutalCard color="purple" className="relative overflow-hidden">
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple via-blue to-purple" aria-hidden="true" />
+                  <div className="flex items-start gap-4 mb-4 pt-1">
+                    <div className="w-12 h-12 brutal-border brutal-radius bg-white/30 flex items-center justify-center shrink-0">
+                      <GitBranch className="w-6 h-6" aria-hidden="true" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium">{activity.text}</p>
-                      <p className="text-sm text-secondary">{activity.time}</p>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-bold text-lg">Portfolio Score</h3>
+                        <StickerBadge variant="in-progress" label="Analyzing" size="sm" />
+                      </div>
+                      <p className="text-sm text-black/80">Based on your GitHub activity</p>
                     </div>
-                    <StickerBadge variant="completed" label="Done" size="sm" />
-                  </BrutalCard>
-                ))}
-                {recentActivities.length === 0 && (
-                  <BrutalCard color="white" shadow="sm">
-                    <p className="font-bold">No activity recorded yet</p>
-                    <p className="mt-1 text-sm text-secondary">
-                      Complete a roadmap task or save a job to build your activity history.
-                    </p>
-                  </BrutalCard>
-                )}
+                  </div>
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <span className="metric-mono text-4xl font-bold">{state.githubScore ?? 0}</span>
+                      <span className="text-lg">/100</span>
+                    </div>
+                    <Link href="/github">
+                      <BrutalButton variant="outline" color="black" size="sm">
+                        Analyze <ArrowRight className="ml-1 h-3 w-3" aria-hidden="true" />
+                      </BrutalButton>
+                    </Link>
+                  </div>
+                  {/* Progress bar visual */}
+                  <div className="h-2 brutal-border brutal-radius overflow-hidden bg-white/30">
+                    <motion.div
+                      className="h-full bg-white/70"
+                      initial={{ width: 0 }}
+                      animate={{ width: `${state.githubScore ?? 0}%` }}
+                      transition={{ duration: 0.8, ease: [0.2, 0, 0, 1] }}
+                    />
+                  </div>
+                </BrutalCard>
+
+                {/* CV Analyzer */}
+                <BrutalCard color="pink" className="relative overflow-hidden">
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-pink via-orange to-pink" aria-hidden="true" />
+                  <div className="flex items-start gap-4 mb-4 pt-1">
+                    <div className="w-12 h-12 brutal-border brutal-radius bg-white/30 flex items-center justify-center shrink-0">
+                      <ScanLine className="w-6 h-6" aria-hidden="true" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-bold text-lg">Audit CV Sebelum Melamar</h3>
+                        <StickerBadge variant="great-match" label="AI" size="sm" />
+                      </div>
+                      <p className="text-sm text-black/80">
+                        Unggah CV, lalu AI cek kecocokan role, ATS, dan kasih daftar revisi.
+                      </p>
+                    </div>
+                  </div>
+                  <Link href="/cv-analyzer" className="block">
+                    <BrutalButton color="black" size="sm" className="w-full">
+                      Scan CV
+                      <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
+                    </BrutalButton>
+                  </Link>
+                </BrutalCard>
               </div>
-            </Section>
+            </motion.div>
+
+            {/* ──── Recent Activity — timeline style ──── */}
+            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6, duration: 0.4 }}>
+              <Section title="Recent Activity">
+                <div className="space-y-3">
+                  {recentActivities.map((activity, i) => (
+                    <motion.div
+                      key={activity.id}
+                      initial={{ opacity: 0, x: -12 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.65 + i * 0.08, duration: 0.3 }}
+                    >
+                      <BrutalCard color="white" shadow="sm" className="flex items-center gap-4 py-4 relative">
+                        {/* Timeline dot */}
+                        {i < recentActivities.length - 1 && (
+                          <div className="absolute left-[29px] top-[52px] w-0.5 h-6 bg-black/15" aria-hidden="true" />
+                        )}
+                        <div className="w-10 h-10 bg-green brutal-border brutal-radius flex items-center justify-center shrink-0 relative z-10">
+                          <activity.icon className="w-5 h-5 text-black" aria-hidden="true" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium">{activity.text}</p>
+                          <p className="text-sm text-secondary">{activity.time}</p>
+                        </div>
+                        <StickerBadge variant="completed" label="Done" size="sm" />
+                      </BrutalCard>
+                    </motion.div>
+                  ))}
+                  {recentActivities.length === 0 && (
+                    <BrutalCard color="white" shadow="sm" className="relative overflow-hidden">
+                      <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-black/10 to-transparent" aria-hidden="true" />
+                      <p className="font-bold">No activity recorded yet</p>
+                      <p className="mt-1 text-sm text-secondary">
+                        Complete a roadmap task or save a job to build your activity history.
+                      </p>
+                    </BrutalCard>
+                  )}
+                </div>
+              </Section>
+            </motion.div>
           </div>
         </Container>
       </div>

@@ -318,9 +318,33 @@ export default function CvAnalyzerPage() {
 
           {/* Error */}
           {error && (
-            <BrutalCard color="red" className="mb-6 flex items-start gap-3">
-              <AlertCircle className="h-6 w-6 shrink-0" />
-              <p className="font-medium">{error}</p>
+            <BrutalCard color="red" className="mb-6">
+              <div className="flex items-start gap-3 mb-3">
+                <AlertCircle className="h-6 w-6 shrink-0 mt-0.5" />
+                <div className="min-w-0 flex-1">
+                  <p className="font-bold mb-1">Gagal menganalisis CV</p>
+                  <p className="text-sm text-black/80">{error}</p>
+                </div>
+              </div>
+              <div className="brutal-border brutal-radius bg-white/40 p-3 mt-3">
+                <p className="text-xs font-bold mb-2">Langkah troubleshooting:</p>
+                <ol className="text-xs space-y-1 list-decimal list-inside text-black/70">
+                  <li>Pastikan file bukan hasil scan/foto (harus berisi teks yang bisa di-copy)</li>
+                  <li>Coba buka file di komputer, select-all text, lalu paste ke file .txt dan unggah ulang</li>
+                  <li>Ekspor ulang dari Word / Google Docs ke PDF</li>
+                  <li>Pastikan file tidak dilindungi password</li>
+                </ol>
+              </div>
+              <div className="mt-3">
+                <BrutalButton
+                  variant="outline"
+                  color="black"
+                  size="sm"
+                  onClick={() => { setError(null); setFile(null) }}
+                >
+                  Coba lagi
+                </BrutalButton>
+              </div>
             </BrutalCard>
           )}
 

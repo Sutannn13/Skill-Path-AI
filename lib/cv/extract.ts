@@ -156,9 +156,18 @@ export async function extractCvText(
   } catch (error) {
     if (error instanceof CvExtractionError) throw error
     console.error('[CV] extraction failed:', error instanceof Error ? error.message : 'unknown error')
+    // Attempt to detect likely scan/image-only PDF: large file but nearly zero readable text.
+    const errorMsg = error instanceof Error ? error.message.toLowerCase() : ''
+    const likelyEncrypted = errorMsg.includes('encrypt') || errorMsg.includes('password')
+    if (likelyEncrypted) {
+      throw new CvExtractionError(
+        'PARSE_FAILED',
+        'File tampaknya dilindungi password atau terenkripsi. Buka proteksi file, lalu ekspor ulang ke PDF biasa dan unggah lagi.'
+      )
+    }
     throw new CvExtractionError(
       'PARSE_FAILED',
-      'Tidak bisa membaca isi file. Pastikan file tidak terkunci/terenkripsi lalu coba lagi.'
+      'Tidak bisa membaca isi file. Kemungkinan penyebab: (1) PDF hasil scan/foto tanpa teks, (2) file rusak, atau (3) format tidak standar. Coba ekspor ulang CV dari Word/Google Docs ke PDF, atau unggah versi DOCX/TXT.'
     )
   }
 

@@ -30,8 +30,37 @@ const silkscreen = Silkscreen({
   display: 'swap',
 })
 
+// Resolve the canonical site origin for metadata. A malformed NEXT_PUBLIC_APP_URL
+// (missing scheme, stray quotes/spaces, or the whole "KEY=value" pasted in) must never
+// crash the production build, so each candidate is validated and we fall back through
+// Vercel-provided hosts to localhost.
+function resolveSiteUrl(): URL {
+  const candidates = [
+    process.env.NEXT_PUBLIC_APP_URL,
+    process.env.VERCEL_PROJECT_PRODUCTION_URL,
+    process.env.VERCEL_URL,
+  ]
+
+  for (const candidate of candidates) {
+    const value = candidate?.trim()
+    if (!value) continue
+    try {
+      return new URL(value)
+    } catch {
+      try {
+        // Tolerate a bare host like "example.vercel.app" by assuming https.
+        return new URL(`https://${value}`)
+      } catch {
+        // Ignore this malformed candidate and try the next one.
+      }
+    }
+  }
+
+  return new URL('http://localhost:3000')
+}
+
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
+  metadataBase: resolveSiteUrl(),
   title: 'SkillPath - Career Operating System for Developers',
   description: 'Find your developer career path before you waste months guessing. SkillPath checks your skills, compares them with real jobs, builds your learning roadmap, and tracks your progress every week.',
   icons: {

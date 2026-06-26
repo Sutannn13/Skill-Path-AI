@@ -21,6 +21,7 @@ import {
   ScanLine,
   ChevronRight,
 } from 'lucide-react'
+import { Avatar } from '@/components/ui/avatar'
 
 // ============================================
 // SIDEBAR v2 - Command Center Design
@@ -35,7 +36,10 @@ interface SidebarProgressWidgetProps {
   totalTasks?: number
 }
 
-export interface SidebarUserProfile extends SidebarProgressWidgetProps {}
+export interface SidebarUserProfile extends SidebarProgressWidgetProps {
+  fullName?: string | null
+  avatarUrl?: string | null
+}
 
 const EMPTY_SIDEBAR_PROFILE: SidebarUserProfile = {
   roleLabel: 'Developer',
@@ -44,6 +48,8 @@ const EMPTY_SIDEBAR_PROFILE: SidebarUserProfile = {
   streak: 0,
   completedTasks: 0,
   totalTasks: 0,
+  fullName: null,
+  avatarUrl: null,
 }
 
 function useResolvedSidebarProfile(userProfile?: SidebarUserProfile) {
@@ -313,9 +319,11 @@ export function DesktopSidebar({ className, userProfile }: DesktopSidebarProps) 
           href="/settings"
           className="group mb-3 flex items-center gap-3 bg-white p-2.5 brutal-border brutal-radius transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-brutal-sm focus-brutal-ring"
         >
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center bg-gradient-to-br from-blue to-purple brutal-border brutal-radius shadow-[2px_2px_0_0_rgba(0,0,0,0.9)]">
-            <User className="h-5 w-5" aria-hidden="true" />
-          </div>
+          <Avatar
+            avatarUrl={resolvedProfile.avatarUrl}
+            initials={resolvedProfile.fullName ? resolvedProfile.fullName.substring(0, 2).toUpperCase() : 'U'}
+            size="md"
+          />
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-bold leading-tight">Career profile</p>
             <p className="truncate text-xs text-secondary">{resolvedProfile.roleLabel ?? 'Developer'}</p>

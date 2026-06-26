@@ -1,7 +1,7 @@
 'use client'
 
-import { useRef, useState } from 'react'
-import { motion } from 'framer-motion'
+import { useRef, useState, useCallback } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { AppShell, Container, GradientBackground } from '@/components/layout'
 import { DashboardHeader } from '@/components/layout/dashboard-header'
 import { BrutalCard, BrutalButton, ScoreMeter, StickerBadge } from '@/components/brutal'
@@ -13,6 +13,13 @@ import { ExperienceLevel } from '@/lib/constants/experience'
 import { CvAnalysis, CvAnalysisResponse, CvDraft, CvImproveResponse, CvLink } from '@/lib/cv/types'
 import { ImprovedCvView } from '@/components/cv/improved-cv-view'
 import { CoverLetterView } from '@/components/cv/cover-letter-view'
+import {
+  ANALYSIS_STEPS,
+  initialStepStates,
+  type AnalysisStepEvent,
+  type AnalysisStepState,
+  type StepStatus,
+} from '@/lib/cv/stream-progress'
 import {
   ScanLine,
   UploadCloud,
@@ -30,6 +37,7 @@ import {
   Linkedin,
   Globe,
   Wand2,
+  Clock,
 } from 'lucide-react'
 
 const MAX_BYTES = 5 * 1024 * 1024
@@ -82,6 +90,141 @@ const LINK_LABEL: Record<CvLink['type'], string> = {
   other: 'Tautan',
 }
 
+// ---------------------------------------------------------------------------
+// Step progress icon
+// ---------------------------------------------------------------------------
+const STEP_ICON: Record<StepStatus, typeof CheckCircle2> = {
+  pending: Clock,
+  running: Loader2,
+  done: CheckCircle2,
+  error: XCircle,
+}
+const STEP_COLOR: Record<StepStatus, string> = {
+  pending: 'text-gray-400',
+  running: 'text-pink animate-spin',
+  done: 'text-green',
+  error: 'text-red',
+}
+
+// ---------------------------------------------------------------------------
+// Analysis Progress Component
+// ---------------------------------------------------------------------------
+function AnalysisProgress({
+  steps,
+  hasError,
+}: {
+  steps: AnalysisStepState[]
+  hasError: boolean
+}) {
+  const doneCount = steps.filter((s) => s.status === 'done').length
+  const total = steps.length
+  const pct = Math.round((doneCount / total) * 100)
+
+  return (
+    <BrutalCard color="black" className="mb-6">
+      {/* Progress bar */}
+      <div className="mb-5">
+        <div className="mb-2 flex items-center justify-between">
+          <p className="text-sm font-bold text-white">
+            {hasError ? 'Terjadi kesalahan' : doneCount === total ? 'Analisis selesai!' : 'Menganalisis CV...'}
+          </p>
+          <p className="text-sm font-medium text-white/70">{pct}%</p>
+        </div>
+        <div className="h-3 w-full overflow-hidden rounded-full bg-white/20">
+          <motion.div
+            className={`h-full rounded-full ${hasError ? 'bg-red' : 'bg-pink'}`}
+            initial={{ width: 0 }}
+            animate={{ width: `${pct}%` }}
+            transition={{ duration: 0.4, ease: 'easeOut' }}
+          />
+        </div>
+      </div>
+
+      {/* Step list */}
+      <div className="space-y-2">
+        {steps.map((step) => {
+          const Icon = STEP_ICON[step.status]
+          return (
+            <motion.div
+              key={step.step}
+              initial={{ opacity: 0.5, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.25, delay: step.step * 0.05 }}
+              className="flex items-center gap-3"
+            >
+              <Icon className={`h-5 w-5 shrink-0 ${STEP_COLOR[step.status]}`} />
+              <span
+                className={`text-sm font-medium ${
+                  step.status === 'done'
+                    ? 'text-green'
+                    : step.status === 'running'
+                      ? 'text-white'
+                      : step.status === 'error'
+                        ? 'text-red'
+                        : 'text-white/50'
+                }`}
+              >
+                {step.label}
+              </span>
+              {step.status === 'error' && step.error && (
+                <span className="ml-2 text-xs text-red/80">— {step.error}</span>
+              )}
+            </motion.div>
+          )
+        })}
+      </div>
+    </BrutalCard>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// NDJSON stream reader
+// ---------------------------------------------------------------------------
+
+async function readNdjsonStream(
+  reader: ReadableStreamDefaultReader<Uint8Array>,
+  onEvent: (event: AnalysisStepEvent) => void
+): Promise<void> {
+  const decoder = new TextDecoder()
+  let buffer = ''
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    buffer += decoder.decode(value, { stream: true })
+
+    // Process complete lines
+    const lines = buffer.split('\n')
+    buffer = lines.pop() ?? '' // keep the incomplete last line
+
+    for (const line of lines) {
+      const trimmed = line.trim()
+      if (!trimmed) continue
+      try {
+        const event = JSON.parse(trimmed) as AnalysisStepEvent
+        onEvent(event)
+      } catch {
+        // Malformed line — skip silently.
+        console.warn('[CV] Skipped malformed NDJSON line:', trimmed)
+      }
+    }
+  }
+
+  // Process any remaining buffer content
+  if (buffer.trim()) {
+    try {
+      const event = JSON.parse(buffer.trim()) as AnalysisStepEvent
+      onEvent(event)
+    } catch {
+      // Ignore
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Page component
+// ---------------------------------------------------------------------------
+
 export default function CvAnalyzerPage() {
   const [file, setFile] = useState<File | null>(null)
   const [targetRole, setTargetRole] = useState<TargetRole>('frontend-developer')
@@ -92,6 +235,10 @@ export default function CvAnalyzerPage() {
   const [error, setError] = useState<string | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Streaming progress state
+  const [steps, setSteps] = useState<AnalysisStepState[]>([])
+  const [showProgress, setShowProgress] = useState(false)
 
   // Extracted CV body + links, reused by improve + cover letter without re-upload.
   const [cvText, setCvText] = useState<string>('')
@@ -115,6 +262,31 @@ export default function CvAnalyzerPage() {
     setFile(selected)
   }
 
+  const handleStepEvent = useCallback((event: AnalysisStepEvent) => {
+    setSteps((prev) =>
+      prev.map((s) =>
+        s.step === event.step
+          ? {
+              ...s,
+              status: event.status === 'running' ? 'running' : event.status === 'done' ? 'done' : 'error',
+              error: event.error,
+            }
+          : s
+      )
+    )
+
+    // When the final result arrives, set the analysis state.
+    if (event.result) {
+      const data = event.result
+      setAnalysis(data.analysis)
+      setSource(data.meta.source)
+      setCvText(data.extracted.text)
+      setCvLinks(data.extracted.links)
+      setAnalyzedRole(data.meta.targetRole)
+      setAnalyzedLevel(data.meta.experienceLevel)
+    }
+  }, [])
+
   const analyze = async () => {
     if (!file) {
       setError('Pilih file CV terlebih dahulu (PDF, DOCX, atau TXT).')
@@ -125,12 +297,13 @@ export default function CvAnalyzerPage() {
     setError(null)
     setAnalysis(null)
     setSource(null)
-    // Reset downstream artifacts tied to the previous CV.
     setDraft(null)
     setImproveError(null)
     setShowCoverLetter(false)
     setCvText('')
     setCvLinks([])
+    setSteps(initialStepStates())
+    setShowProgress(true)
 
     try {
       const formData = new FormData()
@@ -138,27 +311,50 @@ export default function CvAnalyzerPage() {
       formData.append('targetRole', targetRole)
       formData.append('experienceLevel', experienceLevel)
 
-      const response = await fetch('/api/cv/analyze', { method: 'POST', body: formData })
-      const data = (await response.json().catch(() => null)) as CvAnalysisResponse | { message?: string; error?: string } | null
+      const response = await fetch('/api/cv/analyze', {
+        method: 'POST',
+        body: formData,
+        headers: { Accept: 'application/x-ndjson' },
+      })
 
-      if (!response.ok || !data || !('analysis' in data)) {
-        const message =
-          (data && 'message' in data && data.message) ||
-          (data && 'error' in data && data.error) ||
-          'Gagal menganalisis CV. Silakan coba lagi.'
-        throw new Error(message)
+      const responseContentType = response.headers.get('content-type') || ''
+
+      if (responseContentType.includes('application/x-ndjson') && response.body) {
+        // ── Streaming mode ──────────────────────────────────────────
+        const reader = response.body.getReader()
+        await readNdjsonStream(reader, handleStepEvent)
+      } else {
+        // ── Fallback: classic JSON ──────────────────────────────────
+        const data = (await response.json().catch(() => null)) as
+          | CvAnalysisResponse
+          | { message?: string; error?: string }
+          | null
+
+        if (!response.ok || !data || !('analysis' in data)) {
+          const message =
+            (data && 'message' in data && data.message) ||
+            (data && 'error' in data && data.error) ||
+            'Gagal menganalisis CV. Silakan coba lagi.'
+          throw new Error(message)
+        }
+
+        // Mark all steps as done instantly
+        setSteps(
+          initialStepStates().map((s) => ({ ...s, status: 'done' as StepStatus }))
+        )
+        setAnalysis(data.analysis)
+        setSource(data.meta.source)
+        setCvText(data.extracted.text)
+        setCvLinks(data.extracted.links)
+        setAnalyzedRole(data.meta.targetRole)
+        setAnalyzedLevel(data.meta.experienceLevel)
       }
-
-      setAnalysis(data.analysis)
-      setSource(data.meta.source)
-      setCvText(data.extracted.text)
-      setCvLinks(data.extracted.links)
-      setAnalyzedRole(data.meta.targetRole)
-      setAnalyzedLevel(data.meta.experienceLevel)
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'Gagal menganalisis CV. Silakan coba lagi.')
     } finally {
       setIsAnalyzing(false)
+      // Keep progress visible briefly after completion, then let results take over.
+      setTimeout(() => setShowProgress(false), 1200)
     }
   }
 
@@ -193,6 +389,8 @@ export default function CvAnalyzerPage() {
 
   const verdictStyle = analysis ? VERDICT_STYLES[analysis.verdict] : null
   const VerdictIcon = verdictStyle?.icon ?? CheckCircle2
+
+  const hasStepError = steps.some((s) => s.status === 'error')
 
   return (
     <AppShell showBottomNav={true}>
@@ -315,6 +513,20 @@ export default function CvAnalyzerPage() {
               </div>
             </div>
           </BrutalCard>
+
+          {/* Streaming progress */}
+          <AnimatePresence>
+            {(isAnalyzing || showProgress) && steps.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.3 }}
+              >
+                <AnalysisProgress steps={steps} hasError={hasStepError} />
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Error */}
           {error && (

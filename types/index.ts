@@ -45,6 +45,7 @@ export type StudyTime = '30min' | '1hour' | '2hours' | '4hours'
 export interface AuthProfile {
   id: string
   fullName: string | null
+  avatarUrl: string | null
   role: UserRole
   targetRole: TargetRole | null
   currentLevel: CurrentLevel | null
@@ -58,6 +59,7 @@ export interface AuthProfile {
 
 export interface UserProfile {
   id?: string
+  avatarUrl?: string | null
   targetRole: TargetRole | null
   currentLevel: CurrentLevel | null
   goal: GoalType | null

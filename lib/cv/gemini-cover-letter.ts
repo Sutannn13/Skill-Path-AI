@@ -5,6 +5,7 @@ import { getRoleById } from '@/lib/constants/roles'
 import { ROLE_KEYWORDS, findKeywords } from './role-expectations'
 import { CoverLetter } from './types'
 import { callGeminiJson, sanitizeForPrompt } from './gemini-client'
+import { ATS_COVER_LETTER_DIRECTIVE } from './ats-prompt'
 
 const coverLetterSchema = z.object({
   recipientLines: z.array(z.string().min(1).max(160)).max(4).default([]),
@@ -32,6 +33,8 @@ function buildPrompt(input: {
   const company = input.company?.trim()
 
   return `You are an expert career coach writing a complete, professional, well-structured cover letter for a candidate, grounded ONLY in their actual CV. Follow standard formal cover-letter conventions.
+
+${ATS_COVER_LETTER_DIRECTIVE}
 
 TARGET POSITION: ${position}
 ${company ? `TARGET COMPANY: ${company}` : 'TARGET COMPANY: (not specified — keep it role-focused, do not invent a company name)'}

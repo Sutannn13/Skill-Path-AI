@@ -12,6 +12,7 @@ import type {
 const PROFILE_COLUMNS = [
   'id',
   'full_name',
+  'avatar_url',
   'role',
   'target_role',
   'current_level',
@@ -26,6 +27,7 @@ const PROFILE_COLUMNS = [
 interface ProfileRow {
   id: string
   full_name: string | null
+  avatar_url: string | null
   role: string | null
   target_role: TargetRole | null
   current_level: CurrentLevel | null
@@ -56,6 +58,7 @@ function mapProfile(row: ProfileRow): AuthProfile {
   return {
     id: row.id,
     fullName: row.full_name,
+    avatarUrl: row.avatar_url,
     role: isUserRole(row.role) ? row.role : 'user',
     targetRole: row.target_role,
     currentLevel: row.current_level,

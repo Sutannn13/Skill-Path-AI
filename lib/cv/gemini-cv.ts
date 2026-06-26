@@ -9,6 +9,7 @@ import {
 import { ROLE_KEYWORDS, LEVEL_EXPECTATIONS, findKeywords } from './role-expectations'
 import { CvLink } from './links'
 import { CvAnalysis } from './types'
+import { ATS_FORMAT_DIRECTIVE } from './ats-prompt'
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY
 const GEMINI_TIMEOUT_MS = 20000
@@ -126,6 +127,8 @@ GROUNDED KEYWORD SCAN (computed from the actual CV text, trust these facts):
 DETECTED HYPERLINKS (extracted from the CV's real link annotations, trust these):
 ${describeLinks(input.links ?? [])}
 
+${ATS_FORMAT_DIRECTIVE}
+
 INSTRUCTIONS:
 - Audit the CV ONLY for fitness to apply as a ${roleLabel} at ${levelLabel} level.
 - Be specific and reference what is actually in the CV. Do NOT invent experience the candidate does not have.
@@ -134,7 +137,7 @@ INSTRUCTIONS:
 - "issues" must be concrete problems with an actionable "fix" each. "revisions" are short, ordered, copy-paste-ready instructions (e.g. "Ganti 'mengerjakan tugas' jadi 'membangun fitur X yang menaikkan retensi 20%'").
 - "sections" should cover: Kontak, Ringkasan, Pengalaman, Pendidikan, Skill, Proyek, Tautan (mark present/absent honestly).
 - Comment on the detected hyperlinks: for technical roles, note if GitHub/portfolio is missing; if a portfolio link exists, treat it as a strength.
-- "ats" score reflects machine-readability (clear sections, no tables/images-as-text, contact info parseable).
+- "ats" score MUST reflect compliance with the ATS formatting rules above (clear sections, single-column, no tables/images-as-text, contact info parseable, standard headings, action-verb bullets).
 - "overallScore" 0-100 reflects readiness to apply for this specific role and level.
 
 CV TEXT:

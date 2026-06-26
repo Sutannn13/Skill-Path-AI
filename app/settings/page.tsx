@@ -12,8 +12,10 @@ import { resetOnboarding as resetLocalOnboarding, initializeUserProfile, saveUse
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser'
 import { CURRENT_LEVELS, STUDY_TIMES, TARGET_ROLES } from '@/lib/constants'
 import { CurrentLevel, StudyTime, TargetRole } from '@/types'
-import { User, Bell, Shield, Palette, Save, Github, ExternalLink, RefreshCw, AlertCircle, Settings } from 'lucide-react'
-
+import { useRef } from 'react'
+import { User, Bell, Shield, Palette, Save, Github, ExternalLink, RefreshCw, AlertCircle, Settings, Upload, Trash2 } from 'lucide-react'
+import { uploadAvatarAction, deleteAvatarAction } from '@/app/actions/profile'
+import { Avatar } from '@/components/ui/avatar'
 const settingsSections = [
   { id: 'profile', label: 'Profile', icon: User },
   { id: 'notifications', label: 'Notifications', icon: Bell },
@@ -23,6 +25,7 @@ const settingsSections = [
 
 interface ProfileRow {
   full_name: string | null
+  avatar_url: string | null
   target_role: TargetRole | null
   current_level: CurrentLevel | null
   study_time: StudyTime | null
@@ -32,6 +35,7 @@ interface ProfileRow {
 
 interface ProfileFormState {
   fullName: string
+  avatarUrl: string | null
   email: string
   githubUsername: string
   targetRole: TargetRole | ''
@@ -48,6 +52,7 @@ type ResetConfirmationStep = 'onboarding' | 'skills' | null
 
 const initialProfileForm: ProfileFormState = {
   fullName: '',
+  avatarUrl: null,
   email: '',
   githubUsername: '',
   targetRole: '',
@@ -67,6 +72,8 @@ export default function SettingsPage() {
   const [profileForm, setProfileForm] = useState<ProfileFormState>(initialProfileForm)
   const [status, setStatus] = useState<SettingsStatus | null>(null)
   const [resetConfirmationStep, setResetConfirmationStep] = useState<ResetConfirmationStep>(null)
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     let isActive = true
@@ -88,7 +95,7 @@ export default function SettingsPage() {
         } else if (user) {
           const { data: profile, error: profileError } = await supabase
             .from('profiles')
-            .select('full_name, target_role, current_level, study_time, github_username, onboarding_completed')
+            .select('full_name, avatar_url, target_role, current_level, study_time, github_username, onboarding_completed')
             .eq('id', user.id)
             .maybeSingle()
 
@@ -107,6 +114,7 @@ export default function SettingsPage() {
             setIsDemoMode(false)
             setProfileForm({
               fullName: typedProfile?.full_name ?? '',
+              avatarUrl: typedProfile?.avatar_url ?? null,
               email: user.email ?? '',
               githubUsername: typedProfile?.github_username ?? '',
               targetRole: typedProfile?.target_role ?? '',
@@ -125,6 +133,7 @@ export default function SettingsPage() {
         setIsDemoMode(true)
         setProfileForm({
           fullName: '',
+          avatarUrl: null,
           email: '',
           githubUsername: localProfile.githubUsername ?? '',
           targetRole: localProfile.targetRole ?? '',
@@ -273,6 +282,116 @@ export default function SettingsPage() {
   const roleLabel = TARGET_ROLES.find((r) => r.id === profileForm.targetRole)?.label ?? ''
   const levelLabel = CURRENT_LEVELS.find((l) => l.id === profileForm.currentLevel)?.label ?? ''
 
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      setStatus({ type: 'error', message: 'Format file tidak didukung. Gunakan JPG, PNG, atau WEBP.' })
+      return
+    }
+
+    setIsUploadingAvatar(true)
+    setStatus(null)
+
+    try {
+      // Client-side compression using Canvas
+      const compressedFile = await compressImage(file, 512, 512, 0.8)
+      
+      if (compressedFile.size > 500 * 1024) {
+        setStatus({ type: 'error', message: `Ukuran gambar maksimal 500 KB. Punyamu ${Math.round(compressedFile.size / 1024)} KB.` })
+        setIsUploadingAvatar(false)
+        return
+      }
+
+      const formData = new FormData()
+      formData.append('avatar', compressedFile)
+
+      const result = await uploadAvatarAction(formData)
+
+      if (result.success && result.avatarUrl) {
+        setProfileForm((prev) => ({ ...prev, avatarUrl: result.avatarUrl }))
+        setStatus({ type: 'success', message: 'Foto profil berhasil diperbarui.' })
+      } else {
+        setStatus({ type: 'error', message: result.error || 'Gagal mengunggah foto.' })
+      }
+    } catch (err: any) {
+      setStatus({ type: 'error', message: err.message || 'Terjadi kesalahan saat mengompresi gambar.' })
+    } finally {
+      setIsUploadingAvatar(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  const handleDeleteAvatar = async () => {
+    setIsUploadingAvatar(true)
+    setStatus(null)
+    try {
+      const result = await deleteAvatarAction()
+      if (result.success) {
+        setProfileForm((prev) => ({ ...prev, avatarUrl: null }))
+        setStatus({ type: 'success', message: 'Foto profil berhasil dihapus.' })
+      } else {
+        setStatus({ type: 'error', message: result.error || 'Gagal menghapus foto.' })
+      }
+    } catch (err: any) {
+      setStatus({ type: 'error', message: err.message || 'Terjadi kesalahan saat menghapus gambar.' })
+    } finally {
+      setIsUploadingAvatar(false)
+    }
+  }
+
+  // Simple image compression helper
+  const compressImage = (file: File, maxWidth: number, maxHeight: number, quality: number): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      const img = new window.Image()
+      img.src = URL.createObjectURL(file)
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        let width = img.width
+        let height = img.height
+
+        if (width > height) {
+          if (width > maxWidth) {
+            height = Math.round((height *= maxWidth / width))
+            width = maxWidth
+          }
+        } else {
+          if (height > maxHeight) {
+            width = Math.round((width *= maxHeight / height))
+            height = maxHeight
+          }
+        }
+
+        canvas.width = width
+        canvas.height = height
+        const ctx = canvas.getContext('2d')
+        if (!ctx) {
+          reject(new Error('Canvas not supported'))
+          return
+        }
+        ctx.drawImage(img, 0, 0, width, height)
+
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              const compressedFile = new File([blob], file.name, {
+                type: file.type,
+                lastModified: Date.now(),
+              })
+              resolve(compressedFile)
+            } else {
+              reject(new Error('Canvas to Blob failed'))
+            }
+          },
+          file.type,
+          quality
+        )
+      }
+      img.onerror = (error) => reject(error)
+    })
+  }
+
   return (
     <AppShell showBottomNav={true}>
       <GradientBackground />
@@ -382,10 +501,42 @@ export default function SettingsPage() {
 
                     <div className="space-y-6">
                       <div className="flex flex-col gap-4 brutal-border brutal-radius bg-cream-light p-4 sm:flex-row sm:items-center">
-                        <div className="flex h-20 w-20 shrink-0 items-center justify-center bg-yellow brutal-border brutal-radius shadow-brutal-sm">
-                          <span className="text-3xl font-black">{initials}</span>
+                        <div className="flex shrink-0 items-center gap-4 flex-col sm:flex-row">
+                          <Avatar avatarUrl={profileForm.avatarUrl} initials={initials} size="xl" />
+                          <div className="flex flex-col gap-2">
+                            <input
+                              type="file"
+                              accept="image/png, image/jpeg, image/webp"
+                              className="hidden"
+                              ref={fileInputRef}
+                              onChange={handleAvatarChange}
+                              disabled={isUploadingAvatar}
+                            />
+                            <BrutalButton
+                              variant="outline"
+                              color="blue"
+                              size="sm"
+                              className="w-full text-xs"
+                              disabled={isUploadingAvatar || isDemoMode}
+                              onClick={() => fileInputRef.current?.click()}
+                            >
+                              <Upload className="w-3 h-3 mr-1.5" />
+                              {isUploadingAvatar ? 'Mengunggah...' : 'Ubah Foto'}
+                            </BrutalButton>
+                            {profileForm.avatarUrl && (
+                              <button
+                                type="button"
+                                disabled={isUploadingAvatar}
+                                onClick={handleDeleteAvatar}
+                                className="flex items-center justify-center text-xs text-red hover:underline font-medium"
+                              >
+                                <Trash2 className="w-3 h-3 mr-1" />
+                                Hapus foto
+                              </button>
+                            )}
+                          </div>
                         </div>
-                        <div className="min-w-0 flex-1">
+                        <div className="min-w-0 flex-1 sm:ml-4 border-t-2 sm:border-t-0 sm:border-l-2 border-black/10 pt-4 sm:pt-0 sm:pl-6 mt-2 sm:mt-0">
                           <p className="hud-label text-[10px] text-secondary">Akun</p>
                           <p className="truncate font-display text-lg font-bold">
                             {profileForm.fullName || 'Lengkapi nama Anda'}

@@ -2,10 +2,33 @@
 const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ['three'],
-  // Keep heavy server-only document parsers out of the bundle. pdf-parse pulls in
-  // pdfjs-dist (dynamic requires) and mammoth ships Node-only deps; bundling them
-  // breaks the Next.js server build.
-  serverExternalPackages: ['pdf-parse', 'mammoth'],
+  // Keep heavy server-only document parsers out of the bundle.
+  // - pdf-parse: kept for safety even though we no longer import it directly.
+  // - pdfjs-dist: our direct dependency for PDF extraction; must not be bundled
+  //   because it contains dynamic requires and optional native deps.
+  // - mammoth: Node-only deps; bundling breaks the server build.
+  // - canvas / @napi-rs/canvas: native binaries that pdfjs-dist optionally
+  //   requires; must be external so the bundler does not choke on them.
+  serverExternalPackages: [
+    'pdf-parse',
+    'pdfjs-dist',
+    'mammoth',
+    'canvas',
+    '@napi-rs/canvas',
+  ],
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      // pdfjs-dist has an optional `require('canvas')` that throws at bundle
+      // time when canvas is not installed. Alias it to false so the bundler
+      // treats it as an empty module (pdfjs falls back gracefully).
+      config.resolve = config.resolve || {}
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        canvas: false,
+      }
+    }
+    return config
+  },
   async headers() {
     return [
       {

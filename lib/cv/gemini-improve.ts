@@ -6,6 +6,7 @@ import { ROLE_KEYWORDS, LEVEL_EXPECTATIONS, findKeywords } from './role-expectat
 import { CvLink } from './links'
 import { CvDraft } from './types'
 import { callGeminiJson, sanitizeForPrompt } from './gemini-client'
+import { ATS_FORMAT_DIRECTIVE, ATS_REFERENCE_TEMPLATE } from './ats-prompt'
 
 // Structured shape the model must return. Kept close to CvDraft but without the
 // `source` field (set by the caller) so the schema is purely model-controlled.
@@ -90,6 +91,10 @@ function buildPrompt(input: {
   const issueList = (input.issues ?? []).slice(0, 12).map((i) => `- ${i}`).join('\n')
 
   return `You are an expert technical resume writer. Rewrite the candidate's CV into a clean, single-column, ATS-parseable resume tailored to the target role, following the EXACT section structure below. Keep it truthful.
+
+${ATS_FORMAT_DIRECTIVE}
+
+${ATS_REFERENCE_TEMPLATE}
 
 TARGET ROLE: ${roleLabel}
 EXPERIENCE LEVEL: ${levelLabel}

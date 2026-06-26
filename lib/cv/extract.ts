@@ -61,32 +61,12 @@ interface RawExtract {
 }
 
 async function extractPdf(buffer: Buffer): Promise<RawExtract> {
-  // pdf-parse v2 exposes a PDFParse class backed by pdfjs-dist.
-  const { PDFParse } = await import('pdf-parse')
-  const parser = new PDFParse({ data: new Uint8Array(buffer) })
-  try {
-    // pageJoiner '' drops the "-- N of M --" page markers cleanly at the source.
-    const result = await parser.getText({ pageJoiner: '' })
-    const text = result.text || ''
-
-    // getInfo({ parsePageInfo }) returns the real link annotations (the target
-    // behind the visible text) which a plain-text scan cannot recover. Best
-    // effort: a malformed PDF must not fail the whole audit.
-    let pairs: Array<{ url: string; label?: string }> = []
-    try {
-      const info = await parser.getInfo({ parsePageInfo: true })
-      pairs = (info.pages || []).flatMap((page) =>
-        (page.links || []).map((link) => ({ url: link.url, label: link.text }))
-      )
-    } catch (linkError) {
-      console.error('[CV] pdf link extraction failed:', linkError instanceof Error ? linkError.message : 'unknown')
-    }
-
-    const links = extractLinks({ pairs, text })
-    return { text, links }
-  } finally {
-    await parser.destroy().catch(() => {})
-  }
+  // Use our Vercel-safe pdfjs-dist wrapper instead of pdf-parse.
+  // pdf-parse v2 bundles pdfjs-dist 5.x with @napi-rs/canvas and web workers,
+  // both of which break in Vercel's serverless environment.
+  const { extractPdfText } = await import('./pdf-extract')
+  const result = await extractPdfText(buffer)
+  return { text: result.text, links: result.links }
 }
 
 async function extractDocx(buffer: Buffer): Promise<RawExtract> {
@@ -155,7 +135,16 @@ export async function extractCvText(
     }
   } catch (error) {
     if (error instanceof CvExtractionError) throw error
-    console.error('[CV] extraction failed:', error instanceof Error ? error.message : 'unknown error')
+    // Detailed logging for serverless debugging — include stack, file meta, and
+    // environment so the actual failure reason is visible in Vercel logs.
+    console.error('[CV] extraction failed:', {
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      fileType,
+      fileName,
+      bufferSize: buffer.byteLength,
+      runtime: typeof process !== 'undefined' ? `node ${process.version}` : 'unknown',
+    })
     // Attempt to detect likely scan/image-only PDF: large file but nearly zero readable text.
     const errorMsg = error instanceof Error ? error.message.toLowerCase() : ''
     const likelyEncrypted = errorMsg.includes('encrypt') || errorMsg.includes('password')

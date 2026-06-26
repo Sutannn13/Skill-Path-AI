@@ -4,6 +4,8 @@ import { calculateTaskProgress, deriveRequirementState } from '@/lib/roadmap/pro
 import type { CurrentLevel, RoadmapResource, RoadmapTask, TargetRole } from '@/types'
 
 export interface UserRoadmapSummary {
+  fullName: string | null
+  avatarUrl: string | null
   roleLabel: string
   levelLabel: string
   progress: number
@@ -12,6 +14,8 @@ export interface UserRoadmapSummary {
 }
 
 interface ProfileSummaryRow {
+  full_name: string | null
+  avatar_url: string | null
   target_role: TargetRole | null
   current_level: CurrentLevel | null
 }
@@ -53,7 +57,7 @@ export async function loadUserRoadmapSummary(
   const [profileResult, roadmapResult] = await Promise.all([
     supabase
       .from('profiles')
-      .select('target_role, current_level')
+      .select('full_name, avatar_url, target_role, current_level')
       .eq('id', userId)
       .maybeSingle(),
     supabase
@@ -72,6 +76,8 @@ export async function loadUserRoadmapSummary(
   const profile = profileResult.data as ProfileSummaryRow | null
   const targetRole = profile?.target_role ?? null
   const baseSummary: UserRoadmapSummary = {
+    fullName: profile?.full_name ?? null,
+    avatarUrl: profile?.avatar_url ?? null,
     roleLabel: targetRole ? (getRoleById(targetRole)?.label ?? 'Developer') : 'Developer',
     levelLabel: LEVEL_LABELS[profile?.current_level ?? ''] ?? 'Getting Started',
     progress: 0,

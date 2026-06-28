@@ -100,6 +100,17 @@ function useResolvedSidebarProfile(userProfile?: SidebarUserProfile) {
     }
   }, [supabase, userProfile])
 
+  // Settings page dispatches this when the avatar is uploaded or removed, so the
+  // footer reflects the change without a full reload. detail = new url, or null to reset.
+  useEffect(() => {
+    const onAvatarChange = (event: Event) => {
+      const next = (event as CustomEvent<string | null>).detail ?? null
+      setResolvedProfile((prev) => ({ ...prev, avatarUrl: next }))
+    }
+    window.addEventListener('skillpath:avatar', onAvatarChange)
+    return () => window.removeEventListener('skillpath:avatar', onAvatarChange)
+  }, [])
+
   return resolvedProfile
 }
 

@@ -311,6 +311,8 @@ export default function SettingsPage() {
 
       if (result.success && result.avatarUrl) {
         setProfileForm((prev) => ({ ...prev, avatarUrl: result.avatarUrl }))
+        // Sidebar self-fetches its avatar once on mount; tell it to update live.
+        window.dispatchEvent(new CustomEvent('skillpath:avatar', { detail: result.avatarUrl }))
         setStatus({ type: 'success', message: 'Foto profil berhasil diperbarui.' })
       } else {
         setStatus({ type: 'error', message: result.error || 'Gagal mengunggah foto.' })
@@ -330,6 +332,7 @@ export default function SettingsPage() {
       const result = await deleteAvatarAction()
       if (result.success) {
         setProfileForm((prev) => ({ ...prev, avatarUrl: null }))
+        window.dispatchEvent(new CustomEvent('skillpath:avatar', { detail: null }))
         setStatus({ type: 'success', message: 'Foto profil berhasil dihapus.' })
       } else {
         setStatus({ type: 'error', message: result.error || 'Gagal menghapus foto.' })

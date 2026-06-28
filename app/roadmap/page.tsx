@@ -7,8 +7,6 @@ import { AppShell, Container } from '@/components/layout'
 import { GradientBackground } from '@/components/layout'
 import { DashboardHeader } from '@/components/layout/dashboard-header'
 import { BrutalCard, BrutalButton, ConfirmModal, SkillBadge, ScoreBar } from '@/components/brutal'
-import { CatMascot } from '@/components/illustrations/cat-mascot'
-import { PageScene } from '@/components/illustrations/page-scene'
 import { generateFallbackRoadmap } from '@/lib/ai'
 import {
   ROADMAP_CONTENT_VERSION,
@@ -42,7 +40,6 @@ import { createSupabaseBrowserClient } from '@/lib/supabase/browser'
 import { initializeUserProfile } from '@/lib/user/profile'
 import { cn } from '@/lib/utils'
 import {
-  NowLearningPanel,
   LearningWorkspace,
   ResourceAccordion,
 } from '@/components/roadmap'
@@ -697,6 +694,7 @@ export default function RoadmapPage() {
   const supabase = useMemo(() => createSupabaseBrowserClient(), [])
   const [roadmap, setRoadmap] = useState<Roadmap | null>(null)
   const [expandedWeek, setExpandedWeek] = useState<number | null>(0)
+  const [viewMode, setViewMode] = useState<'level' | 'map'>('level')
   const [mode, setMode] = useState<RoadmapMode>('loading')
   const [statusMessage, setStatusMessage] = useState('Preparing your learning path...')
   const [saveState, setSaveState] = useState<SaveState>('idle')
@@ -1636,6 +1634,30 @@ export default function RoadmapPage() {
   const finalProjectUnlocked = progress >= 100
   const canOpenFinalProject = finalProjectUnlocked || hasFinalProjectSubmission
 
+  // Right-pane (detail) selection for the master-detail layout: the focused task
+  // of the currently expanded module, defaulting to the current task.
+  const activeWeekIndex = expandedWeek ?? currentTaskLocation?.weekIndex ?? 0
+  const rightPaneWeek = roadmap?.weeks[activeWeekIndex] ?? null
+  const rightPaneDefaultTask = rightPaneWeek ? getDefaultCurrentTask(rightPaneWeek) : null
+  const rightPaneFocusedId = rightPaneWeek
+    ? (focusedTaskByWeek[rightPaneWeek.week] ?? rightPaneDefaultTask?.id ?? null)
+    : null
+  const rightPaneTask = rightPaneWeek
+    ? (rightPaneWeek.tasks.find((task) => task.id === rightPaneFocusedId) ?? rightPaneDefaultTask)
+    : null
+  const rightPaneFirstIncomplete = rightPaneWeek
+    ? rightPaneWeek.tasks.findIndex((task) => task.status !== 'completed')
+    : -1
+  const rightPaneTaskIndex = rightPaneWeek && rightPaneTask
+    ? rightPaneWeek.tasks.findIndex((task) => task.id === rightPaneTask.id)
+    : -1
+  const rightPaneTaskLocked =
+    rightPaneTaskIndex >= 0 &&
+    rightPaneFirstIncomplete >= 0 &&
+    rightPaneTaskIndex > rightPaneFirstIncomplete &&
+    !!rightPaneTask &&
+    !hasTaskProgress(rightPaneTask)
+
   return (
     <AppShell showBottomNav={true}>
       <GradientBackground variant="roadmap" />
@@ -1666,8 +1688,6 @@ export default function RoadmapPage() {
         />
 
         <Container className="py-6">
-          <PageScene variant="roadmap" className="mb-6" />
-
           {mode === 'loading' && (
             <BrutalCard color="white" className="mb-6">
               <p className="font-bold">{statusMessage}</p>
@@ -1738,47 +1758,41 @@ export default function RoadmapPage() {
 
           {roadmap && (
             <>
-              {/* Now Learning Panel */}
-              {currentTaskLocation && !learningWorkspace && (
-                <NowLearningPanel
-                  roadmap={roadmap}
-                  currentWeek={roadmap.weeks[currentTaskLocation.weekIndex]}
-                  currentTask={
-                    roadmap.weeks[currentTaskLocation.weekIndex].tasks.find(
-                      (t) => t.id === currentTaskLocation.taskId
-                    )!
-                  }
-                  nextAction={getNextActionLabel(roadmap, currentTaskLocation.weekIndex, currentTaskLocation.taskId)}
-                  onContinue={continueCurrentTask}
-                  className="mb-6"
-                />
-              )}
-
+              {/* Roadmap header — slim bar with Level/Map view toggle */}
               <BrutalCard color="yellow" className="mb-6">
-                <div className="mb-4 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                  <div>
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="min-w-0">
                     <h2 className="mb-1 font-display text-2xl font-bold">{roadmap.title}</h2>
-                    <p className="text-black/70">
+                    <p className="text-sm text-black/70">
                       {roadmap.summary?.trim()
                         ? roadmap.summary
                         : 'Work through each module one task at a time, then unlock the quiz and mini project steps.'}
                     </p>
-                    <p className="mt-2 text-sm font-bold text-black/70">
-                      {mode === 'supabase'
-                        ? 'Progress is saved to Supabase.'
-                        : 'Roadmap template active. Sign in to preserve progress across devices.'}
-                    </p>
-                    <div className="mt-3 inline-flex items-center gap-2 rounded-md border-2 border-black bg-white px-2 py-1">
-                      <CatMascot className="h-10 w-10" mood="cheer" />
-                      <span className="text-xs font-bold">Follow the current task to keep momentum.</span>
-                    </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <BrutalButton
-                      color="green"
-                      onClick={continueCurrentTask}
-                      disabled={!currentTaskLocation}
-                    >
+                    <div className="inline-flex overflow-hidden rounded-md border-2 border-black">
+                      <button
+                        type="button"
+                        onClick={() => setViewMode('level')}
+                        className={cn(
+                          'px-3 py-1.5 text-xs font-bold transition-colors',
+                          viewMode === 'level' ? 'bg-black text-white' : 'bg-white hover:bg-gray-100'
+                        )}
+                      >
+                        Level
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setViewMode('map')}
+                        className={cn(
+                          'px-3 py-1.5 text-xs font-bold transition-colors',
+                          viewMode === 'map' ? 'bg-black text-white' : 'bg-white hover:bg-gray-100'
+                        )}
+                      >
+                        Map
+                      </button>
+                    </div>
+                    <BrutalButton color="green" onClick={continueCurrentTask} disabled={!currentTaskLocation}>
                       <Target className="mr-2 h-4 w-4" />
                       Continue current task
                     </BrutalButton>
@@ -1794,34 +1808,27 @@ export default function RoadmapPage() {
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-4">
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-5 h-5" />
-                    <span>{roadmap.weeks.length}-module learning roadmap</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Target className="w-5 h-5" />
-                    <span>{roadmap.weeks.reduce((sum, week) => sum + week.tasks.length, 0)} tasks</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Zap className="w-5 h-5" />
-                    <span>{formatRoadmapSource(roadmap.source, roadmap.title)}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-5 w-5" />
-                    <span>
-                      {getCompletedTaskCount(roadmap)}
-                      /{roadmap.weeks.reduce((sum, week) => sum + week.tasks.length, 0)} completed
-                    </span>
-                  </div>
+                <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+                  <span className="flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    {roadmap.weeks.length}-module roadmap
+                  </span>
+                  <span className="flex items-center gap-2">
+                    <Target className="h-4 w-4" />
+                    {roadmap.weeks.reduce((sum, week) => sum + week.tasks.length, 0)} tasks
+                  </span>
+                  <span className="flex items-center gap-2">
+                    <Zap className="h-4 w-4" />
+                    {formatRoadmapSource(roadmap.source, roadmap.title)}
+                  </span>
+                  <span className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4" />
+                    {getCompletedTaskCount(roadmap)}/{roadmap.weeks.reduce((sum, week) => sum + week.tasks.length, 0)} completed
+                  </span>
                 </div>
 
                 <div className="mt-4">
-                  <ScoreBar
-                    score={progress}
-                    label="Overall Progress"
-                    color="black"
-                  />
+                  <ScoreBar score={progress} label="Overall Progress" color="black" />
                 </div>
               </BrutalCard>
 
@@ -1863,7 +1870,61 @@ export default function RoadmapPage() {
                 )}
               </AnimatePresence>
 
-              <div className="space-y-4">
+              {viewMode === 'map' ? (
+                <div className="space-y-3">
+                  {roadmap.weeks.map((week, weekIndex) => {
+                    const weekProgress = calculateWeekProgress(week)
+                    const completed = week.tasks.filter((task) => deriveRequirementState(task) === 'completed').length
+                    const weekStarted = week.tasks.some(hasTaskProgress)
+                    const moduleLocked = weekIndex > currentModuleIndex && !weekStarted
+                    return (
+                      <button
+                        key={week.week}
+                        type="button"
+                        disabled={moduleLocked}
+                        onClick={() => {
+                          setExpandedWeek(weekIndex)
+                          setViewMode('level')
+                        }}
+                        className={cn('block w-full text-left', moduleLocked && 'cursor-not-allowed opacity-70')}
+                      >
+                        <BrutalCard
+                          color={weekProgress >= 100 ? 'green' : weekIndex % 2 === 0 ? 'blue' : 'pink'}
+                          className="p-4 transition-transform hover:-translate-y-0.5"
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center brutal-border brutal-radius bg-white font-bold shadow-brutal-sm">
+                              {weekProgress >= 100 ? <CheckCircle2 className="h-5 w-5" /> : week.week}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <h3 className="truncate font-display font-bold">{week.title}</h3>
+                              <p className="truncate text-sm text-black/70">{week.goal}</p>
+                            </div>
+                            {moduleLocked && <Lock className="h-4 w-4 shrink-0" />}
+                          </div>
+                          <div className="mt-3 flex flex-wrap gap-1">
+                            {week.tasks.map((task) => (
+                              <span
+                                key={task.id}
+                                title={task.title}
+                                className={cn(
+                                  'h-3 w-3 rounded-full border-2 border-black',
+                                  deriveRequirementState(task) === 'completed' ? 'bg-black' : 'bg-white'
+                                )}
+                              />
+                            ))}
+                          </div>
+                          <p className="mt-2 text-xs font-bold">
+                            {completed}/{week.tasks.length} · {weekProgress}%
+                          </p>
+                        </BrutalCard>
+                      </button>
+                    )
+                  })}
+                </div>
+              ) : (
+                <div className="lg:grid lg:grid-cols-[340px_1fr] lg:gap-6 lg:items-start">
+                  <div className="space-y-4 lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto lg:pr-1">
                 {roadmap.weeks.map((week, weekIndex) => {
                   const weekProgress = calculateWeekProgress(week)
                   const isExpanded = expandedWeek === weekIndex
@@ -1874,11 +1935,6 @@ export default function RoadmapPage() {
                   const firstIncompleteTaskIndex = week.tasks.findIndex((task) => task.status !== 'completed')
                   const weekStarted = week.tasks.some(hasTaskProgress)
                   const moduleLocked = weekIndex > currentModuleIndex && !weekStarted
-                  const focusedTaskIndex = focusedTask ? week.tasks.findIndex((task) => task.id === focusedTask.id) : -1
-                  const focusedTaskLocked = focusedTaskIndex >= 0
-                    && firstIncompleteTaskIndex >= 0
-                    && focusedTaskIndex > firstIncompleteTaskIndex
-                    && !hasTaskProgress(focusedTask)
 
                   return (
                     <motion.div
@@ -1990,37 +2046,7 @@ export default function RoadmapPage() {
                                   })}
                                 </div>
 
-                                <TaskDetailPanel
-                                  task={focusedTask}
-                                  week={week}
-                                  isCurrentTask
-                                  isTaskLocked={focusedTaskLocked}
-                                  lockedReason={focusedTaskLocked ? 'Complete the previous task to unlock this.' : null}
-                                  openedResources={openedResources}
-                                  onOpenResource={(resourceId) => {
-                                    setOpenedResources((previous) => ({
-                                      ...previous,
-                                      [resourceId]: true,
-                                    }))
-                                  }}
-                                  onToggleResource={toggleResource}
-                                  onReopen={reopenTask}
-                                />
-
-                                {week.miniProject && (
-                                  <div className="mt-4 rounded-md border-2 border-black bg-gray-50 p-4">
-                                    <h4 className="font-bold mb-2">Mini Project</h4>
-                                    <p className="font-medium mb-2">{week.miniProject.title}</p>
-                                    <p className="text-sm text-gray-600 mb-3">
-                                      {week.miniProject.description}
-                                    </p>
-                                    <div className="flex flex-wrap gap-2">
-                                      {week.miniProject.skillsCovered.map((skill) => (
-                                        <SkillBadge key={skill} name={skill} size="sm" />
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
+                                {/* Task detail + mini project render in the right pane (see below). */}
                               </div>
                             </motion.div>
                           )}
@@ -2029,7 +2055,46 @@ export default function RoadmapPage() {
                     </motion.div>
                   )
                 })}
-              </div>
+                  </div>
+
+                  {/* RIGHT PANE (detail) — desktop only; mobile uses the Learn modal */}
+                  <div className="mt-4 hidden lg:mt-0 lg:block lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto">
+                    {rightPaneTask && rightPaneWeek ? (
+                      <>
+                        <TaskDetailPanel
+                          task={rightPaneTask}
+                          week={rightPaneWeek}
+                          isCurrentTask={rightPaneTask.id === currentTaskLocation?.taskId}
+                          isTaskLocked={rightPaneTaskLocked}
+                          lockedReason={rightPaneTaskLocked ? 'Complete the previous task to unlock this.' : null}
+                          openedResources={openedResources}
+                          onOpenResource={(resourceId) => {
+                            setOpenedResources((previous) => ({ ...previous, [resourceId]: true }))
+                          }}
+                          onToggleResource={toggleResource}
+                          onReopen={reopenTask}
+                        />
+                        {rightPaneWeek.miniProject && (
+                          <div className="mt-4 rounded-md border-2 border-black bg-gray-50 p-4">
+                            <h4 className="font-bold mb-2">Mini Project</h4>
+                            <p className="font-medium mb-2">{rightPaneWeek.miniProject.title}</p>
+                            <p className="text-sm text-gray-600 mb-3">{rightPaneWeek.miniProject.description}</p>
+                            <div className="flex flex-wrap gap-2">
+                              {rightPaneWeek.miniProject.skillsCovered.map((skill) => (
+                                <SkillBadge key={skill} name={skill} size="sm" />
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <BrutalCard color="white">
+                        <p className="font-bold">Select a task to see its details.</p>
+                      </BrutalCard>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {roadmap.finalPortfolioProject && (
                 <motion.div

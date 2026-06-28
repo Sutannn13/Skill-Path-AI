@@ -2,6 +2,18 @@
 const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ['three'],
+  images: {
+    // Supabase Storage public objects (avatars) are served from <ref>.supabase.co.
+    // next/image rejects un-whitelisted remote hosts, so without this the avatar
+    // renders as broken "Avatar" alt text everywhere it loads from storage.
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '*.supabase.co',
+        pathname: '/storage/v1/object/public/**',
+      },
+    ],
+  },
   // Keep heavy server-only document parsers out of the bundle.
   // - pdf-parse: kept for safety even though we no longer import it directly.
   // - pdfjs-dist: our direct dependency for PDF extraction; must not be bundled

@@ -83,7 +83,16 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`${spaceGrotesk.variable} ${inter.variable} ${jetbrainsMono.variable} ${silkscreen.variable}`}>
+    <html lang="en" suppressHydrationWarning className={`${spaceGrotesk.variable} ${inter.variable} ${jetbrainsMono.variable} ${silkscreen.variable}`}>
+      <head>
+        {/* Apply saved theme + reduced-motion before paint to avoid a flash.
+            Mirrors lib/user/preferences.ts (must stay inline: runs pre-hydration). */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var p=JSON.parse(localStorage.getItem('skillpath_preferences')||'{}');var t=p.theme||'system';var dark=t==='dark'||(t==='system'&&matchMedia('(prefers-color-scheme: dark)').matches);var r=document.documentElement;r.classList.toggle('dark',dark);if(p.reducedMotion)r.classList.add('reduce-motion');}catch(e){}})();`,
+          }}
+        />
+      </head>
       <body className="font-body antialiased">
         <Providers>
           {children}

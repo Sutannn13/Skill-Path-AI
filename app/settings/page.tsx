@@ -16,6 +16,32 @@ import { useRef } from 'react'
 import { User, Bell, Shield, Palette, Save, Github, ExternalLink, RefreshCw, AlertCircle, Settings, Upload, Trash2 } from 'lucide-react'
 import { uploadAvatarAction, deleteAvatarAction } from '@/app/actions/profile'
 import { Avatar } from '@/components/ui/avatar'
+import {
+  AppPreferences,
+  ThemePreference,
+  defaultPreferences,
+  loadPreferences,
+  savePreferences,
+  applyAppearance,
+} from '@/lib/user/preferences'
+
+const NOTIFICATION_OPTIONS: {
+  key: keyof AppPreferences['notifications']
+  label: string
+  description: string
+}[] = [
+  { key: 'weeklyReminders', label: 'Weekly progress reminders', description: 'Get reminded about your weekly sprint goals' },
+  { key: 'jobMatches', label: 'Job matches', description: 'Receive notifications when new jobs match your profile' },
+  { key: 'roadmapUpdates', label: 'Roadmap updates', description: 'Updates about changes to your learning roadmap' },
+  { key: 'marketingEmails', label: 'Marketing emails', description: 'Tips, tricks, and updates from SkillPath' },
+]
+
+const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
+  { value: 'light', label: 'Light' },
+  { value: 'dark', label: 'Dark' },
+  { value: 'system', label: 'System' },
+]
+
 const settingsSections = [
   { id: 'profile', label: 'Profile', icon: User },
   { id: 'notifications', label: 'Notifications', icon: Bell },
@@ -73,7 +99,32 @@ export default function SettingsPage() {
   const [status, setStatus] = useState<SettingsStatus | null>(null)
   const [resetConfirmationStep, setResetConfirmationStep] = useState<ResetConfirmationStep>(null)
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
+  const [preferences, setPreferences] = useState<AppPreferences>(defaultPreferences)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Load saved prefs on the client and reflect them onto <html> immediately.
+  useEffect(() => {
+    const stored = loadPreferences()
+    setPreferences(stored)
+    applyAppearance(stored)
+  }, [])
+
+  const updatePreferences = (next: AppPreferences) => {
+    setPreferences(next)
+    savePreferences(next)
+  }
+
+  const toggleNotification = (key: keyof AppPreferences['notifications']) => {
+    updatePreferences({
+      ...preferences,
+      notifications: { ...preferences.notifications, [key]: !preferences.notifications[key] },
+    })
+  }
+
+  const setTheme = (theme: ThemePreference) => updatePreferences({ ...preferences, theme })
+
+  const toggleReducedMotion = () =>
+    updatePreferences({ ...preferences, reducedMotion: !preferences.reducedMotion })
 
   useEffect(() => {
     let isActive = true
@@ -696,33 +747,33 @@ export default function SettingsPage() {
                     <SectionHeader label="Notification Preferences" icon={Bell} className="mb-6" />
 
                     <div className="space-y-4">
-                      {[
-                        { label: 'Weekly progress reminders', description: 'Get reminded about your weekly sprint goals', enabled: true },
-                        { label: 'Job matches', description: 'Receive notifications when new jobs match your profile', enabled: true },
-                        { label: 'Roadmap updates', description: 'Updates about changes to your learning roadmap', enabled: false },
-                        { label: 'Marketing emails', description: 'Tips, tricks, and updates from SkillPath', enabled: false },
-                      ].map((item, i) => (
-                        <div key={i} className="flex items-center justify-between gap-4 p-4 bg-cream-light brutal-border brutal-radius">
-                          <div>
-                            <p className="font-bold">{item.label}</p>
-                            <p className="text-sm text-secondary">{item.description}</p>
+                      {NOTIFICATION_OPTIONS.map((item) => {
+                        const enabled = preferences.notifications[item.key]
+                        return (
+                          <div key={item.key} className="flex items-center justify-between gap-4 p-4 bg-cream-light brutal-border brutal-radius">
+                            <div>
+                              <p className="font-bold">{item.label}</p>
+                              <p className="text-sm text-secondary">{item.description}</p>
+                            </div>
+                            <button
+                              type="button"
+                              role="switch"
+                              aria-checked={enabled}
+                              aria-label={item.label}
+                              onClick={() => toggleNotification(item.key)}
+                              className={cn(
+                                'relative h-7 w-12 shrink-0 rounded-full brutal-border transition-colors',
+                                enabled ? 'bg-green' : 'bg-gray-300'
+                              )}
+                            >
+                              <span className={cn(
+                                'absolute top-0.5 h-5 w-5 rounded-full border-2 border-black bg-white transition-all',
+                                enabled ? 'left-[22px]' : 'left-0.5'
+                              )} />
+                            </button>
                           </div>
-                          <button
-                            type="button"
-                            aria-pressed={item.enabled}
-                            onClick={() => {}}
-                            className={cn(
-                              'relative h-7 w-12 shrink-0 rounded-full brutal-border transition-colors',
-                              item.enabled ? 'bg-green' : 'bg-gray-300'
-                            )}
-                          >
-                            <span className={cn(
-                              'absolute top-0.5 h-5 w-5 rounded-full border-2 border-black bg-white transition-all',
-                              item.enabled ? 'left-[22px]' : 'left-0.5'
-                            )} />
-                          </button>
-                        </div>
-                      ))}
+                        )
+                      })}
                     </div>
                   </BrutalCard>
                 </motion.div>
@@ -737,17 +788,23 @@ export default function SettingsPage() {
                       <div>
                         <p className="font-medium mb-3">Theme</p>
                         <div className="grid grid-cols-3 gap-4">
-                          {['Light', 'Dark', 'System'].map((theme) => (
-                            <button
-                              key={theme}
-                              className={cn(
-                                'p-4 brutal-border brutal-radius font-medium transition-all',
-                                theme === 'Light' ? 'bg-yellow font-bold' : 'bg-gray-50 hover:bg-gray-100'
-                              )}
-                            >
-                              {theme}
-                            </button>
-                          ))}
+                          {THEME_OPTIONS.map((theme) => {
+                            const active = preferences.theme === theme.value
+                            return (
+                              <button
+                                key={theme.value}
+                                type="button"
+                                aria-pressed={active}
+                                onClick={() => setTheme(theme.value)}
+                                className={cn(
+                                  'p-4 brutal-border brutal-radius font-medium transition-all',
+                                  active ? 'bg-yellow font-bold' : 'bg-gray-50 hover:bg-gray-100'
+                                )}
+                              >
+                                {theme.label}
+                              </button>
+                            )
+                          })}
                         </div>
                       </div>
 
@@ -760,11 +817,19 @@ export default function SettingsPage() {
                           </div>
                           <button
                             type="button"
-                            aria-pressed={false}
-                            onClick={() => {}}
-                            className="relative h-7 w-12 shrink-0 rounded-full brutal-border bg-gray-300"
+                            role="switch"
+                            aria-checked={preferences.reducedMotion}
+                            aria-label="Reduced motion"
+                            onClick={toggleReducedMotion}
+                            className={cn(
+                              'relative h-7 w-12 shrink-0 rounded-full brutal-border transition-colors',
+                              preferences.reducedMotion ? 'bg-green' : 'bg-gray-300'
+                            )}
                           >
-                            <span className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full border-2 border-black bg-white" />
+                            <span className={cn(
+                              'absolute top-0.5 h-5 w-5 rounded-full border-2 border-black bg-white transition-all',
+                              preferences.reducedMotion ? 'left-[22px]' : 'left-0.5'
+                            )} />
                           </button>
                         </div>
                       </div>

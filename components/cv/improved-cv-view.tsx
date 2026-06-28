@@ -117,8 +117,10 @@ export function ImprovedCvView({ draft }: ImprovedCvViewProps) {
             <div className="space-y-2">
               {draft.education.map((edu, i) => (
                 <div key={i}>
-                  <p className="font-bold">{[edu.degree, edu.institution].filter(Boolean).join(' | ')}</p>
-                  {edu.period && <p className="text-xs italic text-black/60">{edu.period}</p>}
+                  <div className="flex flex-wrap items-baseline justify-between gap-x-2">
+                    <p className="font-bold">{[edu.degree, edu.institution].filter(Boolean).join(' | ')}</p>
+                    {edu.period && <p className="text-xs italic text-black/60">{edu.period}</p>}
+                  </div>
                   {edu.detail && <p className="text-sm text-black/80">- {edu.detail}</p>}
                 </div>
               ))}
@@ -223,7 +225,7 @@ export function ImprovedCvView({ draft }: ImprovedCvViewProps) {
             <ul className="list-disc space-y-0.5 pl-5">
               {draft.publications.map((pub, i) => (
                 <li key={i} className="text-sm text-black/80">
-                  {pub}
+                  <LinkedText text={pub} />
                 </li>
               ))}
             </ul>
@@ -231,6 +233,31 @@ export function ImprovedCvView({ draft }: ImprovedCvViewProps) {
         )}
       </div>
     </BrutalCard>
+  )
+}
+
+// Linkify http(s) URLs and bare doi.org references inside a string (e.g. a
+// publication citation) without pulling in a markdown library.
+function LinkedText({ text }: { text: string }) {
+  const parts = text.split(/(https?:\/\/[^\s)]+|(?:www\.|doi\.org\/)[^\s)]+)/gi)
+  return (
+    <>
+      {parts.map((part, i) =>
+        /^(https?:\/\/|www\.|doi\.org\/)/i.test(part) ? (
+          <a
+            key={i}
+            href={part.startsWith('http') ? part : `https://${part}`}
+            target="_blank"
+            rel="noreferrer"
+            className="font-medium text-blue underline"
+          >
+            {part}
+          </a>
+        ) : (
+          <span key={i}>{part}</span>
+        )
+      )}
+    </>
   )
 }
 

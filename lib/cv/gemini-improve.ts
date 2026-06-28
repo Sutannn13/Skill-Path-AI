@@ -6,7 +6,7 @@ import { ROLE_KEYWORDS, LEVEL_EXPECTATIONS, findKeywords } from './role-expectat
 import { CvLink } from './links'
 import { CvDraft } from './types'
 import { callGeminiJson, sanitizeForPrompt } from './gemini-client'
-import { ATS_FORMAT_DIRECTIVE, ATS_REFERENCE_TEMPLATE } from './ats-prompt'
+import { ATS_FORMAT_DIRECTIVE, ATS_REFERENCE_TEMPLATE, ATS_GOLD_EXAMPLE } from './ats-prompt'
 
 // Structured shape the model must return. Kept close to CvDraft but without the
 // `source` field (set by the caller) so the schema is purely model-controlled.
@@ -96,6 +96,8 @@ ${ATS_FORMAT_DIRECTIVE}
 
 ${ATS_REFERENCE_TEMPLATE}
 
+${ATS_GOLD_EXAMPLE}
+
 TARGET ROLE: ${roleLabel}
 EXPERIENCE LEVEL: ${levelLabel}
 LEVEL EXPECTATION: ${LEVEL_EXPECTATIONS[input.experienceLevel]}
@@ -130,6 +132,9 @@ RULES:
 - The candidate's GitHub may live inside the portfolio link — if only a portfolio link exists, that is acceptable; do not invent a separate GitHub URL.
 - Reuse only the detected links for "links". Do not invent emails/phones; copy contact info from the CV, else leave the field empty.
 - Optimize wording for the target role and ATS keyword coverage, but never claim a skill the candidate does not demonstrate.
+- Put GPA/IPK in education "detail" exactly as "IPK: 3.5" (keep the source value).
+- For publications, keep the FULL academic citation and append the DOI URL at the end (e.g. "...JITK, 11(3), 661-668. DOI: https://doi.org/...").
+- Group skills into named categories — "Tech Stack" (languages, frameworks, databases) and "Tools & Services" (git, APIs, gateways) — matching the gold example.
 - Write ALL content in the SAME language as the original CV (Bahasa Indonesia stays Indonesian).
 - "improvementNotes" (Bahasa Indonesia): short list of what you changed and what the user must verify/fill in.
 

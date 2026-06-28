@@ -145,7 +145,8 @@ function safeFileBase(name: string): string {
 function createLayout(doc: import('jspdf').jsPDF) {
   const pageW = doc.internal.pageSize.getWidth()
   const pageH = doc.internal.pageSize.getHeight()
-  const margin = 48
+  // ponytail: density-tuned for one page, not a hard fit — long CVs still flow.
+  const margin = 40
   const contentW = pageW - margin * 2
   let y = margin
 
@@ -159,7 +160,7 @@ function createLayout(doc: import('jspdf').jsPDF) {
       y = margin
     }
   }
-  const lineGap = (size: number) => size * 1.32
+  const lineGap = (size: number) => size * 1.24
 
   const centered = (str: string, size: number, style: 'normal' | 'bold' | 'italic' = 'normal') => {
     setFont(size, style)
@@ -179,7 +180,29 @@ function createLayout(doc: import('jspdf').jsPDF) {
     }
   }
 
-  const bullet = (str: string, size = 10) => {
+  // Bold title on the left, italic meta (date/location) right-aligned on the
+  // same baseline — the reference CV's "Posisi | Perusahaan ........ (waktu)" row.
+  const titleWithMeta = (title: string, meta: string, size = 10) => {
+    setFont(size, 'italic')
+    const metaW = meta ? doc.getTextWidth(meta) : 0
+    const titleLines = doc.splitTextToSize(title, contentW - metaW - 12)
+    ensure(lineGap(size))
+    setFont(size, 'bold')
+    doc.text(titleLines[0], margin, y)
+    if (meta) {
+      setFont(size, 'italic')
+      doc.text(meta, pageW - margin, y, { align: 'right' })
+    }
+    y += lineGap(size)
+    setFont(size, 'bold')
+    for (let i = 1; i < titleLines.length; i++) {
+      ensure(lineGap(size))
+      doc.text(titleLines[i], margin, y)
+      y += lineGap(size)
+    }
+  }
+
+  const bullet = (str: string, size = 9.5) => {
     setFont(size, 'normal')
     const wrapped = doc.splitTextToSize(str, contentW - 16)
     ensure(lineGap(size))
@@ -194,21 +217,21 @@ function createLayout(doc: import('jspdf').jsPDF) {
   }
 
   const sectionHeader = (title: string) => {
-    y += 8
-    ensure(22)
-    setFont(11, 'bold')
+    y += 6
+    ensure(20)
+    setFont(10.5, 'bold')
     doc.text(title.toUpperCase(), margin, y)
-    y += 4
+    y += 3
     doc.setLineWidth(1)
     doc.line(margin, y, pageW - margin, y)
-    y += 12
+    y += 9
   }
 
   const gap = (amount: number) => {
     y += amount
   }
 
-  return { centered, para, bullet, sectionHeader, gap, margin, pageW }
+  return { centered, para, bullet, titleWithMeta, sectionHeader, gap, margin, pageW }
 }
 
 export async function downloadDraftAsPdf(draft: CvDraft): Promise<void> {
@@ -225,14 +248,14 @@ export async function downloadDraftAsPdf(draft: CvDraft): Promise<void> {
 
   if (draft.summary) {
     L.sectionHeader(CV_SECTION_LABELS.summary)
-    L.para(draft.summary, 10)
+    L.para(draft.summary, 9.5)
   }
 
   if (draft.education.length) {
     L.sectionHeader(CV_SECTION_LABELS.education)
     for (const edu of draft.education) {
       const header = [edu.degree, edu.institution].filter(Boolean).join(' | ')
-      L.para(edu.period ? `${header} (${edu.period})` : header, 10, 'bold')
+      L.titleWithMeta(header, edu.period ?? '')
       if (edu.detail) L.bullet(edu.detail)
     }
   }
@@ -242,9 +265,9 @@ export async function downloadDraftAsPdf(draft: CvDraft): Promise<void> {
     for (const exp of draft.experience) {
       const header = [exp.role, exp.company].filter(Boolean).join(' | ')
       const meta = [exp.location, exp.period].filter(Boolean).join(', ')
-      L.para(meta ? `${header} (${meta})` : header, 10, 'bold')
+      L.titleWithMeta(header, meta)
       for (const b of exp.bullets) L.bullet(b)
-      L.gap(4)
+      L.gap(3)
     }
   }
 
@@ -252,18 +275,18 @@ export async function downloadDraftAsPdf(draft: CvDraft): Promise<void> {
     L.sectionHeader(CV_SECTION_LABELS.projects)
     for (const proj of draft.projects) {
       const title = proj.stack ? `${proj.name} (${proj.stack})` : proj.name
-      L.para(title, 10, 'bold')
+      L.para(title, 9.5, 'bold')
       if (proj.link) L.para(proj.link, 9, 'italic')
-      if (proj.description) L.para(proj.description, 10)
+      if (proj.description) L.para(proj.description, 9.5)
       for (const b of proj.bullets ?? []) L.bullet(b)
-      L.gap(4)
+      L.gap(3)
     }
   }
 
   if (draft.skills.length) {
     L.sectionHeader(CV_SECTION_LABELS.skills)
     for (const group of draft.skills) {
-      L.para(`${group.category}: ${group.items.join(', ')}`, 10)
+      L.para(`${group.category}: ${group.items.join(', ')}`, 9.5)
     }
   }
 

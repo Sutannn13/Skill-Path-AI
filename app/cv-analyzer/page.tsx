@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState, useCallback } from 'react'
+import { useRef, useState, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { AppShell, Container, GradientBackground } from '@/components/layout'
 import { DashboardHeader } from '@/components/layout/dashboard-header'
@@ -251,6 +251,13 @@ export default function CvAnalyzerPage() {
   const [isImproving, setIsImproving] = useState(false)
   const [improveError, setImproveError] = useState<string | null>(null)
   const [showCoverLetter, setShowCoverLetter] = useState(false)
+  const improvedRef = useRef<HTMLDivElement>(null)
+
+  // Scroll the freshly-generated ATS CV into view so the user sees the result
+  // without hunting for it below the fold.
+  useEffect(() => {
+    if (draft) improvedRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [draft])
 
   const pickFile = (selected: File | null) => {
     setError(null)
@@ -607,6 +614,53 @@ export default function CvAnalyzerPage() {
                 </BrutalCard>
               </div>
 
+              {/* Primary action: convert this CV to a structured ATS format */}
+              <BrutalCard color="black">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="text-white">
+                    <h3 className="flex items-center gap-2 font-display text-lg font-bold">
+                      <Wand2 className="h-5 w-5 text-pink" />
+                      Ubah ke CV ATS
+                    </h3>
+                    <p className="text-sm text-white/70">
+                      Susun ulang CV jadi format ATS-friendly yang rapi, terstruktur, dan siap dilamar — plus cover
+                      letter yang sesuai.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <BrutalButton color="pink" size="lg" onClick={improveCv} loading={isImproving} disabled={isImproving}>
+                      <Wand2 className="mr-2 h-4 w-4" />
+                      {draft ? 'Susun ulang lagi' : 'Ubah ke CV ATS'}
+                    </BrutalButton>
+                    <BrutalButton
+                      color="purple"
+                      variant={showCoverLetter ? 'outline' : 'primary'}
+                      onClick={() => setShowCoverLetter((v) => !v)}
+                    >
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      {showCoverLetter ? 'Sembunyikan cover letter' : 'Buat Cover Letter'}
+                    </BrutalButton>
+                  </div>
+                </div>
+              </BrutalCard>
+
+              {improveError && (
+                <BrutalCard color="red" className="flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 shrink-0" />
+                  <p className="font-medium">{improveError}</p>
+                </BrutalCard>
+              )}
+
+              {draft && (
+                <div ref={improvedRef} className="scroll-mt-6">
+                  <ImprovedCvView draft={draft} />
+                </div>
+              )}
+
+              {showCoverLetter && cvText && (
+                <CoverLetterView cvText={cvText} targetRole={analyzedRole} experienceLevel={analyzedLevel} />
+              )}
+
               {/* Role keyword coverage */}
               <BrutalCard color="white">
                 <h3 className="mb-3 flex items-center gap-2 font-display text-lg font-bold">
@@ -675,45 +729,6 @@ export default function CvAnalyzerPage() {
                   </p>
                 )}
               </BrutalCard>
-
-              {/* Action bar: improve + cover letter */}
-              <BrutalCard color="black">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="text-white">
-                    <h3 className="font-display text-lg font-bold">Tingkatkan lebih jauh</h3>
-                    <p className="text-sm text-white/70">
-                      Biarkan AI menyusun ulang CV jadi lebih rapi (format ATS) dan membuat cover letter yang sesuai.
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <BrutalButton color="pink" onClick={improveCv} loading={isImproving} disabled={isImproving}>
-                      <Wand2 className="mr-2 h-4 w-4" />
-                      {draft ? 'Susun ulang lagi' : 'Perbaiki CV'}
-                    </BrutalButton>
-                    <BrutalButton
-                      color="purple"
-                      variant={showCoverLetter ? 'outline' : 'primary'}
-                      onClick={() => setShowCoverLetter((v) => !v)}
-                    >
-                      <Sparkles className="mr-2 h-4 w-4" />
-                      {showCoverLetter ? 'Sembunyikan cover letter' : 'Buat Cover Letter'}
-                    </BrutalButton>
-                  </div>
-                </div>
-              </BrutalCard>
-
-              {improveError && (
-                <BrutalCard color="red" className="flex items-start gap-3">
-                  <AlertCircle className="h-5 w-5 shrink-0" />
-                  <p className="font-medium">{improveError}</p>
-                </BrutalCard>
-              )}
-
-              {draft && <ImprovedCvView draft={draft} />}
-
-              {showCoverLetter && cvText && (
-                <CoverLetterView cvText={cvText} targetRole={analyzedRole} experienceLevel={analyzedLevel} />
-              )}
 
               {/* Sections checklist */}
               <BrutalCard color="white">

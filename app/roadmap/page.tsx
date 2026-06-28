@@ -1687,7 +1687,7 @@ export default function RoadmapPage() {
           subtitle="Follow your personalized learning path"
         />
 
-        <Container className="py-6">
+        <Container className="py-6 lg:px-8">
           {mode === 'loading' && (
             <BrutalCard color="white" className="mb-6">
               <p className="font-bold">{statusMessage}</p>
@@ -1923,7 +1923,7 @@ export default function RoadmapPage() {
                   })}
                 </div>
               ) : (
-                <div className="lg:grid lg:grid-cols-[340px_1fr] lg:gap-6 lg:items-start">
+                <div className="lg:grid lg:grid-cols-[340px_1fr] xl:grid-cols-[380px_1fr] lg:gap-8 lg:items-start">
                   <div className="space-y-4 lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto lg:pr-1">
                 {roadmap.weeks.map((week, weekIndex) => {
                   const weekProgress = calculateWeekProgress(week)
@@ -1973,7 +1973,7 @@ export default function RoadmapPage() {
                             </div>
                           </div>
                           <div className="flex shrink-0 items-center gap-4">
-                            <div className="hidden w-32 text-right sm:block">
+                            <div className="hidden w-28 text-right xl:block">
                               <div className="mb-1 flex items-center justify-end gap-2">
                                 <span className="font-bold">{completedTasks}/{week.tasks.length}</span>
                                 <span className="text-xs text-black/70">{weekProgress}%</span>
@@ -2276,7 +2276,7 @@ function CompactTaskRow({
         isLocked && 'bg-gray-100'
       )}
     >
-      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+      <div className="flex flex-col gap-3">
         <div className="min-w-0 flex-1">
           <div className="mb-1 flex flex-wrap items-center gap-2">
             <span className="rounded-md border-2 border-black bg-yellow px-2 py-0.5 text-xs font-bold">
@@ -2309,7 +2309,7 @@ function CompactTaskRow({
             Next: {nextAction}
           </p>
         </div>
-        <div className="w-full md:w-44">
+        <div className="w-full">
           <div className="mb-2 h-2 overflow-hidden rounded border-2 border-black bg-gray-200">
             <div className="h-full bg-black transition-all duration-200" style={{ width: `${progressPercent}%` }} />
           </div>
@@ -2373,7 +2373,7 @@ function TaskDetailPanel({
   const whyThisMatters = week.goal || 'This task builds a core backend skill for your next module.'
 
   return (
-    <div className={cn('rounded-md border-3 border-black bg-white p-4', task.status === 'completed' && 'bg-green/10')}>
+    <div className={cn('rounded-md border-3 border-black bg-white p-5', task.status === 'completed' && 'bg-green/10')}>
       <div className="mb-4 flex flex-wrap items-center gap-2">
         {isCurrentTask && (
           <span className="rounded-md border-2 border-black bg-green px-2 py-0.5 text-xs font-bold">
@@ -2438,7 +2438,7 @@ function TaskDetailPanel({
             const resourceStatus = getResourceStatusLabel(resource, openedResources)
 
             return (
-              <div key={resource.id} className="rounded-md border-2 border-black bg-gray-50 p-3">
+              <div key={resource.id} className="rounded-md border-2 border-black bg-gray-50 p-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0 flex-1">
                     <div className="mb-2 flex flex-wrap items-center gap-2">

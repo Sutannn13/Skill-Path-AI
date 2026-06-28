@@ -1838,7 +1838,7 @@ export default function RoadmapPage() {
                   <Portal>
                     {/* Backdrop + Modal together as one unit */}
                     <div
-                      className="fixed inset-0 z-[9999] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
+                      className="fixed inset-0 z-[9999] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 lg:p-8"
                       onClick={() => closeLearningWorkspace()}
                     >
                       {/* Modal - centered, scrollable */}
@@ -1847,7 +1847,7 @@ export default function RoadmapPage() {
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 20 }}
                         transition={{ duration: 0.2 }}
-                        className="relative w-full max-w-4xl max-h-[88vh] bg-white rounded-2xl border-4 border-black shadow-2xl overflow-hidden"
+                        className="relative w-full max-w-5xl max-h-[88vh] bg-white rounded-2xl border-4 border-black shadow-2xl overflow-hidden"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <LearningWorkspace

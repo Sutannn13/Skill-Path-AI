@@ -126,7 +126,7 @@ function ResourceAccordionItem({
                 </p>
               </div>
             ) : (
-              <div className="border-t-2 border-black/10 p-3">
+              <div className="border-t-2 border-black/10 p-4 sm:p-5">
                 <EmbeddedVideoPlayer
                   resource={resource}
                   isExpanded={isPlayerExpanded}
@@ -295,7 +295,7 @@ export function ResourceAccordion({
             </span>
           </div>
           <div
-            className="flex flex-col gap-2 rounded-md border-2 border-black bg-yellow/10 p-2 sm:flex-row sm:items-center sm:justify-between"
+            className="flex flex-col gap-2 rounded-md border-2 border-black bg-yellow/10 p-3 sm:flex-row sm:items-center sm:justify-between"
             aria-live="polite"
           >
             <BrutalButton

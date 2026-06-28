@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { AppShell, Container } from '@/components/layout'
 import { GradientBackground } from '@/components/layout'
 import { DashboardHeader } from '@/components/layout/dashboard-header'
-import { BrutalCard, BrutalButton, ConfirmModal, SkillBadge, ScoreBar } from '@/components/brutal'
+import { BrutalCard, BrutalButton, ConfirmModal, SkillBadge, ScoreBar, StickerBadge, StatCard } from '@/components/brutal'
 import { generateFallbackRoadmap } from '@/lib/ai'
 import {
   ROADMAP_CONTENT_VERSION,
@@ -24,15 +24,10 @@ import {
   deriveTaskStatus,
   getCompletedTaskCount,
   getCurrentTaskLocation,
-  getDefaultCurrentTask,
   getLearningResourceGate,
   getNextActionText,
-  getProjectLockReason,
-  getQuizLockReason,
-  getRequirementHint,
   hasTaskProgress,
   isResourceUnavailable,
-  taskCanBeCompleted,
 } from '@/lib/roadmap/progress'
 import { calculateSkillGap } from '@/lib/scoring/skill-gap'
 import { getRequiredSkillIds, getNiceToHaveSkillIds, getRoleById, getSkillById } from '@/lib/constants'
@@ -41,21 +36,15 @@ import { initializeUserProfile } from '@/lib/user/profile'
 import { cn } from '@/lib/utils'
 import {
   LearningWorkspace,
-  ResourceAccordion,
 } from '@/components/roadmap'
 import { Portal } from '@/components/ui/portal'
 import {
   AlertCircle,
-  BookOpen,
-  Check,
   CheckCircle2,
   ChevronDown,
   ChevronRight,
   ChevronUp,
-  Circle,
   Clock,
-  ExternalLink,
-  FileText,
   Lock,
   Map as MapIcon,
   PlayCircle,
@@ -704,13 +693,11 @@ export default function RoadmapPage() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [isRegenerateConfirmOpen, setIsRegenerateConfirmOpen] = useState(false)
   const [finalProjectStatus, setFinalProjectStatus] = useState<RoadmapProjectReviewStatus | null>(null)
-  const [focusedTaskByWeek, setFocusedTaskByWeek] = useState<Record<number, string>>({})
-  const [openedResources, setOpenedResources] = useState<Record<string, boolean>>({})
   const [learningWorkspace, setLearningWorkspace] = useState<{
     task: RoadmapTask
     week: RoadmapWeek
   } | null>(null)
-  const weekSectionRefs = useRef<Record<number, HTMLDivElement | null>>({})
+  const weekSectionRefs = useRef<Record<number, HTMLElement | null>>({})
 
   // Repair callback for empty-task roadmaps
   const repairEmptyRoadmap = () => {
@@ -1176,32 +1163,6 @@ export default function RoadmapPage() {
     }
   }, [supabase])
 
-  useEffect(() => {
-    if (!roadmap) return
-
-    setFocusedTaskByWeek((previous) => {
-      const next = { ...previous }
-      let changed = false
-
-      roadmap.weeks.forEach((week) => {
-        const defaultTask = getDefaultCurrentTask(week)
-        if (!defaultTask) return
-
-        const focusedTaskId = previous[week.week]
-        const stillExists = focusedTaskId
-          ? week.tasks.some((task) => task.id === focusedTaskId)
-          : false
-
-        if (!stillExists) {
-          next[week.week] = defaultTask.id
-          changed = true
-        }
-      })
-
-      return changed ? next : previous
-    })
-  }, [roadmap])
-
   const currentTaskLocation = useMemo(() => (
     roadmap ? getCurrentTaskLocation(roadmap) : null
   ), [roadmap])
@@ -1218,10 +1179,6 @@ export default function RoadmapPage() {
     if (!location) return
 
     setExpandedWeek(location.weekIndex)
-    setFocusedTaskByWeek((previous) => ({
-      ...previous,
-      [location.weekNumber]: location.taskId,
-    }))
 
     // Open learning workspace
     const week = roadmap.weeks[location.weekIndex]
@@ -1634,30 +1591,6 @@ export default function RoadmapPage() {
   const finalProjectUnlocked = progress >= 100
   const canOpenFinalProject = finalProjectUnlocked || hasFinalProjectSubmission
 
-  // Right-pane (detail) selection for the master-detail layout: the focused task
-  // of the currently expanded module, defaulting to the current task.
-  const activeWeekIndex = expandedWeek ?? currentTaskLocation?.weekIndex ?? 0
-  const rightPaneWeek = roadmap?.weeks[activeWeekIndex] ?? null
-  const rightPaneDefaultTask = rightPaneWeek ? getDefaultCurrentTask(rightPaneWeek) : null
-  const rightPaneFocusedId = rightPaneWeek
-    ? (focusedTaskByWeek[rightPaneWeek.week] ?? rightPaneDefaultTask?.id ?? null)
-    : null
-  const rightPaneTask = rightPaneWeek
-    ? (rightPaneWeek.tasks.find((task) => task.id === rightPaneFocusedId) ?? rightPaneDefaultTask)
-    : null
-  const rightPaneFirstIncomplete = rightPaneWeek
-    ? rightPaneWeek.tasks.findIndex((task) => task.status !== 'completed')
-    : -1
-  const rightPaneTaskIndex = rightPaneWeek && rightPaneTask
-    ? rightPaneWeek.tasks.findIndex((task) => task.id === rightPaneTask.id)
-    : -1
-  const rightPaneTaskLocked =
-    rightPaneTaskIndex >= 0 &&
-    rightPaneFirstIncomplete >= 0 &&
-    rightPaneTaskIndex > rightPaneFirstIncomplete &&
-    !!rightPaneTask &&
-    !hasTaskProgress(rightPaneTask)
-
   return (
     <AppShell showBottomNav={true}>
       <GradientBackground variant="roadmap" />
@@ -1832,6 +1765,34 @@ export default function RoadmapPage() {
                 </div>
               </BrutalCard>
 
+              {/* Quick stats — single-column page convention, matches the rest of the app */}
+              <div className="mb-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+                <StatCard
+                  label="Completed"
+                  value={`${getCompletedTaskCount(roadmap)}/${roadmap.weeks.reduce((sum, week) => sum + week.tasks.length, 0)}`}
+                  icon={CheckCircle2}
+                  iconColor="green"
+                />
+                <StatCard
+                  label="Module"
+                  value={`${Math.min(currentModuleIndex + 1, roadmap.weeks.length)}/${roadmap.weeks.length}`}
+                  icon={MapIcon}
+                  iconColor="blue"
+                />
+                <StatCard
+                  label="Tasks left"
+                  value={roadmap.weeks.reduce((sum, week) => sum + week.tasks.length, 0) - getCompletedTaskCount(roadmap)}
+                  icon={Target}
+                  iconColor="orange"
+                />
+                <StatCard
+                  label="Progress"
+                  value={`${progress}%`}
+                  icon={Zap}
+                  iconColor="yellow"
+                />
+              </div>
+
               {/* Learning Workspace Modal - Portal to body, centered on viewport */}
               <AnimatePresence>
                 {learningWorkspace && roadmap && (
@@ -1856,12 +1817,7 @@ export default function RoadmapPage() {
                           roadmap={roadmap}
                           onBack={closeLearningWorkspace}
                           onMarkResourceComplete={toggleResource}
-                          onOpenResource={(resourceId) => {
-                            setOpenedResources((prev) => ({
-                              ...prev,
-                              [resourceId]: true,
-                            }))
-                          }}
+                          onOpenResource={() => {}}
                           onReopenTask={reopenTask}
                         />
                       </motion.div>
@@ -1923,21 +1879,20 @@ export default function RoadmapPage() {
                   })}
                 </div>
               ) : (
-                <div className="lg:grid lg:grid-cols-[340px_1fr] xl:grid-cols-[380px_1fr] lg:gap-8 lg:items-start">
-                  <div className="space-y-4 lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto lg:pr-1">
+                <ol className="relative space-y-4">
                 {roadmap.weeks.map((week, weekIndex) => {
                   const weekProgress = calculateWeekProgress(week)
                   const isExpanded = expandedWeek === weekIndex
                   const completedTasks = week.tasks.filter((task) => deriveRequirementState(task) === 'completed').length
-                  const defaultCurrentTask = getDefaultCurrentTask(week)
-                  const focusedTaskId = focusedTaskByWeek[week.week] ?? defaultCurrentTask?.id ?? null
-                  const focusedTask = week.tasks.find((task) => task.id === focusedTaskId) ?? defaultCurrentTask
                   const firstIncompleteTaskIndex = week.tasks.findIndex((task) => task.status !== 'completed')
                   const weekStarted = week.tasks.some(hasTaskProgress)
                   const moduleLocked = weekIndex > currentModuleIndex && !weekStarted
+                  const moduleComplete = weekProgress >= 100
+                  const isCurrentModule = weekIndex === currentModuleIndex && !moduleLocked && !moduleComplete
+                  const isLastModule = weekIndex === roadmap.weeks.length - 1
 
                   return (
-                    <motion.div
+                    <motion.li
                       key={week.week}
                       ref={(node) => {
                         weekSectionRefs.current[week.week] = node
@@ -1945,155 +1900,145 @@ export default function RoadmapPage() {
                       initial={false}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: weekIndex * 0.05 }}
+                      className="flex gap-3 sm:gap-4"
                     >
-                      <BrutalCard color={weekIndex % 2 === 0 ? 'blue' : 'pink'} className="p-0 overflow-hidden">
-                        <button
-                          onClick={() => {
-                            if (moduleLocked) return
-                            setExpandedWeek(isExpanded ? null : weekIndex)
-                          }}
+                      {/* Quest spine: numbered station node + connector to the next module */}
+                      <div className="flex flex-col items-center" aria-hidden="true">
+                        <div
                           className={cn(
-                            'w-full p-4 flex items-center justify-between text-left transition-opacity',
-                            moduleLocked && 'cursor-not-allowed opacity-70'
+                            'flex h-12 w-12 shrink-0 items-center justify-center brutal-border brutal-radius font-display text-xl font-bold',
+                            moduleComplete
+                              ? 'bg-green shadow-brutal-sm'
+                              : moduleLocked
+                                ? 'bg-gray-200 text-gray-500'
+                                : isCurrentModule
+                                  ? 'bg-yellow shadow-brutal-sm'
+                                  : 'bg-white'
                           )}
-                          disabled={moduleLocked}
                         >
-                          <div className="flex min-w-0 items-center gap-4">
-                            <div
-                              className={cn(
-                                'flex h-12 w-12 shrink-0 items-center justify-center brutal-border brutal-radius font-bold text-xl shadow-brutal-sm',
-                                weekProgress >= 100 ? 'bg-green' : 'bg-white'
-                              )}
-                            >
-                              {weekProgress >= 100 ? <CheckCircle2 className="h-6 w-6" aria-hidden="true" /> : week.week}
-                            </div>
+                          {moduleComplete ? (
+                            <CheckCircle2 className="h-6 w-6" />
+                          ) : moduleLocked ? (
+                            <Lock className="h-5 w-5" />
+                          ) : (
+                            week.week
+                          )}
+                        </div>
+                        {!isLastModule && (
+                          <div
+                            className={cn(
+                              'mt-2 w-1.5 flex-1 rounded-full',
+                              moduleComplete ? 'bg-green' : 'bg-black/20'
+                            )}
+                          />
+                        )}
+                      </div>
+
+                      {/* Module card */}
+                      <div className="min-w-0 flex-1 pb-2">
+                        <BrutalCard
+                          color={moduleComplete ? 'green' : isCurrentModule ? 'blue' : 'white'}
+                          shadow={isExpanded || isCurrentModule ? 'lg' : 'md'}
+                          className="p-0 overflow-hidden"
+                        >
+                          <button
+                            onClick={() => {
+                              if (moduleLocked) return
+                              setExpandedWeek(isExpanded ? null : weekIndex)
+                            }}
+                            className={cn(
+                              'w-full p-4 flex items-center justify-between gap-3 text-left transition-opacity',
+                              moduleLocked && 'cursor-not-allowed opacity-70'
+                            )}
+                            disabled={moduleLocked}
+                          >
                             <div className="min-w-0">
-                              <h3 className="font-display text-lg font-bold">{week.title}</h3>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <h3 className="font-display text-lg font-bold">{week.title}</h3>
+                                {moduleComplete ? (
+                                  <StickerBadge variant="completed" size="sm" />
+                                ) : moduleLocked ? (
+                                  <StickerBadge variant="locked" size="sm" />
+                                ) : isCurrentModule ? (
+                                  <StickerBadge variant="in-progress" label="Current" size="sm" />
+                                ) : null}
+                              </div>
                               <p className="truncate text-sm text-black/70">{week.goal}</p>
                             </div>
-                          </div>
-                          <div className="flex shrink-0 items-center gap-4">
-                            <div className="hidden w-28 text-right xl:block">
-                              <div className="mb-1 flex items-center justify-end gap-2">
-                                <span className="font-bold">{completedTasks}/{week.tasks.length}</span>
-                                <span className="text-xs text-black/70">{weekProgress}%</span>
+                            <div className="flex shrink-0 items-center gap-3">
+                              <div className="hidden text-right sm:block">
+                                <div className="flex items-center justify-end gap-2">
+                                  <span className="font-bold">{completedTasks}/{week.tasks.length}</span>
+                                  <span className="text-xs text-black/70">{weekProgress}%</span>
+                                </div>
+                                {moduleLocked && (
+                                  <p className="mt-0.5 text-[11px] font-bold text-black/60">
+                                    Selesaikan modul sebelumnya dulu.
+                                  </p>
+                                )}
                               </div>
-                              <div className="h-2 overflow-hidden border-2 border-black brutal-radius bg-white/60">
-                                <div className="h-full bg-black transition-all" style={{ width: `${weekProgress}%` }} />
-                              </div>
-                              {moduleLocked && (
-                                <p className="mt-1 text-[11px] font-bold text-black/60">
-                                  Selesaikan modul ini untuk membuka berikutnya.
-                                </p>
-                              )}
+                              <span className="flex h-9 w-9 items-center justify-center brutal-border brutal-radius bg-white">
+                                {isExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                              </span>
                             </div>
-                            <span className="flex h-9 w-9 items-center justify-center brutal-border brutal-radius bg-white">
-                              {isExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
-                            </span>
+                          </button>
+
+                          <div className="h-2 bg-black/10">
+                            <div
+                              className="h-full bg-black transition-all duration-300"
+                              style={{ width: `${weekProgress}%` }}
+                            />
                           </div>
-                        </button>
 
-                        <div className="h-2 bg-black/10">
-                          <div
-                            className="h-full bg-black transition-all duration-300"
-                            style={{ width: `${weekProgress}%` }}
-                          />
-                        </div>
+                          <AnimatePresence>
+                            {isExpanded && (
+                              <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.2 }}
+                                className="overflow-hidden"
+                              >
+                                <div className="p-4 bg-white border-t-3 border-black">
+                                  <div className="mb-4">
+                                    <h4 className="font-bold mb-2">Focus Skills</h4>
+                                    <div className="flex flex-wrap gap-2">
+                                      {week.focusSkills.map((skill) => (
+                                        <SkillBadge key={skill} name={skill} color="yellow" />
+                                      ))}
+                                    </div>
+                                  </div>
 
-                        <AnimatePresence>
-                          {isExpanded && focusedTask && (
-                            <motion.div
-                              initial={{ height: 0, opacity: 0 }}
-                              animate={{ height: 'auto', opacity: 1 }}
-                              exit={{ height: 0, opacity: 0 }}
-                              transition={{ duration: 0.2 }}
-                              className="overflow-hidden"
-                            >
-                              <div className="p-4 bg-white border-t-3 border-black">
-                                <div className="mb-4">
-                                  <h4 className="font-bold mb-2">Focus Skills</h4>
-                                  <div className="flex flex-wrap gap-2">
-                                    {week.focusSkills.map((skill) => (
-                                      <SkillBadge key={skill} name={skill} color="yellow" />
-                                    ))}
+                                  <div className="space-y-3">
+                                    <h4 className="font-bold">Task List</h4>
+                                    {week.tasks.map((task, taskIndex) => {
+                                      const isCurrentTask = task.id === currentTaskLocation?.taskId
+                                      const taskLocked = firstIncompleteTaskIndex >= 0
+                                        && taskIndex > firstIncompleteTaskIndex
+                                        && !hasTaskProgress(task)
+
+                                      return (
+                                        <CompactTaskRow
+                                          key={task.id}
+                                          task={task}
+                                          taskNumber={taskIndex + 1}
+                                          isCurrent={isCurrentTask}
+                                          isLocked={taskLocked}
+                                          onOpenWorkspace={() => openLearningWorkspace(task, week)}
+                                        />
+                                      )
+                                    })}
                                   </div>
                                 </div>
-
-                                <div className="mb-4 space-y-3">
-                                  <h4 className="font-bold">Task List</h4>
-                                  {week.tasks.map((task, taskIndex) => {
-                                    const isCurrentTask = focusedTask.id === task.id
-                                    const taskLocked = firstIncompleteTaskIndex >= 0
-                                      && taskIndex > firstIncompleteTaskIndex
-                                      && !hasTaskProgress(task)
-
-                                    return (
-                                      <CompactTaskRow
-                                        key={task.id}
-                                        task={task}
-                                        taskNumber={taskIndex + 1}
-                                        isFocused={isCurrentTask}
-                                        isLocked={taskLocked}
-                                        onFocus={() => {
-                                          setFocusedTaskByWeek((previous) => ({
-                                            ...previous,
-                                            [week.week]: task.id,
-                                          }))
-                                        }}
-                                        onOpenWorkspace={() => openLearningWorkspace(task, week)}
-                                      />
-                                    )
-                                  })}
-                                </div>
-
-                                {/* Task detail + mini project render in the right pane (see below). */}
-                              </div>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </BrutalCard>
-                    </motion.div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </BrutalCard>
+                      </div>
+                    </motion.li>
                   )
                 })}
-                  </div>
-
-                  {/* RIGHT PANE (detail) — desktop only; mobile uses the Learn modal */}
-                  <div className="mt-4 hidden lg:mt-0 lg:block lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto">
-                    {rightPaneTask && rightPaneWeek ? (
-                      <>
-                        <TaskDetailPanel
-                          task={rightPaneTask}
-                          week={rightPaneWeek}
-                          isCurrentTask={rightPaneTask.id === currentTaskLocation?.taskId}
-                          isTaskLocked={rightPaneTaskLocked}
-                          lockedReason={rightPaneTaskLocked ? 'Complete the previous task to unlock this.' : null}
-                          openedResources={openedResources}
-                          onOpenResource={(resourceId) => {
-                            setOpenedResources((previous) => ({ ...previous, [resourceId]: true }))
-                          }}
-                          onToggleResource={toggleResource}
-                          onReopen={reopenTask}
-                        />
-                        {rightPaneWeek.miniProject && (
-                          <div className="mt-4 rounded-md border-2 border-black bg-gray-50 p-4">
-                            <h4 className="font-bold mb-2">Mini Project</h4>
-                            <p className="font-medium mb-2">{rightPaneWeek.miniProject.title}</p>
-                            <p className="text-sm text-gray-600 mb-3">{rightPaneWeek.miniProject.description}</p>
-                            <div className="flex flex-wrap gap-2">
-                              {rightPaneWeek.miniProject.skillsCovered.map((skill) => (
-                                <SkillBadge key={skill} name={skill} size="sm" />
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </>
-                    ) : (
-                      <BrutalCard color="white">
-                        <p className="font-bold">Select a task to see its details.</p>
-                      </BrutalCard>
-                    )}
-                  </div>
-                </div>
+                </ol>
               )}
 
               {roadmap.finalPortfolioProject && (
@@ -2165,66 +2110,6 @@ export default function RoadmapPage() {
   )
 }
 
-function getYouTubeVideoId(url: string) {
-  try {
-    const parsed = new URL(url)
-    let videoId: string | null = null
-
-    if (parsed.hostname.includes('youtu.be')) {
-      videoId = parsed.pathname.replace('/', '')
-    } else if (parsed.pathname.startsWith('/watch')) {
-      videoId = parsed.searchParams.get('v')
-    } else if (parsed.pathname.startsWith('/shorts/')) {
-      videoId = parsed.pathname.split('/')[2] ?? null
-    } else if (parsed.pathname.startsWith('/embed/')) {
-      videoId = parsed.pathname.split('/')[2] ?? null
-    }
-
-    if (!videoId) return null
-    return videoId
-  } catch {
-    return null
-  }
-}
-
-function getYouTubeThumbnailUrl(url: string) {
-  const videoId = getYouTubeVideoId(url)
-  if (!videoId) return null
-  return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
-}
-
-function getResourceTypeLabel(resourceType: RoadmapResource['resourceType']) {
-  if (resourceType === 'youtube') return 'Video'
-  if (resourceType === 'docs' || resourceType === 'article') return 'Docs'
-  return 'Practice'
-}
-
-function getResourceStatusLabel(resource: RoadmapResource, openedResources: Record<string, boolean>) {
-  if (resource.isCompleted) {
-    return resource.resourceType === 'youtube' ? 'Watched' : 'Completed'
-  }
-
-  if (openedResources[resource.id] || resource.watchedSeconds > 0 || resource.completionPercentage > 0) {
-    return 'Opened'
-  }
-
-  return 'Not started'
-}
-
-function getRequirementBadgeStyles(state: RoadmapTaskRequirementState) {
-  const styles: Record<RoadmapTaskRequirementState, string> = {
-    resources_pending: 'bg-yellow/20 text-black',
-    resources_completed: 'bg-blue/20 text-black',
-    quiz_pending: 'bg-orange/20 text-black',
-    quiz_passed: 'bg-green/20 text-black',
-    project_pending: 'bg-pink/20 text-black',
-    project_passed: 'bg-green/20 text-black',
-    completed: 'bg-green text-black',
-  }
-
-  return styles[state]
-}
-
 function getTaskProgressSnapshot(task: RoadmapTask) {
   const resourceGate = getLearningResourceGate(task)
   const quizRequired = task.quizRequired !== false
@@ -2246,16 +2131,14 @@ function getTaskProgressSnapshot(task: RoadmapTask) {
 function CompactTaskRow({
   task,
   taskNumber,
-  isFocused,
+  isCurrent,
   isLocked,
-  onFocus,
   onOpenWorkspace,
 }: {
   task: RoadmapTask
   taskNumber: number
-  isFocused: boolean
+  isCurrent: boolean
   isLocked: boolean
-  onFocus: () => void
   onOpenWorkspace?: () => void
 }) {
   const requirementState = task.requirementState ?? deriveRequirementState(task)
@@ -2271,27 +2154,19 @@ function CompactTaskRow({
   return (
     <div
       className={cn(
-        'rounded-md border-2 border-black bg-white p-3 transition-all',
-        isFocused && 'ring-2 ring-black',
+        'rounded-md border-2 border-black bg-white p-3 transition-all sm:p-4',
+        isCurrent && 'ring-2 ring-black',
         isLocked && 'bg-gray-100'
       )}
     >
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1">
           <div className="mb-1 flex flex-wrap items-center gap-2">
             <span className="rounded-md border-2 border-black bg-yellow px-2 py-0.5 text-xs font-bold">
               Task {taskNumber}
             </span>
-            {isFocused && (
-              <span className="rounded-md border-2 border-black bg-green px-2 py-0.5 text-xs font-bold">
-                Current Task
-              </span>
-            )}
-            {isLocked && (
-              <span className="rounded-md border-2 border-black bg-gray-200 px-2 py-0.5 text-xs font-bold">
-                Locked
-              </span>
-            )}
+            {isCurrent && <StickerBadge variant="in-progress" label="Current Task" size="sm" />}
+            {isLocked && <StickerBadge variant="locked" size="sm" />}
           </div>
           <p className="font-bold">{task.title}</p>
           <p className="mt-1 line-clamp-2 text-sm text-gray-700">{task.description}</p>
@@ -2309,329 +2184,20 @@ function CompactTaskRow({
             Next: {nextAction}
           </p>
         </div>
-        <div className="w-full">
+        <div className="w-full sm:w-48 sm:shrink-0">
           <div className="mb-2 h-2 overflow-hidden rounded border-2 border-black bg-gray-200">
             <div className="h-full bg-black transition-all duration-200" style={{ width: `${progressPercent}%` }} />
           </div>
           <p className="mb-2 text-xs font-medium text-gray-700">
             Checklist: {checklistDone}/{checklistTotal}
           </p>
-          <div className="flex flex-col gap-1">
-            <BrutalButton size="sm" color="black" variant={isFocused ? 'primary' : 'outline'} className="w-full" onClick={onFocus}>
-              <ChevronRight className="h-4 w-4" />
-              {isFocused ? 'Focused' : 'Focus'}
+          {onOpenWorkspace && (
+            <BrutalButton size="sm" color="green" className="w-full" onClick={onOpenWorkspace}>
+              <PlayCircle className="h-4 w-4" />
+              Learn
             </BrutalButton>
-            {onOpenWorkspace && (
-              <BrutalButton size="sm" color="green" className="w-full" onClick={onOpenWorkspace}>
-                <PlayCircle className="h-4 w-4" />
-                Learn
-              </BrutalButton>
-            )}
-          </div>
+          )}
         </div>
-      </div>
-    </div>
-  )
-}
-
-function TaskDetailPanel({
-  task,
-  week,
-  isCurrentTask,
-  isTaskLocked,
-  lockedReason,
-  openedResources,
-  onOpenResource,
-  onToggleResource,
-  onReopen,
-}: {
-  task: RoadmapTask
-  week: RoadmapWeek
-  isCurrentTask: boolean
-  isTaskLocked: boolean
-  lockedReason: string | null
-  openedResources: Record<string, boolean>
-  onOpenResource: (resourceId: string) => void
-  onToggleResource: (taskId: string, resourceId: string) => void
-  onReopen: (taskId: string) => void
-}) {
-  const difficultyColors: Record<RoadmapTask['difficulty'], string> = {
-    easy: 'text-green',
-    medium: 'text-yellow',
-    hard: 'text-red',
-  }
-  const canComplete = taskCanBeCompleted(task)
-  const resources = task.resources ?? []
-  const resourceGate = getLearningResourceGate(task)
-  const requirementHint = getRequirementHint(task)
-  const requirementState = task.requirementState ?? deriveRequirementState(task)
-  const hasMiniProject = task.projectRequired === true
-  const quizLockReason = task.quizPassed ? null : getQuizLockReason(task)
-  const projectLockReason = task.projectPassed ? null : getProjectLockReason(task, hasMiniProject)
-  const canOpenQuiz = !isTaskLocked && (task.quizPassed || quizLockReason === null)
-  const canOpenProject = !isTaskLocked && hasMiniProject && (task.projectPassed || projectLockReason === null)
-  const whyThisMatters = week.goal || 'This task builds a core backend skill for your next module.'
-
-  return (
-    <div className={cn('rounded-md border-3 border-black bg-white p-5', task.status === 'completed' && 'bg-green/10')}>
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        {isCurrentTask && (
-          <span className="rounded-md border-2 border-black bg-green px-2 py-0.5 text-xs font-bold">
-            Current Task
-          </span>
-        )}
-        <span
-          className={cn(
-            'rounded-md border-2 border-black px-2 py-0.5 text-xs font-bold',
-            getRequirementBadgeStyles(requirementState)
-          )}
-        >
-          {formatRequirementState(requirementState)}
-        </span>
-        <span className={cn('text-xs font-bold uppercase', difficultyColors[task.difficulty])}>
-          {task.difficulty}
-        </span>
-      </div>
-
-      <h5 className={cn('mb-1 font-display text-xl font-bold', task.status === 'completed' && 'line-through text-gray-500')}>
-        {task.title}
-      </h5>
-      <p className="text-sm text-gray-700">{task.description}</p>
-      <div className="mt-2 flex flex-wrap items-center gap-3 text-xs font-medium text-gray-700">
-        <span className="flex items-center gap-1">
-          <Clock className="h-3 w-3" />
-          {task.estimatedTime}
-        </span>
-        <span>Deliverable: {task.deliverable}</span>
-      </div>
-
-      <div className="mt-4 rounded-md border-2 border-black bg-blue/10 p-3">
-        <p className="mb-1 text-sm font-bold">Why this matters</p>
-        <p className="text-sm text-gray-800">{whyThisMatters}</p>
-      </div>
-
-      <div className="mt-4 rounded-md border-2 border-black bg-yellow/10 p-3">
-        <p className="mb-2 text-sm font-bold">Learning Steps</p>
-        <ol className="list-decimal space-y-1 pl-5 text-sm text-gray-800">
-          <li>Watch one focused video.</li>
-          <li>Read one documentation resource.</li>
-          <li>Complete the checklist.</li>
-          <li>Pass the quiz.</li>
-          <li>Submit the mini project if required.</li>
-        </ol>
-      </div>
-
-      <div className="mt-4 space-y-3">
-        <p className="flex items-center gap-2 text-sm font-bold">
-          <BookOpen className="h-4 w-4" />
-          Learning Resources
-        </p>
-        {resources.length === 0 && (
-          <div className="rounded-md border-2 border-dashed border-black bg-gray-50 p-3 text-sm font-medium text-gray-700">
-            Resources are being prepared for this task.
-          </div>
-        )}
-        <div className="space-y-3">
-          {resources.map((resource) => {
-            const unavailable = isResourceUnavailable(resource)
-            const thumbnailUrl = resource.resourceType === 'youtube' ? getYouTubeThumbnailUrl(resource.url) : null
-            const resourceStatus = getResourceStatusLabel(resource, openedResources)
-
-            return (
-              <div key={resource.id} className="rounded-md border-2 border-black bg-gray-50 p-4">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="min-w-0 flex-1">
-                    <div className="mb-2 flex flex-wrap items-center gap-2">
-                      <span className="rounded-md border-2 border-black bg-white px-2 py-0.5 text-[11px] font-bold">
-                        {getResourceTypeLabel(resource.resourceType)}
-                      </span>
-                      <span className="rounded-md border-2 border-black bg-white px-2 py-0.5 text-[11px] font-bold">
-                        {resourceStatus}
-                      </span>
-                    </div>
-                    <p className="font-bold">{resource.title}</p>
-                    <p className="text-xs text-gray-600">
-                      {resource.provider}
-                      {!unavailable ? ` • ${resource.estimatedMinutes} min` : ''}
-                    </p>
-                    {unavailable && (
-                      <p className="mt-2 text-xs font-medium text-gray-700">
-                        Resources are being prepared for this task.
-                      </p>
-                    )}
-                  </div>
-
-                  {resource.resourceType === 'youtube' && (
-                    <div className="w-full sm:w-40">
-                      {thumbnailUrl && !unavailable ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={thumbnailUrl}
-                          alt={resource.title}
-                          loading="lazy"
-                          className="h-24 w-full rounded-md border-2 border-black object-cover"
-                          onError={(event) => {
-                            event.currentTarget.style.display = 'none'
-                          }}
-                        />
-                      ) : (
-                        <div className="flex h-24 items-center justify-center rounded-md border-2 border-black bg-white px-2 text-center">
-                          <div>
-                            <PlayCircle className="mx-auto h-5 w-5" />
-                            <p className="mt-1 text-xs font-bold">Video resource</p>
-                            <p className="text-[11px] text-gray-600">{resource.provider}</p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  {(resource.resourceType === 'docs' || resource.resourceType === 'article') && (
-                    <div className="flex h-24 w-full items-center justify-center rounded-md border-2 border-black bg-white px-2 text-center sm:w-40">
-                      <div>
-                        <FileText className="mx-auto h-5 w-5" />
-                        <p className="mt-1 text-xs font-bold">Documentation</p>
-                        <p className="text-[11px] text-gray-600">{resource.provider}</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {!unavailable && (
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <a href={resource.url} target="_blank" rel="noopener noreferrer" onClick={() => onOpenResource(resource.id)}>
-                      <BrutalButton variant="ghost" color="black" size="sm">
-                        <ExternalLink className="h-4 w-4" />
-                        Open
-                      </BrutalButton>
-                    </a>
-                    <BrutalButton
-                      variant={resource.isCompleted ? 'primary' : 'outline'}
-                      color={resource.isCompleted ? 'green' : 'black'}
-                      size="sm"
-                      onClick={() => onToggleResource(task.id, resource.id)}
-                    >
-                      {resource.resourceType === 'youtube' ? (
-                        <PlayCircle className="h-4 w-4" />
-                      ) : (
-                        <Check className="h-4 w-4" />
-                      )}
-                      {resource.resourceType === 'youtube'
-                        ? (resource.isCompleted ? 'Watched' : 'Mark watched')
-                        : (resource.isCompleted ? 'Completed' : 'Mark complete')}
-                    </BrutalButton>
-                  </div>
-                )}
-              </div>
-            )
-          })}
-        </div>
-      </div>
-
-      <div className="mt-4 rounded-md border-2 border-black bg-white p-3">
-        <p className="mb-2 text-sm font-bold">Requirement Checklist</p>
-        <ul className="space-y-2 text-sm">
-          <li className="flex items-start gap-2">
-            {resourceGate.resourcesComplete ? <Check className="mt-0.5 h-4 w-4 text-green" /> : <Circle className="mt-0.5 h-4 w-4" />}
-            <span>Complete 1 video and 1 documentation resource ({resourceGate.completedVideos}/1 video, {resourceGate.completedDocs}/1 docs)</span>
-          </li>
-          <li className="flex items-start gap-2">
-            {task.quizPassed ? <Check className="mt-0.5 h-4 w-4 text-green" /> : <Circle className="mt-0.5 h-4 w-4" />}
-            <span>Pass quiz with score 80 or above</span>
-          </li>
-          <li className="flex items-start gap-2">
-            {(task.projectRequired !== true || task.projectPassed) ? <Check className="mt-0.5 h-4 w-4 text-green" /> : <Circle className="mt-0.5 h-4 w-4" />}
-            <span>Submit mini project if required</span>
-          </li>
-        </ul>
-        <p className="mt-2 text-xs font-medium text-gray-600">{requirementHint}</p>
-      </div>
-
-      <div className="mt-4 grid gap-3 md:grid-cols-2">
-        {isTaskLocked ? (
-          <>
-            <BrutalButton variant="outline" color="black" size="sm" className="w-full" disabled>
-              <Lock className="h-4 w-4" />
-              Start Quiz
-            </BrutalButton>
-            {hasMiniProject && (
-              <BrutalButton variant="outline" color="black" size="sm" className="w-full" disabled>
-                <Lock className="h-4 w-4" />
-                Submit Mini Project
-              </BrutalButton>
-            )}
-          </>
-        ) : (
-          <>
-          {canOpenQuiz ? (
-            <Link href={`/roadmap/tasks/${task.id}/quiz`} className="inline-flex">
-              <BrutalButton
-                variant={task.quizPassed ? 'primary' : 'outline'}
-                color={task.quizPassed ? 'green' : 'black'}
-                size="sm"
-                className="w-full"
-              >
-                {task.quizPassed
-                  ? 'Retry Quiz'
-                  : requirementState === 'quiz_pending'
-                    ? 'Continue Quiz'
-                    : 'Start Quiz'}
-              </BrutalButton>
-            </Link>
-          ) : (
-            <BrutalButton variant="outline" color="black" size="sm" className="w-full" disabled>
-              Start Quiz
-            </BrutalButton>
-          )}
-
-          {hasMiniProject && (
-            canOpenProject ? (
-              <Link href={`/roadmap/tasks/${task.id}/project`} className="inline-flex">
-                <BrutalButton
-                  variant={task.projectPassed ? 'primary' : 'outline'}
-                  color={task.projectPassed ? 'green' : 'black'}
-                  size="sm"
-                  className="w-full"
-                >
-                  {task.projectPassed ? 'View Mini Project Review' : 'Submit Mini Project'}
-                </BrutalButton>
-              </Link>
-            ) : (
-              <BrutalButton variant="outline" color="black" size="sm" className="w-full" disabled>
-                Submit Mini Project
-              </BrutalButton>
-            )
-          )}
-          </>
-        )}
-      </div>
-      {isTaskLocked && lockedReason && (
-        <p className="mt-2 text-xs font-medium text-orange-700">{lockedReason}</p>
-      )}
-      {!isTaskLocked && quizLockReason && !task.quizPassed && (
-        <p className="mt-2 text-xs font-medium text-orange-700">{quizLockReason}</p>
-      )}
-      {!isTaskLocked && hasMiniProject && projectLockReason && projectLockReason !== quizLockReason && !task.projectPassed && (
-        <p className="mt-1 text-xs font-medium text-pink-700">{projectLockReason}</p>
-      )}
-
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t-2 border-black/10 pt-3">
-        <p className="text-xs font-medium text-gray-600">
-          Status: {formatRequirementState(requirementState)}
-        </p>
-        {task.status === 'completed' ? (
-          <BrutalButton variant="outline" color="black" size="sm" onClick={() => onReopen(task.id)}>
-            Reopen task
-          </BrutalButton>
-        ) : (
-          <span
-            className={cn(
-              'rounded-md border-2 border-black px-3 py-1 text-xs font-bold',
-              canComplete ? 'bg-green/10 text-green' : 'bg-gray-100 text-gray-600'
-            )}
-          >
-            {canComplete ? 'Ready to complete' : 'Finish learning resources first'}
-          </span>
-        )}
       </div>
     </div>
   )

@@ -23,7 +23,7 @@ const colorClasses: Record<CardColor, string> = {
   purple: 'bg-purple',
   black: 'bg-black text-white',
   gray: 'bg-gray-100',
-  red: 'bg-red text-white',
+  red: 'bg-red text-white-static',
 }
 
 const shadowClasses = {

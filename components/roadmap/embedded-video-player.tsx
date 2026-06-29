@@ -202,9 +202,9 @@ export function EmbeddedVideoPlayer({
             ) : (
               <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
                 {canEmbed ? (
-                  <Play className="h-16 w-16 text-white/50" />
+                  <Play className="h-16 w-16 text-white-static/50" />
                 ) : (
-                  <VideoOff className="h-16 w-16 text-white/50" />
+                  <VideoOff className="h-16 w-16 text-white-static/50" />
                 )}
               </div>
             )}
@@ -226,18 +226,18 @@ export function EmbeddedVideoPlayer({
                 )}
               </motion.div>
               {canEmbed ? (
-                <span className="rounded bg-black/70 px-2 py-1 text-xs font-bold text-white">
+                <span className="rounded bg-black/70 px-2 py-1 text-xs font-bold text-white-static">
                   Tonton Video
                 </span>
               ) : (
-                <span className="rounded bg-red-600 px-2 py-1 text-xs font-bold text-white">
+                <span className="rounded bg-red-600 px-2 py-1 text-xs font-bold text-white-static">
                   Buka di YouTube
                 </span>
               )}
             </div>
 
             {/* Duration Badge */}
-            <div className="absolute bottom-2 right-2 rounded bg-black/80 px-2 py-1 text-xs font-bold text-white">
+            <div className="absolute bottom-2 right-2 rounded bg-black/80 px-2 py-1 text-xs font-bold text-white-static">
               {resource.estimatedMinutes}:00
             </div>
 
@@ -246,7 +246,7 @@ export function EmbeddedVideoPlayer({
               <div className="absolute bottom-2 left-2">
                 {videoStatus === 'completed' || videoStatus === 'watched' ? (
                   <div className="flex h-6 w-6 items-center justify-center rounded-full bg-green">
-                    <Check className="h-4 w-4 text-white" />
+                    <Check className="h-4 w-4 text-white-static" />
                   </div>
                 ) : (
                   <div className="flex h-6 w-6 items-center justify-center rounded-full bg-yellow">
@@ -275,12 +275,12 @@ export function EmbeddedVideoPlayer({
 
         {/* Embed Error Fallback */}
         {isExpanded && (!canEmbed || embedError) && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-gray-800 text-white p-6">
-            <VideoOff className="h-16 w-16 text-white/50" />
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-gray-800 text-white-static p-6">
+            <VideoOff className="h-16 w-16 text-white-static/50" />
             <p className="text-center font-medium">
               Video ini tidak bisa ditampilkan di sini.
             </p>
-            <p className="text-center text-sm text-white/60">
+            <p className="text-center text-sm text-white-static/60">
               {embedError
                 ? 'Server video memblokir tampilan embed.'
                 : 'URL video bukan link YouTube yang valid.'}
@@ -313,7 +313,7 @@ export function EmbeddedVideoPlayer({
           <>
             <button
               onClick={() => setIsFullscreen(!isFullscreen)}
-              className="absolute right-2 top-2 z-30 flex h-8 w-8 items-center justify-center rounded bg-black/50 text-white transition-colors hover:bg-black/70"
+              className="absolute right-2 top-2 z-30 flex h-8 w-8 items-center justify-center rounded bg-black/50 text-white-static transition-colors hover:bg-black/70"
               aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
             >
               {isFullscreen ? (
@@ -326,7 +326,7 @@ export function EmbeddedVideoPlayer({
             {/* Close Button */}
             <button
               onClick={onToggleExpand}
-              className="absolute right-12 top-2 z-30 flex h-8 w-8 items-center justify-center rounded bg-black/50 text-white transition-colors hover:bg-black/70"
+              className="absolute right-12 top-2 z-30 flex h-8 w-8 items-center justify-center rounded bg-black/50 text-white-static transition-colors hover:bg-black/70"
               aria-label="Close video player"
             >
               <X className="h-4 w-4" />

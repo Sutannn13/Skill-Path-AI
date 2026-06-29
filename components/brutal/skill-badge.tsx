@@ -17,7 +17,7 @@ const levelColors: Record<SkillLevel, string> = {
   1: 'bg-blue/30 text-blue',
   2: 'bg-green/30 text-green',
   3: 'bg-yellow/50 text-yellow',
-  4: 'bg-green text-white',
+  4: 'bg-green text-white-static',
 }
 
 const levelLabels: Record<SkillLevel, string> = {

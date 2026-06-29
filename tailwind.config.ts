@@ -6,11 +6,35 @@ const config: Config = {
     './components/**/*.{js,ts,jsx,tsx,mdx}',
     './app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
+  // Theme is driven by the `.dark` class on <html> (toggled by the pre-paint
+  // script in app/layout.tsx and applyAppearance() in lib/user/preferences.ts).
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
-        background: '#FFF7E6',
-        black: '#111111',
+        // Neutral surfaces/ink resolve to space-separated RGB-triplet CSS vars so
+        // the SAME utility (bg-white, text-black, bg-gray-100…) themes itself when
+        // the vars flip under html.dark in globals.css. The <alpha-value> slot keeps
+        // opacity modifiers working (bg-black/20, text-black/70, bg-white/10).
+        background: 'rgb(var(--c-bg) / <alpha-value>)',
+        black: 'rgb(var(--c-ink) / <alpha-value>)',
+        white: 'rgb(var(--c-surface) / <alpha-value>)',
+        gray: {
+          50: 'rgb(var(--c-n-50) / <alpha-value>)',
+          100: 'rgb(var(--c-n-100) / <alpha-value>)',
+          200: 'rgb(var(--c-n-200) / <alpha-value>)',
+          300: 'rgb(var(--c-n-300) / <alpha-value>)',
+          400: 'rgb(var(--c-n-400) / <alpha-value>)',
+          500: 'rgb(var(--c-n-500) / <alpha-value>)',
+          600: 'rgb(var(--c-n-600) / <alpha-value>)',
+          700: 'rgb(var(--c-n-700) / <alpha-value>)',
+          800: 'rgb(var(--c-n-800) / <alpha-value>)',
+          900: 'rgb(var(--c-n-900) / <alpha-value>)',
+        },
+        // Non-theming literals: white that must stay white on bright accent fills /
+        // inside permanently-dark zones, and a fixed black for the same reason.
+        'white-static': '#FFFFFF',
+        'black-static': '#111111',
         yellow: '#FFD447',
         blue: '#7CC9FF',
         pink: '#FF8FAB',
@@ -25,9 +49,9 @@ const config: Config = {
         'orange-dark': '#F09A4A',
         'purple-dark': '#9A7FCC',
         'red-dark': '#C2261B',
-        'cream-light': '#FFFDF5',
-        'cream-dark': '#F5EDD8',
-        // Arcade Quest cabinet / HUD surfaces
+        'cream-light': 'rgb(var(--c-cream-l) / <alpha-value>)',
+        'cream-dark': 'rgb(var(--c-cream-d) / <alpha-value>)',
+        // Arcade Quest cabinet / HUD surfaces (permanently dark in both themes)
         cabinet: '#1A1726',
         'cabinet-soft': '#241F35',
       },
@@ -49,13 +73,15 @@ const config: Config = {
         caption: ['0.75rem', { lineHeight: '1.4' }],
       },
       boxShadow: {
-        brutal: '4px 4px 0px 0px #111111',
-        'brutal-sm': '2px 2px 0px 0px #111111',
-        'brutal-lg': '6px 6px 0px 0px #111111',
-        'brutal-xl': '8px 8px 0px 0px #111111',
-        'brutal-2xl': '10px 10px 0px 0px #111111',
-        'brutal-inset': 'inset 3px 3px 0px 0px #111111',
-        'brutal-hover': '6px 6px 0px 0px #111111',
+        // --c-shadow flips light under html.dark so the hard offset stays visible
+        // on dark surfaces (matches the arcade.tsx onDark white-shadow precedent).
+        brutal: '4px 4px 0px 0px rgb(var(--c-shadow))',
+        'brutal-sm': '2px 2px 0px 0px rgb(var(--c-shadow))',
+        'brutal-lg': '6px 6px 0px 0px rgb(var(--c-shadow))',
+        'brutal-xl': '8px 8px 0px 0px rgb(var(--c-shadow))',
+        'brutal-2xl': '10px 10px 0px 0px rgb(var(--c-shadow))',
+        'brutal-inset': 'inset 3px 3px 0px 0px rgb(var(--c-shadow))',
+        'brutal-hover': '6px 6px 0px 0px rgb(var(--c-shadow))',
       },
       borderWidth: {
         // `3` makes the widely-used `border-3` / `border-b-3` / `border-l-3`
@@ -125,8 +151,8 @@ const config: Config = {
         },
       },
       backgroundImage: {
-        'dot-pattern': 'radial-gradient(circle, #111111 1px, transparent 1px)',
-        'grid-pattern': 'linear-gradient(#111111 1px, transparent 1px), linear-gradient(90deg, #111111 1px, transparent 1px)',
+        'dot-pattern': 'radial-gradient(circle, rgb(var(--c-ink)) 1px, transparent 1px)',
+        'grid-pattern': 'linear-gradient(rgb(var(--c-ink)) 1px, transparent 1px), linear-gradient(90deg, rgb(var(--c-ink)) 1px, transparent 1px)',
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
       },
     },

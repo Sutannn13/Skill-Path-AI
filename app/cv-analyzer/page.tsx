@@ -55,7 +55,7 @@ const SEVERITY_STYLES: Record<
   'high' | 'medium' | 'low',
   { label: string; badge: string }
 > = {
-  high: { label: 'Penting', badge: 'bg-red text-white' },
+  high: { label: 'Penting', badge: 'bg-red text-white-static' },
   medium: { label: 'Sedang', badge: 'bg-orange text-black' },
   low: { label: 'Ringan', badge: 'bg-yellow text-black' },
 }
@@ -125,10 +125,10 @@ function AnalysisProgress({
       {/* Progress bar */}
       <div className="mb-5">
         <div className="mb-2 flex items-center justify-between">
-          <p className="text-sm font-bold text-white">
+          <p className="text-sm font-bold text-white-static">
             {hasError ? 'Terjadi kesalahan' : doneCount === total ? 'Analisis selesai!' : 'Menganalisis CV...'}
           </p>
-          <p className="text-sm font-medium text-white/70">{pct}%</p>
+          <p className="text-sm font-medium text-white-static/70">{pct}%</p>
         </div>
         <div className="h-3 w-full overflow-hidden rounded-full bg-white/20">
           <motion.div
@@ -158,10 +158,10 @@ function AnalysisProgress({
                   step.status === 'done'
                     ? 'text-green'
                     : step.status === 'running'
-                      ? 'text-white'
+                      ? 'text-white-static'
                       : step.status === 'error'
                         ? 'text-red'
-                        : 'text-white/50'
+                        : 'text-white-static/50'
                 }`}
               >
                 {step.label}
@@ -419,7 +419,7 @@ export default function CvAnalyzerPage() {
             <div className="grid gap-5 lg:grid-cols-[1.4fr_1fr]">
               {/* Dropzone */}
               <div>
-                <label className="mb-2 block font-bold text-white">Unggah CV</label>
+                <label className="mb-2 block font-bold text-white-static">Unggah CV</label>
                 <div
                   role="button"
                   tabIndex={0}
@@ -465,7 +465,7 @@ export default function CvAnalyzerPage() {
               {/* Role + level */}
               <div className="flex flex-col gap-4">
                 <div>
-                  <label htmlFor="cv-role" className="mb-2 block font-bold text-white">
+                  <label htmlFor="cv-role" className="mb-2 block font-bold text-white-static">
                     Role tujuan
                   </label>
                   <select
@@ -482,7 +482,7 @@ export default function CvAnalyzerPage() {
                   </select>
                 </div>
                 <div>
-                  <label htmlFor="cv-level" className="mb-2 block font-bold text-white">
+                  <label htmlFor="cv-level" className="mb-2 block font-bold text-white-static">
                     Level pengalaman
                   </label>
                   <select
@@ -617,12 +617,12 @@ export default function CvAnalyzerPage() {
               {/* Primary action: convert this CV to a structured ATS format */}
               <BrutalCard color="black">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="text-white">
+                  <div className="text-white-static">
                     <h3 className="flex items-center gap-2 font-display text-lg font-bold">
                       <Wand2 className="h-5 w-5 text-pink" />
                       Ubah ke CV ATS
                     </h3>
-                    <p className="text-sm text-white/70">
+                    <p className="text-sm text-white-static/70">
                       Susun ulang CV jadi format ATS-friendly yang rapi, terstruktur, dan siap dilamar — plus cover
                       letter yang sesuai.
                     </p>
@@ -800,7 +800,7 @@ export default function CvAnalyzerPage() {
                   <ol className="space-y-2">
                     {analysis.revisions.map((rev, i) => (
                       <li key={i} className="flex items-start gap-3">
-                        <span className="flex h-6 w-6 shrink-0 items-center justify-center brutal-border brutal-radius bg-black text-sm font-bold text-white">
+                        <span className="flex h-6 w-6 shrink-0 items-center justify-center brutal-border brutal-radius bg-black text-sm font-bold text-white-static">
                           {i + 1}
                         </span>
                         <span className="font-medium">{rev}</span>

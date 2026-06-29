@@ -155,7 +155,7 @@ export default function GitHubPage() {
           <BrutalCard color="black" className="mb-6">
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="flex-1">
-                <label className="block mb-2 font-bold text-white">GitHub Username</label>
+                <label className="block mb-2 font-bold text-white-static">GitHub Username</label>
                 <input
                   type="text"
                   value={username}
@@ -215,7 +215,7 @@ export default function GitHubPage() {
               <BrutalCard color="black" className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <div className="mb-2 flex flex-wrap items-center gap-2">
-                    <p className="text-sm font-bold text-white/70">Analyzed GitHub profile</p>
+                    <p className="text-sm font-bold text-white-static/70">Analyzed GitHub profile</p>
                     {analysis === mockAnalysis && (
                       <StickerBadge variant="yellow" label="Demo Analysis" size="sm" />
                     )}
@@ -223,7 +223,7 @@ export default function GitHubPage() {
                   <h2 className="font-display text-2xl font-bold">@{analysis.username}</h2>
                 </div>
                 {analyzedUsername && analyzedUsername !== analysis.username && (
-                  <p className="text-sm text-white/70">
+                  <p className="text-sm text-white-static/70">
                     GitHub resolved this search from @{analyzedUsername}.
                   </p>
                 )}
@@ -397,7 +397,7 @@ export default function GitHubPage() {
                       transition={{ delay: 0.6 + i * 0.1 }}
                       className="flex items-start gap-2"
                     >
-                      <span className="w-6 h-6 bg-black text-white brutal-radius text-center text-sm font-bold shrink-0">
+                      <span className="w-6 h-6 bg-black text-white-static brutal-radius text-center text-sm font-bold shrink-0">
                         {i + 1}
                       </span>
                       <span>{suggestion}</span>

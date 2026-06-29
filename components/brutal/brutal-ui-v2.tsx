@@ -44,7 +44,7 @@ const variantStyles: Record<StickerBadgeVariant, { bg: string; text: string; bor
   'low-risk': { bg: 'bg-green', text: 'text-black', border: 'border-black' },
   internship: { bg: 'bg-pink', text: 'text-black', border: 'border-black' },
   'fresh-graduate': { bg: 'bg-blue', text: 'text-black', border: 'border-black' },
-  'boss-fight': { bg: 'bg-red', text: 'text-white', border: 'border-black' },
+  'boss-fight': { bg: 'bg-red', text: 'text-white-static', border: 'border-black' },
   yellow: { bg: 'bg-yellow', text: 'text-black', border: 'border-black' },
   blue: { bg: 'bg-blue', text: 'text-black', border: 'border-black' },
   pink: { bg: 'bg-pink', text: 'text-black', border: 'border-black' },

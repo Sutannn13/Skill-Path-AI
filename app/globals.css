@@ -24,6 +24,81 @@
   --text-tertiary: #5C5F6B;  /* captions/hints only, >=4.5:1 */
   --text-on-dark: #FFFFFF;   /* on cabinet surfaces */
   --text-on-dark-soft: #C9CBD6; /* >=4.5:1 on cabinet */
+
+  /* Theme tokens consumed by Tailwind functional colors (rgb(var(--c-x) / <alpha>)).
+     Space-separated RGB triplets. Light values below are the EXACT previous hex so
+     light mode is pixel-identical; html.dark (below) flips them. The neutral ramp
+     mirrors Tailwind's default `gray` so bg-gray and text-gray utilities are unchanged in light. */
+  --c-bg: 255 247 230;       /* #FFF7E6 page background */
+  --c-surface: 255 255 255;  /* #FFFFFF -> bg-white */
+  --c-ink: 17 17 17;         /* #111111 -> text-black / border-black */
+  --c-shadow: 17 17 17;      /* brutal hard-offset shadow color */
+  --c-cream-l: 255 253 245;  /* #FFFDF5 */
+  --c-cream-d: 245 237 216;  /* #F5EDD8 */
+  --c-n-50: 249 250 251;
+  --c-n-100: 243 244 246;
+  --c-n-200: 229 231 235;
+  --c-n-300: 209 213 219;
+  --c-n-400: 156 163 175;
+  --c-n-500: 107 114 128;
+  --c-n-600: 75 85 99;
+  --c-n-700: 55 65 81;
+  --c-n-800: 31 41 55;
+  --c-n-900: 17 24 39;
+}
+
+/* ---- Dark theme -------------------------------------------------------------
+   Driven by `.dark` on <html> (toggled pre-paint in app/layout.tsx and at runtime
+   in lib/user/preferences.ts). Flipping these vars themes ~900 neutral utility
+   usages + the var-backed CSS classes (brutal-border/shadow, body, focus rings,
+   text-secondary) with no per-component edits. Palette reuses the cabinet family.
+   Accent brand colors (yellow/blue/...) are literal and intentionally unchanged. */
+html.dark {
+  /* Tailwind functional-color tokens */
+  --c-bg: 18 16 27;          /* #12101B page floor */
+  --c-surface: 36 31 53;     /* #241F35 = cabinet-soft, elevated card surface */
+  --c-ink: 244 244 248;      /* #F4F4F8 primary text + borders, ~13.5:1 on surface */
+  --c-shadow: 244 244 248;   /* light hard-offset shadow (arcade onDark precedent) */
+  --c-cream-l: 36 31 53;     /* cream surfaces collapse onto the elevated surface */
+  --c-cream-d: 26 23 38;     /* #1A1726 = cabinet, a touch deeper */
+  --c-n-50: 30 26 44;        /* inverted neutral ramp: 50 = darkest surface */
+  --c-n-100: 40 35 58;
+  --c-n-200: 55 49 76;       /* dividers/skeletons visible on dark */
+  --c-n-300: 82 77 104;
+  --c-n-400: 132 134 148;
+  --c-n-500: 176 178 192;    /* muted text ~7:1 on surface */
+  --c-n-600: 201 203 214;    /* secondary text = on-dark-soft #C9CBD6, ~9:1 */
+  --c-n-700: 220 221 230;
+  --c-n-800: 235 235 242;
+  --c-n-900: 244 244 248;
+
+  /* Hex vars consumed by var-backed CSS classes (.brutal-border/.brutal-shadow*,
+     body, .focus-brutal-ring, .brutal-input border + focus). --color-white stays
+     white so .focus-brutal-ring-invert keeps a light ring on cabinet surfaces. */
+  --color-background: #12101B;
+  --color-black: #F4F4F8;
+
+  /* Semantic text tokens (.text-secondary/.text-tertiary, .brutal-input color) */
+  --text-primary: #F4F4F8;
+  --text-secondary: #C9CBD6;  /* ~9:1 on surface */
+  --text-tertiary: #B0B2C0;   /* ~7:1 on surface */
+}
+
+/* Dark fixups for rules with hardcoded neutrals the var-flip can't reach. */
+html.dark .brutal-input {
+  background-color: #241F35; /* surface fill instead of var(--color-white) */
+}
+html.dark .brutal-input::placeholder {
+  color: #9A9CAC;            /* readable placeholder on dark input */
+}
+html.dark .xp-ticks {
+  background-image: repeating-linear-gradient(
+    90deg,
+    transparent 0,
+    transparent 13px,
+    rgba(255, 255, 255, 0.28) 13px,
+    rgba(255, 255, 255, 0.28) 15px
+  );
 }
 
 *,

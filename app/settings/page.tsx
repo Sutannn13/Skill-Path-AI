@@ -746,23 +746,36 @@ export default function SettingsPage() {
                   <BrutalCard color="white">
                     <SectionHeader label="Notification Preferences" icon={Bell} className="mb-6" />
 
+                    <div className="mb-6 flex items-start gap-2 rounded-md border-2 border-blue bg-blue/10 px-4 py-3">
+                      <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
+                      <p className="text-sm font-medium">
+                        Email notifications are not live yet. These controls are reserved for when delivery ships and currently have no effect.
+                      </p>
+                    </div>
+
                     <div className="space-y-4">
                       {NOTIFICATION_OPTIONS.map((item) => {
                         const enabled = preferences.notifications[item.key]
                         return (
-                          <div key={item.key} className="flex items-center justify-between gap-4 p-4 bg-cream-light brutal-border brutal-radius">
+                          <div key={item.key} className="flex items-center justify-between gap-4 p-4 bg-cream-light brutal-border brutal-radius opacity-60">
                             <div>
-                              <p className="font-bold">{item.label}</p>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <p className="font-bold">{item.label}</p>
+                                <StickerBadge variant="orange" label="Coming soon" size="sm" />
+                              </div>
                               <p className="text-sm text-secondary">{item.description}</p>
                             </div>
                             <button
                               type="button"
                               role="switch"
                               aria-checked={enabled}
-                              aria-label={item.label}
+                              aria-label={`${item.label} (coming soon)`}
+                              aria-disabled={true}
+                              disabled
+                              title="Coming soon"
                               onClick={() => toggleNotification(item.key)}
                               className={cn(
-                                'relative h-7 w-12 shrink-0 rounded-full brutal-border transition-colors',
+                                'relative h-7 w-12 shrink-0 rounded-full brutal-border transition-colors cursor-not-allowed',
                                 enabled ? 'bg-green' : 'bg-gray-300'
                               )}
                             >

@@ -36,7 +36,7 @@ const colorClasses: Record<ButtonColor, string> = {
   purple: 'bg-purple',
   black: 'bg-black text-white',
   white: 'bg-white text-black',
-  red: 'bg-red text-white',
+  red: 'bg-red text-white-static',
   gray: 'bg-gray-100 text-black',
 }
 

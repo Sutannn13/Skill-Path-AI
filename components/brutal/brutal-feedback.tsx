@@ -353,7 +353,7 @@ const confirmVariantStyles: Record<
   danger: {
     header: 'bg-red',
     icon: 'bg-white text-red',
-    confirm: 'bg-red text-white',
+    confirm: 'bg-red text-white-static',
     label: 'High impact action',
   },
   warning: {

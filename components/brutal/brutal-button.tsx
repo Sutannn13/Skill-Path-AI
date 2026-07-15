@@ -28,12 +28,12 @@ const variantClasses = {
 }
 
 const colorClasses: Record<ButtonColor, string> = {
-  yellow: 'bg-yellow',
-  blue: 'bg-blue',
-  pink: 'bg-pink',
-  green: 'bg-green',
-  orange: 'bg-orange',
-  purple: 'bg-purple',
+  yellow: 'bg-yellow text-black',
+  blue: 'bg-blue text-black',
+  pink: 'bg-pink text-black',
+  green: 'bg-green text-black',
+  orange: 'bg-orange text-black',
+  purple: 'bg-purple text-black',
   black: 'bg-black text-white',
   white: 'bg-white text-black',
   red: 'bg-red text-white-static',

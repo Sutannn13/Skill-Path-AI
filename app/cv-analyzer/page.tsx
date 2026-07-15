@@ -239,6 +239,7 @@ export default function CvAnalyzerPage() {
   // Streaming progress state
   const [steps, setSteps] = useState<AnalysisStepState[]>([])
   const [showProgress, setShowProgress] = useState(false)
+  const [isCopied, setIsCopied] = useState(false)
 
   // Extracted CV body + links, reused by improve + cover letter without re-upload.
   const [cvText, setCvText] = useState<string>('')
@@ -398,6 +399,26 @@ export default function CvAnalyzerPage() {
   const VerdictIcon = verdictStyle?.icon ?? CheckCircle2
 
   const hasStepError = steps.some((s) => s.status === 'error')
+
+  const copyPrompt = () => {
+    if (!analysis || !cvText) return
+
+    const issuesText = analysis.issues.map((i) => `- ${i.title}: ${i.fix}`).join('\n')
+    const prompt = `Tolong revisi CV saya untuk melamar posisi ${analysis.roleMatch.roleLabel} tingkat ${analysis.roleMatch.experienceLevelLabel}.
+Berikut adalah temuan kelemahan yang harus diperbaiki:
+${issuesText}
+
+Berikut adalah teks mentah CV saya saat ini:
+"""
+${cvText}
+"""
+
+Tolong berikan versi CV lengkap yang sudah direvisi dan dioptimalkan ATS sesuai masukan di atas.`
+
+    navigator.clipboard.writeText(prompt)
+    setIsCopied(true)
+    setTimeout(() => setIsCopied(false), 3000)
+  }
 
   return (
     <AppShell showBottomNav={true}>
@@ -796,17 +817,30 @@ export default function CvAnalyzerPage() {
               {/* Revisions checklist */}
               {analysis.revisions.length > 0 && (
                 <BrutalCard color="pink">
-                  <h3 className="mb-4 font-display text-lg font-bold">Checklist Revisi (urut prioritas)</h3>
-                  <ol className="space-y-2">
-                    {analysis.revisions.map((rev, i) => (
-                      <li key={i} className="flex items-start gap-3">
-                        <span className="flex h-6 w-6 shrink-0 items-center justify-center brutal-border brutal-radius bg-black text-sm font-bold text-white-static">
-                          {i + 1}
-                        </span>
-                        <span className="font-medium">{rev}</span>
-                      </li>
-                    ))}
-                  </ol>
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <h3 className="mb-4 font-display text-lg font-bold">Checklist Revisi (urut prioritas)</h3>
+                      <ol className="space-y-2">
+                        {analysis.revisions.map((rev, i) => (
+                          <li key={i} className="flex items-start gap-3">
+                            <span className="flex h-6 w-6 shrink-0 items-center justify-center brutal-border brutal-radius bg-black text-sm font-bold text-white-static">
+                              {i + 1}
+                            </span>
+                            <span className="font-medium">{rev}</span>
+                          </li>
+                        ))}
+                      </ol>
+                    </div>
+                    <div className="shrink-0 mt-4 sm:mt-0 flex flex-col sm:items-end">
+                      <BrutalButton color="black" size="sm" onClick={copyPrompt}>
+                        {isCopied ? <CheckCircle2 className="mr-2 h-4 w-4" /> : <ClipboardList className="mr-2 h-4 w-4" />}
+                        {isCopied ? 'Tersalin!' : 'Salin Prompt AI'}
+                      </BrutalButton>
+                      <p className="text-xs text-black/70 mt-2 max-w-[150px] sm:text-right">
+                        Mager revisi? Salin prompt ini ke ChatGPT/Claude!
+                      </p>
+                    </div>
+                  </div>
                 </BrutalCard>
               )}
 

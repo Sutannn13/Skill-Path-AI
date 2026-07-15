@@ -172,3 +172,6 @@ Verify reachability of relevant files in Layer 1 to Layer 9 before generating im
 - Before deploy: check policy thresholds.
 - Before major refactor: read `architecture-map.md`.
 - Before UI implementation: confirm valid style context, design contract, and required docs.
+### Neobrutalist UI Constraints & WCAG Compliance
+1. **Contrast Guarantee**: All bright or pastel background utility classes (g-pink, g-yellow, g-green, etc.) used in Neobrutalist components (Cards, Buttons, Badges) MUST explicitly declare 	ext-black (or an equivalently dark shade) to guarantee WCAG AA contrast ratios. Never assume inheritance will cover it.
+2. **Ponytail Performance (CSS vs JS)**: Prioritize pure CSS for micro-animations (e.g., group-hover:-translate-x-1, 	ransition-transform) over JavaScript animation libraries like ramer-motion, especially for above-the-fold or heavily repeated navigation elements. Reserve JS animations only for complex, multi-stage layout shifts. This minimizes Total Blocking Time (TBT) and unused JS payloads.

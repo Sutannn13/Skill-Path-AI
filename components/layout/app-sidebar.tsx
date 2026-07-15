@@ -52,6 +52,98 @@ const EMPTY_SIDEBAR_PROFILE: SidebarUserProfile = {
   avatarUrl: null,
 }
 
+function CatMascot() {
+  const [showDialog, setShowDialog] = useState(false)
+  // Use useMemo to avoid dependency warnings if passed to useEffect
+  const dialogs = useMemo(() => [
+    "Ship it! 🚀", 
+    "Keep grinding! 💻", 
+    "You're a rockstar! 🌟", 
+    "Meow! 🐱", 
+    "Looking brutal! ⬛",
+    "Drink water! 💧",
+    "Stretch your back! 🐈"
+  ], [])
+  
+  const [text, setText] = useState(dialogs[0])
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setText(dialogs[Math.floor(Math.random() * dialogs.length)])
+      setShowDialog(true)
+      setTimeout(() => setShowDialog(false), 4000)
+    }, 25000)
+    return () => clearInterval(interval)
+  }, [dialogs])
+
+  return (
+    <div className="absolute -top-[46px] right-2 z-50">
+      <AnimatePresence>
+        {showDialog && (
+          <motion.div
+            initial={{ opacity: 0, y: 10, scale: 0.8 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8, transition: { duration: 0.2 } }}
+            className="absolute -top-12 -right-6 w-36 bg-white brutal-border brutal-radius p-2 text-center text-[11px] font-bold shadow-[2px_2px_0_0_rgba(0,0,0,1)] pointer-events-none"
+          >
+            {text}
+            <div className="absolute -bottom-[5px] right-10 w-2 h-2 border-b-2 border-r-2 border-black bg-white rotate-45" />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <motion.div
+        whileHover={{ y: -4 }}
+        onHoverStart={() => {
+          setText(dialogs[Math.floor(Math.random() * dialogs.length)])
+          setShowDialog(true)
+        }}
+        onHoverEnd={() => setShowDialog(false)}
+        className="relative h-12 w-12 cursor-pointer drop-shadow-[2px_2px_0_rgba(0,0,0,1)]"
+      >
+        <svg viewBox="0 0 100 100" className="w-full h-full overflow-visible">
+          {/* Tail */}
+          <motion.path 
+            d="M 80 80 Q 110 80 110 50" 
+            fill="none" 
+            stroke="black" 
+            strokeWidth="6" 
+            strokeLinecap="round"
+            animate={{ rotate: [0, 15, 0] }}
+            transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
+            style={{ transformOrigin: "80px 80px" }}
+          />
+          
+          {/* Body/Head block */}
+          <path d="M 20 30 L 20 80 L 80 80 L 80 30 L 65 30 L 80 10 L 50 25 L 20 10 L 35 30 Z" className="fill-white stroke-black stroke-[4]" strokeLinejoin="round" />
+          
+          {/* Ears inner */}
+          <path d="M 25 18 L 32 28 L 22 28 Z" className="fill-pink stroke-black stroke-[3]" strokeLinejoin="round" />
+          <path d="M 75 18 L 68 28 L 78 28 Z" className="fill-pink stroke-black stroke-[3]" strokeLinejoin="round" />
+
+          {/* Eyes (blinking) */}
+          <motion.g
+            animate={{ scaleY: [1, 1, 0.1, 1, 1] }}
+            transition={{ repeat: Infinity, duration: 4, times: [0, 0.45, 0.5, 0.55, 1] }}
+            style={{ transformOrigin: "50% 50%" }}
+          >
+            <circle cx="35" cy="45" r="4" fill="black" />
+            <circle cx="65" cy="45" r="4" fill="black" />
+          </motion.g>
+
+          {/* Nose & Mouth */}
+          <path d="M 45 55 L 55 55 L 50 60 Z" className="fill-yellow stroke-black stroke-[2]" strokeLinejoin="round" />
+          <path d="M 50 60 Q 45 65 40 62 M 50 60 Q 55 65 60 62" fill="none" stroke="black" strokeWidth="2" strokeLinecap="round" />
+
+          {/* Paws over the edge */}
+          <rect x="25" y="75" width="15" height="12" rx="4" className="fill-white stroke-black stroke-[3]" />
+          <rect x="60" y="75" width="15" height="12" rx="4" className="fill-white stroke-black stroke-[3]" />
+        </svg>
+      </motion.div>
+    </div>
+  )
+}
+
 function useResolvedSidebarProfile(userProfile?: SidebarUserProfile) {
   const supabase = useMemo(() => createSupabaseBrowserClient(), [])
   const [resolvedProfile, setResolvedProfile] = useState<SidebarUserProfile>(
@@ -126,7 +218,8 @@ function SidebarProgressWidget({
   const safeProgress = Math.max(0, Math.min(100, Math.round(progress)))
 
   return (
-    <div className="relative mb-4 overflow-hidden bg-gradient-to-br from-yellow/50 via-yellow/25 to-pink/20 p-3 brutal-border brutal-radius shadow-brutal-sm">
+    <div className="relative mb-4 bg-gradient-to-br from-yellow/50 via-yellow/25 to-pink/20 p-3 brutal-border brutal-radius shadow-brutal-sm mt-4">
+      <CatMascot />
       {/* Level Header */}
       <div className="flex items-center gap-3">
         <div className="flex h-12 w-12 items-center justify-center bg-gradient-to-br from-yellow to-orange brutal-border brutal-radius shadow-[2px_2px_0_0_rgba(0,0,0,0.9)]">
@@ -264,7 +357,7 @@ export function DesktopSidebar({ className, userProfile }: DesktopSidebarProps) 
   return (
     <aside
       className={cn(
-        'fixed inset-y-0 left-0 z-40 hidden w-[280px] flex-col overflow-hidden border-r-3 border-black bg-white lg:flex',
+        'fixed inset-y-0 left-0 z-40 hidden w-[280px] flex-col border-r-3 border-black bg-white lg:flex',
         className
       )}
     >

@@ -101,7 +101,7 @@ function CatMascot() {
         onHoverEnd={() => setShowDialog(false)}
         className="relative h-12 w-12 cursor-pointer drop-shadow-[2px_2px_0_rgba(0,0,0,1)]"
       >
-        <svg viewBox="0 0 100 100" className="w-full h-full overflow-visible">
+        <svg viewBox="-10 -10 130 120" className="w-full h-full overflow-visible">
           {/* Tail */}
           <motion.path 
             d="M 80 80 Q 110 80 110 50" 
@@ -301,7 +301,7 @@ function NavItem({ href, icon: Icon, label, accent = 'yellow', badge, isCollapse
     >
       <span
         className={cn(
-          'flex h-9 w-9 shrink-0 items-center justify-center brutal-radius transition-all',
+          'flex h-9 w-9 shrink-0 items-center justify-center brutal-radius transition-transform duration-200 group-hover:-rotate-[8deg] group-hover:scale-110',
           isActive
             ? 'bg-white brutal-border shadow-[2px_2px_0_0_rgba(0,0,0,0.9)]'
             : cn(styles.idleTile, 'border-2 border-black/15 group-hover:border-black')

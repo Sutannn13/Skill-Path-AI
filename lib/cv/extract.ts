@@ -66,7 +66,9 @@ async function extractPdf(buffer: Buffer): Promise<RawExtract> {
   // both of which break in Vercel's serverless environment.
   const { extractPdfText } = await import('./pdf-extract')
   const result = await extractPdfText(buffer)
-  return { text: result.text, links: result.links }
+  // Parse the text which now includes [HIDDEN_LINKS: ...] from annotations
+  const links = extractLinks({ text: result.text })
+  return { text: result.text, links }
 }
 
 async function extractDocx(buffer: Buffer): Promise<RawExtract> {

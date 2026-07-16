@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh pr create --base main --head fix/cv-analyzer-ai-path --title 'fix\\(cv\\): repair Gemini AI path, sharper screening, reliable link detection' --body ' *)"
+    ]
+  }
+}

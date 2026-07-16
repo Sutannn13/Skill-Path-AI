@@ -16,8 +16,15 @@ const GEMINI_TIMEOUT_MS = 20000
 const GEMINI_MAX_ATTEMPTS = 3
 const GEMINI_BASE_BACKOFF_MS = 400
 // Cap the resume text we send so a huge multi-page PDF can't blow the prompt
-// budget. ~14k chars is roughly 3-4 dense resume pages.
-const MAX_CV_PROMPT_CHARS = 14000
+// budget. ~18k chars is roughly 4-5 dense resume pages — enough that the model
+// sees the whole CV, not a truncated head.
+const MAX_CV_PROMPT_CHARS = 18000
+// Gemini 2.5/3.x flash models spend "thinking" tokens out of the same budget as
+// the visible answer. Cap thinking so JSON output always has room, and keep the
+// total high enough that a long audit never truncates to empty (finishReason
+// MAX_TOKENS), which would silently drop us to the heuristic fallback.
+const GEMINI_THINKING_BUDGET = 2048
+const GEMINI_MAX_OUTPUT_TOKENS = 8192
 
 // Control chars (0x00-0x1F except TAB/LF/CR, plus 0x7F DEL) stripped before
 // prompting. Built via new RegExp from \u escapes so the source stays ASCII.
@@ -130,15 +137,18 @@ ${describeLinks(input.links ?? [])}
 ${ATS_FORMAT_DIRECTIVE}
 
 INSTRUCTIONS:
-- Audit the CV ONLY for fitness to apply as a ${roleLabel} at ${levelLabel} level.
-- Be specific and reference what is actually in the CV. Do NOT invent experience the candidate does not have.
-- Judge honestly: an underqualified or generic CV must score low.
+- Audit the CV ONLY for fitness to apply as a ${roleLabel} at ${levelLabel} level. Everything you say must be tailored to THIS role and THIS level, not generic resume advice.
+- GROUND EVERY CLAIM IN THE ACTUAL CV. When you praise or criticize something, quote or name the concrete evidence: the real project name, company, tech, or phrasing you saw. A judgement with no citation from the CV text is forbidden.
+- Cross-check the stated target level against the evidence: if the CV shows less depth than ${levelLabel} demands (per the LEVEL EXPECTATION above), say so explicitly and lower the score; if it exceeds the level, note the candidate could aim higher.
+- Do NOT invent experience, employers, metrics, or skills the candidate does not have. Never assume a skill is present just because it is common for the role — only credit what the CV actually shows.
+- Judge honestly and use the full 0-100 range: a generic, underqualified, or role-mismatched CV MUST score low (below 55). Do not inflate scores to be nice.
 - Write ALL human-readable text (summary, feedback, titles, fixes, revisions) in Bahasa Indonesia, natural and clear.
-- "issues" must be concrete problems with an actionable "fix" each. "revisions" are short, ordered, copy-paste-ready instructions (e.g. "Ganti 'mengerjakan tugas' jadi 'membangun fitur X yang menaikkan retensi 20%'").
-- "sections" should cover: Kontak, Ringkasan, Pengalaman, Pendidikan, Skill, Proyek, Tautan (mark present/absent honestly).
-- Comment on the detected hyperlinks: for technical roles, note if GitHub/portfolio is missing; if a portfolio link exists, treat it as a strength.
+- "summary" (2-4 kalimat): name the candidate's actual strongest evidence for this role and the single biggest gap, referencing real content from the CV.
+- "issues" must be concrete problems tied to something specific in the CV, each with an actionable "fix". "revisions" are short, ordered, copy-paste-ready instructions that rewrite the candidate's OWN lines (e.g. "Ganti 'mengerjakan tugas backend' jadi 'Membangun 8 endpoint REST di proyek Koperasi App (Laravel) yang dipakai 300+ user'"). Base every revision on text that exists in the CV.
+- "sections" should cover: Kontak, Ringkasan, Pengalaman, Pendidikan, Skill, Proyek, Tautan (mark present/absent honestly, and in "feedback" cite what you actually saw in each section).
+- Comment on the detected hyperlinks: for a ${roleLabel}, a live GitHub/portfolio is important — if it is missing, flag it as a real issue; if a portfolio/GitHub link exists, treat it as a concrete strength and reference it.
 - "ats" score MUST reflect compliance with the ATS formatting rules above (clear sections, single-column, no tables/images-as-text, contact info parseable, standard headings, action-verb bullets).
-- "overallScore" 0-100 reflects readiness to apply for this specific role and level.
+- "overallScore" 0-100 reflects readiness to apply for this specific role and level, weighing skill match, evidence depth, and level fit.
 
 CV TEXT:
 """
@@ -185,8 +195,9 @@ export async function analyzeCvWithGemini(input: {
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: {
             temperature: 0.4,
-            maxOutputTokens: 4096,
+            maxOutputTokens: GEMINI_MAX_OUTPUT_TOKENS,
             responseMimeType: 'application/json',
+            thinkingConfig: { thinkingBudget: GEMINI_THINKING_BUDGET },
           },
         }),
         signal: controller.signal,
@@ -216,7 +227,16 @@ export async function analyzeCvWithGemini(input: {
   try {
     const data = await response.json()
     const generatedText: string | undefined = data.candidates?.[0]?.content?.parts?.[0]?.text
-    if (!generatedText) return null
+    if (!generatedText) {
+      // Empty text is the silent-fallback trap: log why so it's visible in
+      // Vercel logs instead of degrading to the heuristic without a trace.
+      console.error('[CV] Gemini returned empty text:', {
+        finishReason: data.candidates?.[0]?.finishReason,
+        usageMetadata: data.usageMetadata,
+        promptFeedback: data.promptFeedback,
+      })
+      return null
+    }
 
     const cleaned = generatedText.replace(/```json\n?|```\n?/g, '').trim()
     const parsed = JSON.parse(cleaned)

@@ -13,6 +13,9 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY
 const GEMINI_TIMEOUT_MS = 22000
 const GEMINI_MAX_ATTEMPTS = 3
 const GEMINI_BASE_BACKOFF_MS = 400
+// Thinking token cap shared by every CV generator. Keep it well under the
+// output budget so the visible JSON answer always fits.
+const GEMINI_THINKING_BUDGET = 2048
 
 export function hasGeminiKey(): boolean {
   return Boolean(GEMINI_API_KEY)
@@ -44,7 +47,7 @@ export async function callGeminiJson(
 ): Promise<string | null> {
   if (!GEMINI_API_KEY) return null
 
-  const { temperature = 0.5, maxOutputTokens = 4096, label = 'CV' } = options
+  const { temperature = 0.5, maxOutputTokens = 8192, label = 'CV' } = options
   let response: Response | null = null
 
   for (let attempt = 1; attempt <= GEMINI_MAX_ATTEMPTS; attempt++) {
@@ -61,6 +64,11 @@ export async function callGeminiJson(
             temperature,
             maxOutputTokens,
             responseMimeType: 'application/json',
+            // Gemini 2.5/3.x flash spend "thinking" tokens out of maxOutputTokens.
+            // Cap thinking so the JSON answer always has room; otherwise a long
+            // generation truncates to empty text (finishReason MAX_TOKENS) and we
+            // silently fall back to the deterministic path.
+            thinkingConfig: { thinkingBudget: GEMINI_THINKING_BUDGET },
           },
         }),
         signal: controller.signal,
@@ -90,7 +98,16 @@ export async function callGeminiJson(
   try {
     const data = await response.json()
     const generatedText: string | undefined = data.candidates?.[0]?.content?.parts?.[0]?.text
-    if (!generatedText) return null
+    if (!generatedText) {
+      // Surface WHY the model returned no text so a silent fallback is visible in
+      // Vercel logs. MAX_TOKENS here means thinking consumed the whole budget.
+      console.error(`[${label}] Gemini returned empty text:`, {
+        finishReason: data.candidates?.[0]?.finishReason,
+        promptFeedback: data.promptFeedback,
+        usageMetadata: data.usageMetadata,
+      })
+      return null
+    }
     return generatedText.replace(/```json\n?|```\n?/g, '').trim()
   } catch (error) {
     console.error(`[${label}] Gemini response parse failed:`, error instanceof Error ? error.message : 'unknown')
